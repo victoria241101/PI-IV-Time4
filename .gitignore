@@ -1,0 +1,9 @@
+# Configurações locais do editor
+.idea/
+
+# Dados mockados e integrações locais que não devem ser versionados
+/gitignore/
+
+# Arquivos gerados pelo Flutter
+frontend/.dart_tool/
+frontend/build/
