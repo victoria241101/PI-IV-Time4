@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema_app.dart';
 import 'package:pet_care/modelos/dados_banner.dart';
+import 'package:pet_care/modelos/detalhes_pet.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
 import 'package:pet_care/screens/tutor/inicio_tutor.dart';
@@ -29,6 +30,10 @@ InicioTutor criarInicioTutorLocal() {
     onConfirmarConsulta: (consultaId) async {
       final consultaAtualizada = await dados.confirmarConsulta(consultaId);
       return ResumoConsulta.fromMap(consultaAtualizada);
+    },
+    carregarDetalhesPet: (petId) async {
+      final detalhes = await dados.carregarDetalhesPet(petId);
+      return DetalhesPet.fromMap(detalhes);
     },
   );
 }

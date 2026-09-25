@@ -15,7 +15,7 @@ class ComportamentoRolagemApp extends MaterialScrollBehavior {
     Widget child,
     ScrollableDetails details,
   ) {
-    // Sem indicador de overscroll (glow/stretch).
+    // Sem indicador de overscroll (glow/stretch)
     return child;
   }
 }

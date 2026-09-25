@@ -5,6 +5,7 @@ import 'package:pet_care/core/espacamentos_app.dart';
 import 'package:pet_care/modelos/dados_banner.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
+import 'package:pet_care/screens/tutor/pagina_detalhes_pet.dart';
 import 'package:pet_care/widgets/botao_acao_com_icone.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
 import 'package:pet_care/widgets/carrossel_banners.dart';
@@ -29,11 +30,11 @@ class InicioTutor extends StatefulWidget {
     required this.proximaConsulta,
     required this.banners,
     required this.onConfirmarConsulta,
+    required this.carregarDetalhesPet,
     this.onReagendarConsulta,
     this.onCancelarConsulta,
     this.onAgendarNovaConsulta,
     this.onNotificacoes,
-    this.onPetTap,
   });
 
   final String saudacao;
@@ -42,11 +43,11 @@ class InicioTutor extends StatefulWidget {
   final ResumoConsulta proximaConsulta;
   final List<DadosBanner> banners;
   final ConfirmarConsulta onConfirmarConsulta;
+  final CarregarDetalhesPet carregarDetalhesPet;
   final AcaoConsulta? onReagendarConsulta;
   final AcaoConsulta? onCancelarConsulta;
   final VoidCallback? onAgendarNovaConsulta;
   final VoidCallback? onNotificacoes;
-  final ValueChanged<ResumoPet>? onPetTap;
 
   @override
   State<InicioTutor> createState() => _EstadoInicioTutor();
@@ -91,6 +92,17 @@ class _EstadoInicioTutor extends State<InicioTutor> {
               Navigator.of(context).pop();
               await widget.onCancelarConsulta!(_proximaConsulta.id);
             },
+    );
+  }
+
+  void _abrirDetalhesPet(ResumoPet pet) {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PaginaDetalhesPet(
+          pet: pet,
+          carregarDetalhes: widget.carregarDetalhesPet,
+        ),
+      ),
     );
   }
 
@@ -176,7 +188,10 @@ class _EstadoInicioTutor extends State<InicioTutor> {
               const SizedBox(height: EspacamentosApp.xl),
               const TituloSecao(title: 'Meus pets'),
               const SizedBox(height: EspacamentosApp.md),
-              ListaHorizontalPets(pets: widget.pets, onPetTap: widget.onPetTap),
+              ListaHorizontalPets(
+                pets: widget.pets,
+                onPetTap: _abrirDetalhesPet,
+              ),
               const SizedBox(height: EspacamentosApp.xl),
               const TituloSecao(title: 'Próxima consulta'),
               const SizedBox(height: EspacamentosApp.md),
