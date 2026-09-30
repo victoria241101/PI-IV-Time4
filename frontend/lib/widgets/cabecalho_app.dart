@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 
-import 'package:pet_care/core/cores_app.dart';
-import 'package:pet_care/core/espacamentos_app.dart';
-import 'package:pet_care/core/tipografia_app.dart';
+import 'package:pet_care/core/tema/cores_app.dart';
+import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/core/tema/tipografia_app.dart';
 
 /// Cabeçalho reutilizável com avatar, saudação e ícone de notificações.
 class CabecalhoApp extends StatelessWidget {

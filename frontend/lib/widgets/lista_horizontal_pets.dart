@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/modelos/resumo_pet.dart';
-import 'package:pet_care/core/espacamentos_app.dart';
+import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/cartao_pet.dart';
 
 /// Lista deslizável de pets

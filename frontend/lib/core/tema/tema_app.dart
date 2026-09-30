@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
-import 'package:pet_care/core/cores_app.dart';
+import 'package:pet_care/core/tema/cores_app.dart';
 
 /// Tema global do aplicativo
 abstract final class TemaApp {

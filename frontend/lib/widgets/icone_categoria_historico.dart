@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
-import 'package:pet_care/core/cores_app.dart';
-import 'package:pet_care/core/espacamentos_app.dart';
+import 'package:pet_care/core/tema/cores_app.dart';
+import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/detalhes_pet.dart';
 
 String nomeCategoriaHistorico(CategoriaHistoricoPet categoria) {

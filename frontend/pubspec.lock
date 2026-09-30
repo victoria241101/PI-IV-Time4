@@ -107,13 +107,6 @@ packages:
     description: flutter
     source: sdk
     version: "0.0.0"
-  fonte_dados_tutor:
-    dependency: "direct main"
-    description:
-      path: "../gitignore"
-      relative: true
-    source: path
-    version: "0.0.0"
   google_fonts:
     dependency: "direct main"
     description:

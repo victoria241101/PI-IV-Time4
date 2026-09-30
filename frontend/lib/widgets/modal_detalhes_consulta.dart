@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/modelos/resumo_consulta.dart';
-import 'package:pet_care/core/cores_app.dart';
-import 'package:pet_care/core/espacamentos_app.dart';
-import 'package:pet_care/core/tipografia_app.dart';
+import 'package:pet_care/core/tema/cores_app.dart';
+import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
