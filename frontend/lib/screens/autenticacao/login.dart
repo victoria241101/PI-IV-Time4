@@ -7,6 +7,8 @@ import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/botao_navegacao_compacto.dart';
 import 'package:pet_care/widgets/cartao_base.dart';
 
+import 'cadastro.dart';
+
 class LoginScreen extends StatelessWidget {
   const LoginScreen({super.key});
 
