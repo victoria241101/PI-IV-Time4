@@ -47,11 +47,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
             horizontal: EspacamentosApp.pagePadding,
             vertical: EspacamentosApp.xl,
           ),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(
-              maxWidth: 500,
-            ),
-            child: Form(
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 500,
+              ),
+              child: Form(
               key: _formKey,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -383,6 +384,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
           ),
         ),
       ),
+    )
     );
   }
 }
