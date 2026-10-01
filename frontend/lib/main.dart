@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
 import 'package:pet_care/screens/gerais/splash_screen.dart';
+import 'package:pet_care/screens/autenticacao/login.dart';
+import 'package:pet_care/screens/autenticacao/cadastro.dart';
 
 void main() {
   runApp(
@@ -26,7 +28,13 @@ class AplicativoVeterinaria extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       scrollBehavior: const ComportamentoRolagemApp(),
       theme: TemaApp.light,
+
       home: home,
+
+      routes: {
+        '/login': (context) => const LoginScreen(),
+        '/cadastro': (context) => const CadastroScreen(),
+      },
     );
   }
 }
