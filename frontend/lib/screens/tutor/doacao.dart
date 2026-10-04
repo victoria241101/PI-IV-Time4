@@ -5,7 +5,6 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import 'package:pet_care/widgets/cartao_campanha.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
-import 'package:pet_care/widgets/titulo_secao.dart';
 
 class Doacao extends StatefulWidget {
   const Doacao({super.key});
@@ -59,6 +58,7 @@ class _DoacaoState extends State<Doacao> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
+              // Cabeçalho
               const CabecalhoApp(
                 greeting: 'Cuide. Ajude. Transforme.',
                 name: '',
@@ -66,6 +66,7 @@ class _DoacaoState extends State<Doacao> {
 
               const SizedBox(height: EspacamentosApp.xl),
 
+              // Título principal
               const Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -73,14 +74,17 @@ class _DoacaoState extends State<Doacao> {
                 child: Text(
                   'Doações',
                   style: TextStyle(
-                    fontSize: 28,
+                    fontSize: 30,
                     fontWeight: FontWeight.w700,
+                    color: CoresApp.darkBlue,
+                    height: 1.15,
                   ),
                 ),
               ),
 
               const SizedBox(height: EspacamentosApp.sm),
 
+              // Descrição
               const Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -89,24 +93,32 @@ class _DoacaoState extends State<Doacao> {
                   'Ajude animais que precisam de cuidados veterinários.',
                   style: TextStyle(
                     fontSize: 16,
-                    height: 1.4,
+                    height: 1.45,
+                    color: CoresApp.textSecondary,
                   ),
                 ),
               ),
 
               const SizedBox(height: EspacamentosApp.xl),
 
+              // Título da seção
               const Padding(
                 padding: EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
                 ),
-                child: TituloSecao(
-                  title: 'Campanhas ativas',
+                child: Text(
+                  'Campanhas ativas',
+                  style: TextStyle(
+                    fontSize: 21,
+                    fontWeight: FontWeight.w700,
+                    color: CoresApp.darkBlue,
+                  ),
                 ),
               ),
 
               const SizedBox(height: EspacamentosApp.md),
 
+              // Campanhas
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
