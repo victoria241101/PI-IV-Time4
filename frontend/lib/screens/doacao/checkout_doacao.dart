@@ -23,38 +23,36 @@ class CheckoutDoacao extends StatefulWidget {
 }
 
 class _CheckoutDoacaoState extends State<CheckoutDoacao> {
-  String _formaPagamento = 'Pix';
-
+  String _formaPagamento = 'pix';
   bool _processando = false;
 
   String _formatarValor(double valor) {
     return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
-  Future<void> _confirmarDoacao() async {
+  void _confirmarDoacao() {
+    if (_processando) return;
+
     setState(() {
       _processando = true;
     });
 
-    // Simulação de processamento do pagamento.
-    await Future.delayed(const Duration(seconds: 1));
+    // Fluxo visual do MVP.
+    // O pagamento real será conectado ao backend posteriormente.
+    Future.delayed(const Duration(milliseconds: 700), () {
+      if (!mounted) return;
 
-    if (!mounted) return;
-
-    setState(() {
-      _processando = false;
-    });
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => ConfirmacaoDoacao(
-          nomeAnimal: widget.nomeAnimal,
-          titulo: widget.titulo,
-          valorDoacao: widget.valorDoacao,
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute<void>(
+          builder: (_) => ConfirmacaoDoacao(
+            nomeAnimal: widget.nomeAnimal,
+            titulo: widget.titulo,
+            valorDoacao: widget.valorDoacao,
+          ),
         ),
-      ),
-    );
+      );
+    });
   }
 
   @override
@@ -74,7 +72,7 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
           ),
         ),
         title: const Text(
-          'Checkout',
+          'Revisar doação',
           style: TextStyle(
             fontWeight: FontWeight.w700,
             color: CoresApp.darkBlue,
@@ -83,14 +81,17 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(
+          padding: const EdgeInsets.fromLTRB(
             EspacamentosApp.pagePadding,
+            EspacamentosApp.sm,
+            EspacamentosApp.pagePadding,
+            EspacamentosApp.xxl,
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               const Text(
-                'Revise sua doação',
+                'Confira os detalhes',
                 style: TextStyle(
                   fontSize: 24,
                   fontWeight: FontWeight.w800,
@@ -103,7 +104,7 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
               ),
 
               const Text(
-                'Confira os detalhes antes de confirmar sua contribuição.',
+                'Revise sua contribuição antes de confirmar.',
                 style: TextStyle(
                   fontSize: 14,
                   height: 1.4,
@@ -112,13 +113,13 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
               ),
 
               const SizedBox(
-                height: EspacamentosApp.xl,
+                height: EspacamentosApp.lg,
               ),
 
               _ResumoCampanha(
                 nomeAnimal: widget.nomeAnimal,
                 titulo: widget.titulo,
-                valor: widget.valorDoacao,
+                valorDoacao: widget.valorDoacao,
               ),
 
               const SizedBox(
@@ -128,7 +129,7 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
               const Text(
                 'Forma de pagamento',
                 style: TextStyle(
-                  fontSize: 17,
+                  fontSize: 16,
                   fontWeight: FontWeight.w800,
                   color: CoresApp.darkBlue,
                 ),
@@ -140,12 +141,12 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
 
               _OpcaoPagamento(
                 titulo: 'Pix',
-                subtitulo: 'Pagamento instantâneo',
+                descricao: 'Pagamento instantâneo',
                 icone: Icons.pix_rounded,
-                selecionado: _formaPagamento == 'Pix',
+                selecionado: _formaPagamento == 'pix',
                 onTap: () {
                   setState(() {
-                    _formaPagamento = 'Pix';
+                    _formaPagamento = 'pix';
                   });
                 },
               ),
@@ -156,12 +157,12 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
 
               _OpcaoPagamento(
                 titulo: 'Cartão',
-                subtitulo: 'Crédito ou débito',
+                descricao: 'Crédito ou débito',
                 icone: Icons.credit_card_rounded,
-                selecionado: _formaPagamento == 'Cartão',
+                selecionado: _formaPagamento == 'cartao',
                 onTap: () {
                   setState(() {
-                    _formaPagamento = 'Cartão';
+                    _formaPagamento = 'cartao';
                   });
                 },
               ),
@@ -176,30 +177,117 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
                   EspacamentosApp.md,
                 ),
                 decoration: BoxDecoration(
-                  color: CoresApp.primary.withAlpha(18),
+                  color: CoresApp.primary.withAlpha(12),
                   borderRadius: BorderRadius.circular(16),
                   border: Border.all(
-                    color: CoresApp.primary.withAlpha(35),
+                    color: CoresApp.primary.withAlpha(25),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Icon(
+                    const Icon(
                       Icons.lock_outline_rounded,
                       color: CoresApp.primary,
                       size: 21,
                     ),
-                    SizedBox(width: 10),
+                    const SizedBox(width: 10),
                     Expanded(
                       child: Text(
-                        'Esta etapa é uma simulação para o projeto PetCare. Nenhuma cobrança real será realizada.',
-                        style: TextStyle(
+                        'Esta é uma etapa de demonstração. '
+                            'O processamento real do pagamento será '
+                            'conectado ao backend posteriormente.',
+                        style: const TextStyle(
                           fontSize: 12,
-                          height: 1.4,
+                          height: 1.45,
                           color: CoresApp.textSecondary,
                         ),
                       ),
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(
+                height: EspacamentosApp.xl,
+              ),
+
+              Container(
+                width: double.infinity,
+                padding: const EdgeInsets.all(
+                  EspacamentosApp.lg,
+                ),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                    color: Colors.black.withAlpha(10),
+                  ),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withAlpha(8),
+                      blurRadius: 20,
+                      offset: const Offset(0, 8),
+                    ),
+                  ],
+                ),
+                child: Column(
+                  children: [
+                    Row(
+                      mainAxisAlignment:
+                      MainAxisAlignment.spaceBetween,
+                      children: [
+                        const Text(
+                          'Valor da doação',
+                          style: TextStyle(
+                            fontSize: 14,
+                            color: CoresApp.textSecondary,
+                          ),
+                        ),
+                        Text(
+                          _formatarValor(widget.valorDoacao),
+                          style: const TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: CoresApp.darkBlue,
+                          ),
+                        ),
+                      ],
+                    ),
+
+                    const SizedBox(
+                      height: EspacamentosApp.md,
+                    ),
+
+                    Divider(
+                      height: 1,
+                      color: Colors.black.withAlpha(10),
+                    ),
+
+                    const SizedBox(
+                      height: EspacamentosApp.md,
+                    ),
+
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.volunteer_activism_outlined,
+                          color: CoresApp.primary,
+                          size: 21,
+                        ),
+                        const SizedBox(width: 10),
+                        Expanded(
+                          child: Text(
+                            'Sua contribuição ajudará '
+                                '${widget.nomeAnimal}.',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              height: 1.4,
+                              color: CoresApp.textSecondary,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -218,9 +306,9 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
                       : _confirmarDoacao,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: CoresApp.darkBlue,
-                    foregroundColor: Colors.white,
                     disabledBackgroundColor:
-                    CoresApp.darkBlue.withAlpha(120),
+                    CoresApp.darkBlue.withAlpha(100),
+                    foregroundColor: Colors.white,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
@@ -235,24 +323,21 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
                       color: Colors.white,
                     ),
                   )
-                      : Row(
+                      : const Row(
                     mainAxisAlignment:
                     MainAxisAlignment.center,
                     children: [
-                      const Text(
+                      Text(
                         'Confirmar doação',
                         style: TextStyle(
                           fontSize: 16,
                           fontWeight: FontWeight.w700,
                         ),
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _formatarValor(widget.valorDoacao),
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w800,
-                        ),
+                      SizedBox(width: 10),
+                      Icon(
+                        Icons.check_rounded,
+                        size: 20,
                       ),
                     ],
                   ),
@@ -270,12 +355,12 @@ class _ResumoCampanha extends StatelessWidget {
   const _ResumoCampanha({
     required this.nomeAnimal,
     required this.titulo,
-    required this.valor,
+    required this.valorDoacao,
   });
 
   final String nomeAnimal;
   final String titulo;
-  final double valor;
+  final double valorDoacao;
 
   String _formatarValor(double valor) {
     return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
@@ -286,102 +371,77 @@ class _ResumoCampanha extends StatelessWidget {
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.all(
-        EspacamentosApp.md,
+        EspacamentosApp.lg,
       ),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(20),
         border: Border.all(
-          color: Colors.grey.withAlpha(35),
+          color: Colors.black.withAlpha(10),
         ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withAlpha(8),
-            blurRadius: 18,
-            offset: const Offset(0, 6),
+            blurRadius: 20,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Column(
+      child: Row(
         children: [
-          Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: CoresApp.primary.withAlpha(25),
-                  borderRadius: BorderRadius.circular(14),
-                ),
-                child: const Icon(
-                  Icons.pets_rounded,
-                  color: CoresApp.primary,
-                ),
-              ),
-              const SizedBox(
-                width: EspacamentosApp.md,
-              ),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      nomeAnimal,
-                      style: const TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w800,
-                        color: CoresApp.darkBlue,
-                      ),
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      titulo,
-                      style: const TextStyle(
-                        fontSize: 13,
-                        height: 1.3,
-                        color: CoresApp.textSecondary,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+          Container(
+            width: 58,
+            height: 58,
+            decoration: BoxDecoration(
+              color: CoresApp.primary.withAlpha(22),
+              borderRadius: BorderRadius.circular(17),
+            ),
+            child: const Icon(
+              Icons.pets_rounded,
+              color: CoresApp.primary,
+              size: 30,
+            ),
           ),
 
           const SizedBox(
-            height: EspacamentosApp.md,
+            width: EspacamentosApp.md,
           ),
 
-          Divider(
-            color: Colors.grey.withAlpha(35),
-            height: 1,
-          ),
-
-          const SizedBox(
-            height: EspacamentosApp.md,
-          ),
-
-          Row(
-            mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
-            children: [
-              const Text(
-                'Valor da doação',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: CoresApp.textSecondary,
+          Expanded(
+            child: Column(
+              crossAxisAlignment:
+              CrossAxisAlignment.start,
+              children: [
+                Text(
+                  nomeAnimal,
+                  style: const TextStyle(
+                    fontSize: 17,
+                    fontWeight: FontWeight.w800,
+                    color: CoresApp.darkBlue,
+                  ),
                 ),
-              ),
-              Text(
-                _formatarValor(valor),
-                style: const TextStyle(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w800,
-                  color: CoresApp.primary,
+                const SizedBox(height: 4),
+                Text(
+                  titulo,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    fontSize: 13,
+                    height: 1.35,
+                    color: CoresApp.textSecondary,
+                  ),
                 ),
-              ),
-            ],
+                const SizedBox(height: 8),
+                Text(
+                  _formatarValor(valorDoacao),
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: CoresApp.primary,
+                  ),
+                ),
+              ],
+            ),
           ),
         ],
       ),
@@ -392,14 +452,14 @@ class _ResumoCampanha extends StatelessWidget {
 class _OpcaoPagamento extends StatelessWidget {
   const _OpcaoPagamento({
     required this.titulo,
-    required this.subtitulo,
+    required this.descricao,
     required this.icone,
     required this.selecionado,
     required this.onTap,
   });
 
   final String titulo;
-  final String subtitulo;
+  final String descricao;
   final IconData icone;
   final bool selecionado;
   final VoidCallback onTap;
@@ -417,38 +477,39 @@ class _OpcaoPagamento extends StatelessWidget {
         ),
         decoration: BoxDecoration(
           color: selecionado
-              ? CoresApp.primary.withAlpha(18)
+              ? CoresApp.primary.withAlpha(12)
               : Colors.white,
           borderRadius: BorderRadius.circular(16),
           border: Border.all(
             color: selecionado
                 ? CoresApp.primary
-                : Colors.grey.withAlpha(45),
+                : Colors.black.withAlpha(15),
             width: selecionado ? 1.5 : 1,
           ),
         ),
         child: Row(
           children: [
             Container(
-              width: 44,
-              height: 44,
+              width: 46,
+              height: 46,
               decoration: BoxDecoration(
                 color: selecionado
-                    ? CoresApp.primary
+                    ? CoresApp.primary.withAlpha(22)
                     : CoresApp.surfaceSoft,
-                borderRadius: BorderRadius.circular(13),
+                borderRadius: BorderRadius.circular(14),
               ),
               child: Icon(
                 icone,
                 color: selecionado
-                    ? Colors.white
-                    : CoresApp.darkBlue,
-                size: 22,
+                    ? CoresApp.primary
+                    : CoresApp.textSecondary,
               ),
             ),
+
             const SizedBox(
               width: EspacamentosApp.md,
             ),
+
             Expanded(
               child: Column(
                 crossAxisAlignment:
@@ -458,13 +519,13 @@ class _OpcaoPagamento extends StatelessWidget {
                     titulo,
                     style: const TextStyle(
                       fontSize: 15,
-                      fontWeight: FontWeight.w800,
+                      fontWeight: FontWeight.w700,
                       color: CoresApp.darkBlue,
                     ),
                   ),
                   const SizedBox(height: 3),
                   Text(
-                    subtitulo,
+                    descricao,
                     style: const TextStyle(
                       fontSize: 12,
                       color: CoresApp.textSecondary,
@@ -473,13 +534,30 @@ class _OpcaoPagamento extends StatelessWidget {
                 ],
               ),
             ),
-            Icon(
-              selecionado
-                  ? Icons.radio_button_checked_rounded
-                  : Icons.radio_button_off_rounded,
-              color: selecionado
-                  ? CoresApp.primary
-                  : Colors.grey,
+
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 180),
+              width: 22,
+              height: 22,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                  color: selecionado
+                      ? CoresApp.primary
+                      : CoresApp.textSecondary
+                      .withAlpha(80),
+                  width: 2,
+                ),
+              ),
+              child: selecionado
+                  ? const Center(
+                child: Icon(
+                  Icons.check_rounded,
+                  size: 14,
+                  color: CoresApp.primary,
+                ),
+              )
+                  : null,
             ),
           ],
         ),
