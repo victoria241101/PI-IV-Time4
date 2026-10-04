@@ -34,16 +34,15 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
-  void _entrar() {
+  Future<void> _entrar() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Registra o usuário como autenticado.
-    // Por enquanto, o nome continua mockado porque
-    // ainda não estamos buscando os dados no backend.
-    SessaoUsuario.instancia.entrar(
+    await SessaoUsuario.instancia.entrar(
       nome: 'Victoria',
       email: _emailController.text.trim(),
     );
+
+    if (!mounted) return;
 
     Navigator.pushReplacement(
       context,
@@ -235,8 +234,7 @@ class _LoginScreenState extends State<LoginScreen> {
                         ),
                       ),
                       validator: (value) {
-                        if (value == null ||
-                            value.trim().isEmpty) {
+                        if (value == null || value.trim().isEmpty) {
                           return 'Digite seu e-mail.';
                         }
 
@@ -318,8 +316,7 @@ class _LoginScreenState extends State<LoginScreen> {
                           Navigator.push(
                             context,
                             MaterialPageRoute(
-                              builder: (_) =>
-                              const EsqueciSenhaScreen(),
+                              builder: (_) => const EsqueciSenhaScreen(),
                             ),
                           );
                         },
