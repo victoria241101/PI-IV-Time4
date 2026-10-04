@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/cartao_campanha.dart';
-import 'package:pet_care/widgets/cabecalho_publico.dart';
+import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
 
 import '../doacao/detalhes_doacao.dart';
 
