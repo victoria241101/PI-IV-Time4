@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="AutoImportSettings">
+    <option name="autoReloadType" value="NONE" />
+  </component>
+  <component name="ChangeListManager">
+    <list default="true" id="d31075f7-26a7-404f-8be1-86ab537dac65" name="Changes" comment="chore: mudar file de .gitignore para pasta de /gitignore">
+      <change afterPath="$PROJECT_DIR$/frontend/lib/screens/gerais/splash_screen" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/core/comportamento_rolagem.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/core/tema/comportamento_rolagem.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/core/cores_app.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/core/tema/cores_app.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/core/espacamentos_app.dart" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/core/tema/espacamentos_app.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/core/tema/espacamentos_app.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/core/tema_app.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/core/tema/tema_app.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/core/tipografia_app.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/core/tema/tipografia_app.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/lib/main.dart" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/lib/main.dart" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/linux/flutter/generated_plugins.cmake" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/pubspec.lock" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/pubspec.yaml" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/pubspec.yaml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugins.cmake" beforeDir="false" afterPath="$PROJECT_DIR$/frontend/windows/flutter/generated_plugins.cmake" afterDir="false" />
+    </list>
+    <option name="SHOW_DIALOG" value="false" />
+    <option name="HIGHLIGHT_CONFLICTS" value="true" />
+    <option name="HIGHLIGHT_NON_ACTIVE_CHANGELIST" value="false" />
+    <option name="LAST_RESOLUTION" value="IGNORE" />
+  </component>
+  <component name="ClangdSettings">
+    <option name="formatViaClangd" value="false" />
+  </component>
+  <component name="Git.Settings">
+    <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
+    <option name="ROOT_SYNC" value="SYNC" />
+  </component>
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;victoria241101&quot;
+  }
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;https://github.com/victoria241101/PI-IV-Time4.git&quot;,
+    &quot;accountId&quot;: &quot;7b79e2e5-aef3-41c8-8159-8015f0ffec8d&quot;
+  }
+}</component>
+  <component name="ProjectColorInfo">{
+  &quot;associatedIndex&quot;: 8,
+  &quot;fromUser&quot;: false
+}</component>
+  <component name="ProjectId" id="3JmHETvFi43jBhm0sHPPOtH2Aic" />
+  <component name="ProjectViewState">
+    <option name="autoscrollToSource" value="true" />
+    <option name="hideEmptyMiddlePackages" value="true" />
+    <option name="showLibraryContents" value="true" />
+  </component>
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;ModuleVcsDetector.initialDetectionPerformed&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.TerminalTabsStorage.copyFrom.TerminalArrangementManager.252&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.git.unshallow&quot;: &quot;true&quot;,
+    &quot;RunOnceActivity.readMode.enableVisualFormatting&quot;: &quot;true&quot;,
+    &quot;cf.first.check.clang-format&quot;: &quot;false&quot;,
+    &quot;cidr.known.project.marker&quot;: &quot;true&quot;,
+    &quot;dart.analysis.tool.window.visible&quot;: &quot;false&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;Fluxo__de__Login&quot;,
+    &quot;kotlin-language-version-configured&quot;: &quot;true&quot;,
+    &quot;last_opened_file_path&quot;: &quot;C:/Users/victo/Desktop/PI-QuartoSemestre/PI-IV-Time4&quot;,
+    &quot;settings.editor.selected.configurable&quot;: &quot;dart.settings&quot;
+  }
+}</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\victo\OneDrive\Área de Trabalho\PI-QuartoSemestre\PI-IV-Time4\frontend\lib\core\tema" />
+      <recent name="C:\Users\victo\OneDrive\Área de Trabalho\PI-QuartoSemestre" />
+      <recent name="C:\Users\victo\OneDrive\Área de Trabalho\PI-QuartoSemestre\frontend\lib" />
+      <recent name="C:\Users\victo\OneDrive\Área de Trabalho\PI-QuartoSemestre\frontend\lib\features" />
+      <recent name="C:\Users\victo\OneDrive\Área de Trabalho\PI-QuartoSemestre\pet_care\lib" />
+    </key>
+  </component>
+  <component name="TaskManager">
+    <task active="true" id="Default" summary="Default task">
+      <changelist id="d31075f7-26a7-404f-8be1-86ab537dac65" name="Changes" comment="" />
+      <created>1790259212316</created>
+      <option name="number" value="Default" />
+      <option name="presentableId" value="Default" />
+      <updated>1790259212316</updated>
+    </task>
+    <task id="LOCAL-00001" summary="chore: criar árvore de pastas inicial do projeto">
+      <option name="closed" value="true" />
+      <created>1790260200635</created>
+      <option name="number" value="00001" />
+      <option name="presentableId" value="LOCAL-00001" />
+      <option name="project" value="LOCAL" />
+      <updated>1790260200635</updated>
+    </task>
+    <task id="LOCAL-00002" summary="chore: mudar file de .gitignore para pasta de /gitignore">
+      <option name="closed" value="true" />
+      <created>1790262202634</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1790262202634</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
+    <servers />
+  </component>
+  <component name="UnknownFeatures">
+    <option featureType="com.intellij.fileTypeFactory" implementationName="*.dart" />
+  </component>
+  <component name="VcsManagerConfiguration">
+    <MESSAGE value="chore: criar árvore de pastas inicial do projeto" />
+    <MESSAGE value="chore: mudar file de .gitignore para pasta de /gitignore" />
+    <option name="LAST_COMMIT_MESSAGE" value="chore: mudar file de .gitignore para pasta de /gitignore" />
+  </component>
+</project>
