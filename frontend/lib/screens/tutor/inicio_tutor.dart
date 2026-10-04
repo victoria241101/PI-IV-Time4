@@ -14,7 +14,7 @@ import 'package:pet_care/widgets/lista_horizontal_pets.dart';
 import 'package:pet_care/widgets/modal_detalhes_consulta.dart';
 import 'package:pet_care/widgets/titulo_secao.dart';
 
-import 'package:pet_care/screens/tutor/fluxo_doacao/doacao.dart';
+import '../doacao/doacao.dart';
 
 typedef ConfirmarConsulta = Future<ResumoConsulta> Function(String consultaId);
 typedef AcaoConsulta = Future<void> Function(String consultaId);

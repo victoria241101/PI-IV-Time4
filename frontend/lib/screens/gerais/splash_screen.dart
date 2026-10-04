@@ -1,5 +1,11 @@
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/modelos/resumo_consulta.dart';
+import 'package:pet_care/modelos/resumo_pet.dart';
+import 'package:pet_care/screens/publico/inicio_publico.dart';
+import 'package:pet_care/screens/tutor/inicio_tutor.dart';
+
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
@@ -10,7 +16,6 @@ class SplashScreen extends StatefulWidget {
 class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-
   late final Animation<double> _patinhas;
   late final Animation<double> _logo;
   late final Animation<double> _nome;
@@ -26,28 +31,143 @@ class _SplashScreenState extends State<SplashScreen>
 
     _patinhas = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.0, 0.55, curve: Curves.easeInOut),
+      curve: const Interval(
+        0.0,
+        0.55,
+        curve: Curves.easeInOut,
+      ),
     );
 
     _logo = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.50, 0.75, curve: Curves.elasticOut),
+      curve: const Interval(
+        0.50,
+        0.75,
+        curve: Curves.elasticOut,
+      ),
     );
 
     _nome = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(0.70, 1.0, curve: Curves.easeOut),
+      curve: const Interval(
+        0.70,
+        1.0,
+        curve: Curves.easeOut,
+      ),
     );
 
     _controller.forward();
 
-    Future.delayed(const Duration(milliseconds: 3200), () {
-      if (!mounted) return;
+    _finalizarSplash();
+  }
 
-      // Por enquanto vamos para o Login.
-      // Depois substituímos pela rota real.
-      Navigator.pushReplacementNamed(context, '/login');
-    });
+  Future<void> _finalizarSplash() async {
+    await Future.delayed(
+      const Duration(milliseconds: 3200),
+    );
+
+    await SessaoUsuario.instancia.carregar();
+
+    if (!mounted) return;
+
+    if (SessaoUsuario.instancia.estaLogado) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => InicioTutor(
+            saudacao: 'Olá,',
+            nomeTutor:
+            SessaoUsuario.instancia.nomeUsuario ?? 'Tutor',
+
+            pets: const [
+              ResumoPet(
+                id: 'pet-001',
+                name: 'Mel',
+                species: 'Cachorro',
+                breed: 'Golden Retriever',
+                age: '3 anos',
+                weight: 25.5,
+              ),
+              ResumoPet(
+                id: 'pet-002',
+                name: 'Luna',
+                species: 'Gato',
+                breed: 'Siamês',
+                age: '2 anos',
+                weight: 4.2,
+              ),
+            ],
+
+            proximaConsulta: const ResumoConsulta(
+              id: 'consulta-001',
+              type: 'Consulta veterinária',
+              date: '15/10/2026',
+              time: '14:00',
+              vetName: 'Dra. Ana Oliveira',
+              petName: 'Mel',
+              status: 'Confirmada',
+              instructions:
+              'Chegar com 10 minutos de antecedência.',
+              clinicAddress:
+              'Rua das Flores, 120 - Campinas/SP',
+            ),
+
+            banners: const [],
+
+            onConfirmarConsulta: (consultaId) async {
+              return const ResumoConsulta(
+                id: 'consulta-001',
+                type: 'Consulta veterinária',
+                date: '15/10/2026',
+                time: '14:00',
+                vetName: 'Dra. Ana Oliveira',
+                petName: 'Mel',
+                status: 'Confirmada',
+                instructions:
+                'Chegar com 10 minutos de antecedência.',
+                clinicAddress:
+                'Rua das Flores, 120 - Campinas/SP',
+              );
+            },
+
+            carregarDetalhesPet: (petId) async {
+              throw UnimplementedError(
+                'Detalhes do pet ainda não estão conectados ao backend.',
+              );
+            },
+
+            onAgendarNovaConsulta: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Agendamento ainda não está conectado ao backend.',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+
+            onNotificacoes: () {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text(
+                    'Notificações ainda não estão disponíveis.',
+                  ),
+                  behavior: SnackBarBehavior.floating,
+                ),
+              );
+            },
+          ),
+        ),
+      );
+    } else {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const InicioPublico(),
+        ),
+      );
+    }
   }
 
   @override
@@ -68,7 +188,6 @@ class _SplashScreenState extends State<SplashScreen>
           return Stack(
             alignment: Alignment.center,
             children: [
-              // Patinhas menores convergindo para o centro.
               Opacity(
                 opacity: 1 - _patinhas.value,
                 child: Stack(
@@ -105,7 +224,6 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              // Pata principal.
               Transform.scale(
                 scale: _logo.value,
                 child: Opacity(
@@ -118,7 +236,6 @@ class _SplashScreenState extends State<SplashScreen>
                 ),
               ),
 
-              // Nome da marca.
               Positioned(
                 top: MediaQuery.of(context).size.height / 2 + 65,
                 child: Opacity(
@@ -149,7 +266,6 @@ class _SplashScreenState extends State<SplashScreen>
         required double dy,
       }) {
     final tema = Theme.of(context);
-
     final deslocamento = 1 - _patinhas.value;
 
     return Positioned(
@@ -165,7 +281,9 @@ class _SplashScreenState extends State<SplashScreen>
         child: Icon(
           Icons.pets,
           size: 28,
-          color: tema.colorScheme.primary.withValues(alpha: 0.55),
+          color: tema.colorScheme.primary.withValues(
+            alpha: 0.55,
+          ),
         ),
       ),
     );

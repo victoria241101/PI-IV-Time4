@@ -5,7 +5,7 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/cartao_campanha.dart';
 import 'package:pet_care/widgets/cabecalho_publico.dart';
 
-import 'package:pet_care/screens/tutor/fluxo_doacao/detalhes_doacao.dart';
+import '../doacao/detalhes_doacao.dart';
 
 class InicioPublico extends StatelessWidget {
   const InicioPublico({
