@@ -13,7 +13,12 @@ import 'package:pet_care/controle/sessao_usuario.dart';
 import 'esqueci_senha.dart';
 
 class LoginScreen extends StatefulWidget {
-  const LoginScreen({super.key});
+  const LoginScreen({
+    super.key,
+    this.destinoAposLogin,
+  });
+
+  final Widget Function()? destinoAposLogin;
 
   @override
   State<LoginScreen> createState() => _LoginScreenState();
@@ -80,6 +85,18 @@ class _LoginScreenState extends State<LoginScreen> {
     );
 
     if (!mounted) return;
+
+    final destino = widget.destinoAposLogin;
+
+    if (destino != null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(
+          builder: (_) => destino(),
+        ),
+      );
+      return;
+    }
 
     Navigator.pushReplacement(
       context,
@@ -225,7 +242,7 @@ class _LoginScreenState extends State<LoginScreen> {
         child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(
             horizontal: EspacamentosApp.pagePadding,
-            vertical: EspacamentosApp.xl,
+            vertical: EspacamentosApp.md,
           ),
           child: Center(
             child: ConstrainedBox(
@@ -235,6 +252,28 @@ class _LoginScreenState extends State<LoginScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    // BOTÃO VOLTAR
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: IconButton(
+                        onPressed: () => Navigator.of(context).pop(),
+                        style: IconButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: CoresApp.darkBlue,
+                          elevation: 2,
+                          shadowColor: Colors.black.withAlpha(20),
+                        ),
+                        icon: const Icon(
+                          Icons.arrow_back_rounded,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: EspacamentosApp.sm,
+                    ),
+
+                    // LOGO
                     Center(
                       child: Column(
                         children: [
@@ -258,7 +297,9 @@ class _LoginScreenState extends State<LoginScreen> {
                               color: Colors.white,
                             ),
                           ),
-                          const SizedBox(height: EspacamentosApp.md),
+                          const SizedBox(
+                            height: EspacamentosApp.md,
+                          ),
                           Text(
                             'PetCare',
                             style: TipografiaApp.heading1.copyWith(
@@ -271,7 +312,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xxl),
+                    const SizedBox(
+                      height: EspacamentosApp.xxl,
+                    ),
 
                     Text(
                       'Bem-vindo de volta!',
@@ -281,7 +324,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xs),
+                    const SizedBox(
+                      height: EspacamentosApp.xs,
+                    ),
 
                     Text(
                       'Entre na sua conta para continuar cuidando dos seus pets.',
@@ -291,10 +336,15 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
+                    // CARD DO FORMULÁRIO
                     Container(
-                      padding: const EdgeInsets.all(EspacamentosApp.lg),
+                      padding: const EdgeInsets.all(
+                        EspacamentosApp.lg,
+                      ),
                       decoration: BoxDecoration(
                         color: CoresApp.surface,
                         borderRadius: BorderRadius.circular(24),
@@ -318,7 +368,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: EspacamentosApp.sm),
+
+                          const SizedBox(
+                            height: EspacamentosApp.sm,
+                          ),
 
                           TextFormField(
                             controller: _emailController,
@@ -331,7 +384,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             validator: _validarEmail,
                           ),
 
-                          const SizedBox(height: EspacamentosApp.md),
+                          const SizedBox(
+                            height: EspacamentosApp.md,
+                          ),
 
                           Text(
                             'Senha',
@@ -339,7 +394,10 @@ class _LoginScreenState extends State<LoginScreen> {
                               fontWeight: FontWeight.w700,
                             ),
                           ),
-                          const SizedBox(height: EspacamentosApp.sm),
+
+                          const SizedBox(
+                            height: EspacamentosApp.sm,
+                          ),
 
                           TextFormField(
                             controller: _senhaController,
@@ -398,7 +456,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: EspacamentosApp.sm),
+                          const SizedBox(
+                            height: EspacamentosApp.sm,
+                          ),
 
                           SizedBox(
                             width: double.infinity,
@@ -414,7 +474,8 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               child: const Row(
-                                mainAxisAlignment: MainAxisAlignment.center,
+                                mainAxisAlignment:
+                                MainAxisAlignment.center,
                                 children: [
                                   Text(
                                     'Entrar',
@@ -433,7 +494,9 @@ class _LoginScreenState extends State<LoginScreen> {
                             ),
                           ),
 
-                          const SizedBox(height: EspacamentosApp.lg),
+                          const SizedBox(
+                            height: EspacamentosApp.lg,
+                          ),
 
                           Container(
                             width: double.infinity,
@@ -460,7 +523,9 @@ class _LoginScreenState extends State<LoginScreen> {
                                     color: CoresApp.primary,
                                   ),
                                 ),
-                                const SizedBox(width: EspacamentosApp.sm),
+                                const SizedBox(
+                                  width: EspacamentosApp.sm,
+                                ),
                                 Expanded(
                                   child: Text(
                                     'Seus dados são tratados com segurança e privacidade.',
@@ -477,7 +542,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     Center(
                       child: Wrap(
@@ -508,7 +575,9 @@ class _LoginScreenState extends State<LoginScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.lg),
+                    const SizedBox(
+                      height: EspacamentosApp.lg,
+                    ),
 
                     Center(
                       child: Text(

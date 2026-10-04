@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
-import 'package:pet_care/screens/autenticacao/cadastro_tutor.dart';
-import 'package:pet_care/screens/gerais/splash_screen.dart';
+import 'package:pet_care/screens/autenticacao/cadastro.dart';import 'package:pet_care/screens/gerais/splash_screen.dart';
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/publico/inicio_publico.dart';
 

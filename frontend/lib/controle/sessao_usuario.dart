@@ -18,7 +18,6 @@ class SessaoUsuario extends ChangeNotifier {
   String? get nomeUsuario => _nomeUsuario;
   String? get emailUsuario => _emailUsuario;
 
-  /// Recupera a sessão salva no dispositivo.
   Future<void> carregar() async {
     final prefs = await SharedPreferences.getInstance();
 
@@ -29,7 +28,6 @@ class SessaoUsuario extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Inicia uma sessão e salva os dados localmente.
   Future<void> entrar({
     required String nome,
     required String email,
@@ -47,7 +45,6 @@ class SessaoUsuario extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Encerra a sessão e remove os dados salvos.
   Future<void> sair() async {
     _estaLogado = false;
     _nomeUsuario = null;

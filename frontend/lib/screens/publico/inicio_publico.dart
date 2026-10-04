@@ -1,15 +1,14 @@
 import 'package:flutter/material.dart';
 
-import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/doacao/doacao.dart';
+import 'package:pet_care/screens/publico/sobre_publico.dart';
 
+import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
-import 'package:pet_care/widgets/cartao_campanha.dart';
-import '../../widgets/publicos/barra_nav_publica.dart';
 
 class InicioPublico extends StatefulWidget {
   const InicioPublico({super.key});
@@ -30,45 +29,43 @@ class _InicioPublicoState extends State<InicioPublico> {
     }
 
     if (index == 1) {
-      setState(() {
-        _currentIndex = 1;
-      });
-
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const Doacao(),
+          builder: (_) => const Doacao(publica: true),
         ),
       );
-
       return;
     }
 
     if (index == 2) {
-      if (SessaoUsuario.instancia.estaLogado) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Perfil em desenvolvimento.',
-            ),
-          ),
-        );
-      } else {
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const LoginScreen(),
-          ),
-        );
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => const SobrePublico(),
+        ),
+      );
     }
+  }
+
+  void _abrirLogin() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const LoginScreen(),
+      ),
+    );
+  }
+
+  void _adicionarPet() {
+    _abrirLogin();
   }
 
   void _abrirCampanhas() {
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const Doacao(),
+        builder: (_) => const Doacao(publica: true),
       ),
     );
   }
@@ -89,12 +86,12 @@ class _InicioPublicoState extends State<InicioPublico> {
               const CabecalhoPublico(),
 
               const SizedBox(
-                height: EspacamentosApp.xl,
+                height: EspacamentosApp.lg,
               ),
 
-              // ==========================================
-              // APRESENTAÇÃO
-              // ==========================================
+              // =====================================================
+              // HERO
+              // =====================================================
 
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -107,68 +104,124 @@ class _InicioPublicoState extends State<InicioPublico> {
                   ),
                   decoration: BoxDecoration(
                     color: CoresApp.darkBlue,
-                    borderRadius: BorderRadius.circular(24),
+                    borderRadius: BorderRadius.circular(28),
+                    boxShadow: [
+                      BoxShadow(
+                        color: CoresApp.darkBlue.withAlpha(25),
+                        blurRadius: 25,
+                        offset: const Offset(0, 12),
+                      ),
+                    ],
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
+                  child: Stack(
                     children: [
-                      const Icon(
-                        Icons.pets_rounded,
-                        color: CoresApp.accentOrange,
-                        size: 36,
-                      ),
-
-                      const SizedBox(
-                        height: EspacamentosApp.md,
-                      ),
-
-                      const Text(
-                        'Cuide. Ajude. Transforme.',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 26,
-                          fontWeight: FontWeight.w800,
+                      Positioned(
+                        right: -25,
+                        top: -25,
+                        child: Container(
+                          width: 130,
+                          height: 130,
+                          decoration: BoxDecoration(
+                            color: CoresApp.primary.withAlpha(35),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-
-                      const SizedBox(
-                        height: EspacamentosApp.sm,
-                      ),
-
-                      const Text(
-                        'Conectamos pessoas a animais que precisam de cuidados e apoio.',
-                        style: TextStyle(
-                          color: Colors.white70,
-                          fontSize: 15,
-                          height: 1.4,
+                      Positioned(
+                        right: 30,
+                        bottom: -55,
+                        child: Container(
+                          width: 100,
+                          height: 100,
+                          decoration: BoxDecoration(
+                            color: CoresApp.accentOrange.withAlpha(22),
+                            shape: BoxShape.circle,
+                          ),
                         ),
                       ),
-
-                      const SizedBox(
-                        height: EspacamentosApp.lg,
-                      ),
-
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: _abrirCampanhas,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CoresApp.accentOrange,
-                            foregroundColor: Colors.white,
-                            padding: const EdgeInsets.symmetric(
-                              vertical: EspacamentosApp.md,
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            width: 50,
+                            height: 50,
+                            decoration: BoxDecoration(
+                              color: Colors.white.withAlpha(18),
+                              borderRadius: BorderRadius.circular(16),
                             ),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(14),
+                            child: const Icon(
+                              Icons.pets_rounded,
+                              color: CoresApp.accentOrange,
+                              size: 28,
                             ),
                           ),
-                          child: const Text(
-                            'Conheça as campanhas',
+
+                          const SizedBox(
+                            height: EspacamentosApp.md,
+                          ),
+
+                          const Text(
+                            'Cuide. Ajude.\nTransforme.',
                             style: TextStyle(
-                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              fontSize: 29,
+                              height: 1.08,
+                              fontWeight: FontWeight.w800,
                             ),
                           ),
-                        ),
+
+                          const SizedBox(
+                            height: EspacamentosApp.sm,
+                          ),
+
+                          const Text(
+                            'Um lugar para cuidar dos seus pets '
+                                'e fazer a diferença na vida de outros animais.',
+                            style: TextStyle(
+                              color: Colors.white70,
+                              fontSize: 14,
+                              height: 1.45,
+                            ),
+                          ),
+
+                          const SizedBox(
+                            height: EspacamentosApp.lg,
+                          ),
+
+                          SizedBox(
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: _abrirCampanhas,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor:
+                                CoresApp.accentOrange,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                  BorderRadius.circular(15),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  Text(
+                                    'Quero ajudar',
+                                    style: TextStyle(
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(width: 8),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 19,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
                   ),
@@ -179,9 +232,9 @@ class _InicioPublicoState extends State<InicioPublico> {
                 height: EspacamentosApp.xl,
               ),
 
-              // ==========================================
-              // COMO AJUDAR
-              // ==========================================
+              // =====================================================
+              // MEUS PETS
+              // =====================================================
 
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -191,7 +244,53 @@ class _InicioPublicoState extends State<InicioPublico> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const Text(
-                      'Como você pode ajudar?',
+                      'Meus pets',
+                      style: TextStyle(
+                        fontSize: 21,
+                        fontWeight: FontWeight.w800,
+                        color: CoresApp.darkBlue,
+                      ),
+                    ),
+
+                    const SizedBox(height: 3),
+
+                    const Text(
+                      'Tenha os cuidados dos seus companheiros '
+                          'organizados em um só lugar.',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: CoresApp.textSecondary,
+                      ),
+                    ),
+
+                    const SizedBox(
+                      height: EspacamentosApp.md,
+                    ),
+
+                    _CardAdicionarPet(
+                      onTap: _adicionarPet,
+                    ),
+                  ],
+                ),
+              ),
+
+              const SizedBox(
+                height: EspacamentosApp.xl,
+              ),
+
+              // =====================================================
+              // COMO AJUDAR
+              // =====================================================
+
+              Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: EspacamentosApp.pagePadding,
+                ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Como podemos ajudar?',
                       style: TextStyle(
                         fontSize: 21,
                         fontWeight: FontWeight.w800,
@@ -200,14 +299,14 @@ class _InicioPublicoState extends State<InicioPublico> {
                     ),
 
                     const SizedBox(
-                      height: EspacamentosApp.sm,
+                      height: EspacamentosApp.xs,
                     ),
 
                     const Text(
-                      'Pequenas ações podem fazer uma grande diferença.',
+                      'Tudo começa com uma pequena ação.',
                       style: TextStyle(
-                        color: CoresApp.textSecondary,
                         fontSize: 14,
+                        color: CoresApp.textSecondary,
                       ),
                     ),
 
@@ -222,45 +321,23 @@ class _InicioPublicoState extends State<InicioPublico> {
                             icon: Icons.volunteer_activism_rounded,
                             titulo: 'Apoiar',
                             descricao:
-                            'Ajude um animal em tratamento.',
+                            'Contribua com uma campanha.',
                             onTap: _abrirCampanhas,
                           ),
                         ),
-
                         const SizedBox(
                           width: EspacamentosApp.sm,
                         ),
-
                         Expanded(
                           child: _AcaoPublica(
-                            icon: Icons.search_rounded,
-                            titulo: 'Conhecer',
+                            icon: Icons.pets_rounded,
+                            titulo: 'Cuidar',
                             descricao:
-                            'Veja casos que precisam de apoio.',
-                            onTap: _abrirCampanhas,
+                            'Organize os cuidados do seu pet.',
+                            onTap: _adicionarPet,
                           ),
                         ),
                       ],
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
-
-                    _AcaoPublica(
-                      icon: Icons.favorite_rounded,
-                      titulo: 'Acompanhar',
-                      descricao:
-                      'Veja histórias e atualizações dos animais atendidos.',
-                      onTap: () {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                            content: Text(
-                              'Acompanhamento em desenvolvimento.',
-                            ),
-                          ),
-                        );
-                      },
                     ),
                   ],
                 ),
@@ -270,91 +347,92 @@ class _InicioPublicoState extends State<InicioPublico> {
                 height: EspacamentosApp.xl,
               ),
 
-              // ==========================================
-              // CAMPANHAS EM DESTAQUE
-              // ==========================================
+              // =====================================================
+              // SOBRE O PETCARE — RESUMO
+              // =====================================================
 
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
                 ),
-                child: Row(
-                  children: [
-                    const Expanded(
-                      child: Text(
-                        'Campanhas em destaque',
-                        style: TextStyle(
-                          fontSize: 21,
-                          fontWeight: FontWeight.w800,
-                          color: CoresApp.darkBlue,
+                child: InkWell(
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => const SobrePublico(),
+                      ),
+                    );
+                  },
+                  borderRadius: BorderRadius.circular(20),
+                  child: Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(
+                      EspacamentosApp.md,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: Colors.black.withAlpha(10),
+                      ),
+                    ),
+                    child: Row(
+                      children: [
+                        Container(
+                          width: 48,
+                          height: 48,
+                          decoration: BoxDecoration(
+                            color: CoresApp.primary.withAlpha(18),
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          child: const Icon(
+                            Icons.info_outline_rounded,
+                            color: CoresApp.primary,
+                          ),
                         ),
-                      ),
+                        const SizedBox(
+                          width: EspacamentosApp.md,
+                        ),
+                        const Expanded(
+                          child: Column(
+                            crossAxisAlignment:
+                            CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                'Conheça o PetCare',
+                                style: TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: CoresApp.darkBlue,
+                                ),
+                              ),
+                              SizedBox(height: 4),
+                              Text(
+                                'Entenda nossa proposta e como '
+                                    'conectamos cuidado e solidariedade.',
+                                style: TextStyle(
+                                  fontSize: 12,
+                                  height: 1.35,
+                                  color: CoresApp.textSecondary,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                        const Icon(
+                          Icons.chevron_right_rounded,
+                          color: CoresApp.textSecondary,
+                        ),
+                      ],
                     ),
-
-                    TextButton(
-                      onPressed: _abrirCampanhas,
-                      child: const Text(
-                        'Ver todas',
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-
-              const SizedBox(
-                height: EspacamentosApp.sm,
-              ),
-
-              SizedBox(
-                height: 440,
-                child: ListView(
-                  scrollDirection: Axis.horizontal,
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: EspacamentosApp.pagePadding,
                   ),
-                  children: [
-                    SizedBox(
-                      width: 320,
-                      child: CartaoCampanha(
-                        nomeAnimal: 'Bobby',
-                        titulo: 'Tratamento veterinário',
-                        valorArrecadado: 850,
-                        meta: 1500,
-                        urgente: true,
-                        onTap: _abrirCampanhas,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      width: EspacamentosApp.md,
-                    ),
-
-                    SizedBox(
-                      width: 320,
-                      child: CartaoCampanha(
-                        nomeAnimal: 'Luna',
-                        titulo: 'Cirurgia e recuperação',
-                        valorArrecadado: 620,
-                        meta: 1200,
-                        urgente: false,
-                        onTap: _abrirCampanhas,
-                      ),
-                    ),
-                  ],
                 ),
-              ),
-
-              const SizedBox(
-                height: EspacamentosApp.lg,
               ),
             ],
           ),
         ),
       ),
-
-      // ==========================================
-      // NAVEGAÇÃO PÚBLICA
-      // ==========================================
 
       bottomNavigationBar: BarraNavPublica(
         currentIndex: _currentIndex,
@@ -364,9 +442,86 @@ class _InicioPublicoState extends State<InicioPublico> {
   }
 }
 
-// ======================================================
-// CARD DE AÇÃO
-// ======================================================
+class _CardAdicionarPet extends StatelessWidget {
+  const _CardAdicionarPet({
+    required this.onTap,
+  });
+
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(20),
+        child: Container(
+          width: double.infinity,
+          padding: const EdgeInsets.all(
+            EspacamentosApp.md,
+          ),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(
+              color: CoresApp.primary.withAlpha(45),
+            ),
+          ),
+          child: Row(
+            children: [
+              Container(
+                width: 58,
+                height: 58,
+                decoration: BoxDecoration(
+                  color: CoresApp.primary.withAlpha(18),
+                  borderRadius: BorderRadius.circular(17),
+                ),
+                child: const Icon(
+                  Icons.add_rounded,
+                  color: CoresApp.primary,
+                  size: 30,
+                ),
+              ),
+              const SizedBox(
+                width: EspacamentosApp.md,
+              ),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Adicionar um pet',
+                      style: TextStyle(
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: CoresApp.darkBlue,
+                      ),
+                    ),
+                    SizedBox(height: 4),
+                    Text(
+                      'Entre ou crie sua conta para cadastrar '
+                          'seu companheiro.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        height: 1.35,
+                        color: CoresApp.textSecondary,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const Icon(
+                Icons.chevron_right_rounded,
+                color: CoresApp.textSecondary,
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
 
 class _AcaoPublica extends StatelessWidget {
   const _AcaoPublica({
@@ -383,55 +538,60 @@ class _AcaoPublica extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return InkWell(
-      onTap: onTap,
-      borderRadius: BorderRadius.circular(18),
-      child: Container(
-        padding: const EdgeInsets.all(
-          EspacamentosApp.md,
-        ),
-        decoration: BoxDecoration(
-          color: CoresApp.surface,
-          borderRadius: BorderRadius.circular(18),
-          border: Border.all(
-            color: Colors.black.withAlpha(10),
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(18),
+        child: Container(
+          padding: const EdgeInsets.all(
+            EspacamentosApp.md,
           ),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(
-              icon,
-              color: CoresApp.primary,
-              size: 28,
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(18),
+            border: Border.all(
+              color: Colors.black.withAlpha(10),
             ),
-
-            const SizedBox(
-              height: EspacamentosApp.sm,
-            ),
-
-            Text(
-              titulo,
-              style: const TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: CoresApp.darkBlue,
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                width: 42,
+                height: 42,
+                decoration: BoxDecoration(
+                  color: CoresApp.primary.withAlpha(18),
+                  borderRadius: BorderRadius.circular(13),
+                ),
+                child: Icon(
+                  icon,
+                  color: CoresApp.primary,
+                  size: 23,
+                ),
               ),
-            ),
-
-            const SizedBox(
-              height: 4,
-            ),
-
-            Text(
-              descricao,
-              style: const TextStyle(
-                fontSize: 12,
-                color: CoresApp.textSecondary,
-                height: 1.3,
+              const SizedBox(
+                height: EspacamentosApp.sm,
               ),
-            ),
-          ],
+              Text(
+                titulo,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w800,
+                  color: CoresApp.darkBlue,
+                ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                descricao,
+                style: const TextStyle(
+                  fontSize: 12,
+                  height: 1.35,
+                  color: CoresApp.textSecondary,
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

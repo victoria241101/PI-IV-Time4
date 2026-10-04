@@ -93,9 +93,10 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
           () {
         if (!mounted) return;
 
-        Navigator.popUntil(
+        Navigator.pushNamedAndRemoveUntil(
           context,
-              (route) => route.isFirst,
+          '/login',
+              (route) => false,
         );
       },
     );

@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/screens/autenticacao/login.dart';
+import 'package:pet_care/screens/doacao/doar.dart';
 
 class DetalhesDoacao extends StatelessWidget {
   const DetalhesDoacao({
@@ -31,6 +34,34 @@ class DetalhesDoacao extends StatelessWidget {
     return 'R\$ ${valor.toStringAsFixed(2).replaceAll('.', ',')}';
   }
 
+  void _iniciarDoacao(BuildContext context) {
+    Widget criarTelaDoacao() {
+      return Doar(
+        nomeAnimal: nomeAnimal,
+        titulo: titulo,
+        meta: meta,
+      );
+    }
+
+    if (SessaoUsuario.instancia.estaLogado) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => criarTelaDoacao(),
+        ),
+      );
+
+      return;
+    }
+
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => LoginScreen(
+          destinoAposLogin: criarTelaDoacao,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -58,7 +89,9 @@ class DetalhesDoacao extends StatelessWidget {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const SizedBox(height: EspacamentosApp.lg),
+                    const SizedBox(
+                      height: EspacamentosApp.lg,
+                    ),
 
                     Text(
                       nomeAnimal,
@@ -69,7 +102,9 @@ class DetalhesDoacao extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xs),
+                    const SizedBox(
+                      height: EspacamentosApp.xs,
+                    ),
 
                     Text(
                       titulo,
@@ -81,15 +116,18 @@ class DetalhesDoacao extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.lg),
+                    const SizedBox(
+                      height: EspacamentosApp.lg,
+                    ),
 
                     _Secao(
                       titulo: 'Sobre o caso',
                       child: Text(
-                        'Bobby foi resgatado após sofrer uma lesão '
-                            'ortopédica e precisa realizar uma cirurgia para '
-                            'garantir sua recuperação e qualidade de vida.',
-                        style: TextStyle(
+                        '$nomeAnimal foi resgatado e precisa de cuidados '
+                            'veterinários. Esta campanha foi criada para ajudar '
+                            'a custear o tratamento e garantir que ele tenha '
+                            'acesso ao atendimento necessário para sua recuperação.',
+                        style: const TextStyle(
                           fontSize: 15,
                           height: 1.5,
                           color: CoresApp.textSecondary,
@@ -97,7 +135,9 @@ class DetalhesDoacao extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     _Secao(
                       titulo: 'Responsável',
@@ -119,8 +159,7 @@ class DetalhesDoacao extends StatelessWidget {
                             width: EspacamentosApp.md,
                           ),
                           const Column(
-                            crossAxisAlignment:
-                            CrossAxisAlignment.start,
+                            crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
                                 'Dra. Ana Oliveira',
@@ -144,7 +183,9 @@ class DetalhesDoacao extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     _Secao(
                       titulo: 'Orçamento',
@@ -155,26 +196,30 @@ class DetalhesDoacao extends StatelessWidget {
                         decoration: BoxDecoration(
                           color: Colors.white,
                           borderRadius: BorderRadius.circular(18),
+                          border: Border.all(
+                            color: CoresApp.divider,
+                          ),
+                          boxShadow: EspacamentosApp.cardShadow,
                         ),
                         child: Column(
                           children: [
                             _LinhaOrcamento(
-                              descricao: 'Cirurgia',
-                              valor: 1500,
+                              descricao: 'Procedimento veterinário',
+                              valor: meta * 0.75,
                             ),
                             const SizedBox(
                               height: EspacamentosApp.md,
                             ),
                             _LinhaOrcamento(
                               descricao: 'Medicamentos',
-                              valor: 300,
+                              valor: meta * 0.15,
                             ),
                             const SizedBox(
                               height: EspacamentosApp.md,
                             ),
                             _LinhaOrcamento(
-                              descricao: 'Exames',
-                              valor: 200,
+                              descricao: 'Exames e cuidados',
+                              valor: meta * 0.10,
                             ),
                             const Padding(
                               padding: EdgeInsets.symmetric(
@@ -211,13 +256,14 @@ class DetalhesDoacao extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     _Secao(
                       titulo: 'Progresso da campanha',
                       child: Column(
-                        crossAxisAlignment:
-                        CrossAxisAlignment.start,
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           Row(
                             mainAxisAlignment:
@@ -241,11 +287,9 @@ class DetalhesDoacao extends StatelessWidget {
                               ),
                             ],
                           ),
-
                           const SizedBox(
                             height: EspacamentosApp.sm,
                           ),
-
                           ClipRRect(
                             borderRadius: BorderRadius.circular(10),
                             child: LinearProgressIndicator(
@@ -258,11 +302,9 @@ class DetalhesDoacao extends StatelessWidget {
                               ),
                             ),
                           ),
-
                           const SizedBox(
                             height: EspacamentosApp.xs,
                           ),
-
                           Text(
                             '$porcentagem% da meta alcançada',
                             style: const TextStyle(
@@ -275,7 +317,9 @@ class DetalhesDoacao extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     _Secao(
                       titulo: 'Atualizações',
@@ -284,8 +328,8 @@ class DetalhesDoacao extends StatelessWidget {
                           _Atualizacao(
                             data: '02/10/2026',
                             texto:
-                            'Bobby realizou os exames necessários '
-                                'para a cirurgia.',
+                            'A equipe veterinária realizou os exames '
+                                'necessários e atualizou o plano de tratamento.',
                           ),
                           const SizedBox(
                             height: EspacamentosApp.md,
@@ -293,14 +337,16 @@ class DetalhesDoacao extends StatelessWidget {
                           _Atualizacao(
                             data: '30/09/2026',
                             texto:
-                            'A equipe veterinária confirmou a '
-                                'necessidade do procedimento.',
+                            'O caso foi avaliado pela equipe veterinária '
+                                'e a campanha foi aberta para receber apoio.',
                           ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     _Secao(
                       titulo: 'Apoio recente',
@@ -317,32 +363,25 @@ class DetalhesDoacao extends StatelessWidget {
                             nome: 'João',
                             valor: 100,
                           ),
-                          const SizedBox(
-                            height: EspacamentosApp.sm,
-                          ),
-                          _ApoioRecente(
-                            nome: 'Doação anônima',
-                            valor: 80,
-                          ),
                         ],
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.xl),
+                    const SizedBox(
+                      height: EspacamentosApp.xl,
+                    ),
 
                     SizedBox(
                       width: double.infinity,
-                      height: 52,
+                      height: 56,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          // Próxima tela: Doar
-                        },
+                        onPressed: () => _iniciarDoacao(context),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: CoresApp.darkBlue,
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         icon: const Icon(
@@ -391,7 +430,9 @@ class _Cabecalho extends StatelessWidget {
               color: CoresApp.darkBlue,
             ),
           ),
-          const SizedBox(width: EspacamentosApp.xs),
+          const SizedBox(
+            width: EspacamentosApp.xs,
+          ),
           const Text(
             'Detalhes da campanha',
             style: TextStyle(
@@ -492,7 +533,9 @@ class _Secao extends StatelessWidget {
             color: CoresApp.darkBlue,
           ),
         ),
-        const SizedBox(height: EspacamentosApp.md),
+        const SizedBox(
+          height: EspacamentosApp.md,
+        ),
         child,
       ],
     );
@@ -513,11 +556,13 @@ class _LinhaOrcamento extends StatelessWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          descricao,
-          style: const TextStyle(
-            fontSize: 14,
-            color: CoresApp.textPrimary,
+        Expanded(
+          child: Text(
+            descricao,
+            style: const TextStyle(
+              fontSize: 14,
+              color: CoresApp.textPrimary,
+            ),
           ),
         ),
         Text(
@@ -545,10 +590,15 @@ class _Atualizacao extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.all(EspacamentosApp.md),
+      padding: const EdgeInsets.all(
+        EspacamentosApp.md,
+      ),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
+        border: Border.all(
+          color: CoresApp.divider,
+        ),
       ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -562,7 +612,9 @@ class _Atualizacao extends StatelessWidget {
               shape: BoxShape.circle,
             ),
           ),
-          const SizedBox(width: EspacamentosApp.md),
+          const SizedBox(
+            width: EspacamentosApp.md,
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -619,7 +671,9 @@ class _ApoioRecente extends StatelessWidget {
             color: CoresApp.accentOrange,
           ),
         ),
-        const SizedBox(width: EspacamentosApp.md),
+        const SizedBox(
+          width: EspacamentosApp.md,
+        ),
         Expanded(
           child: Text(
             nome,

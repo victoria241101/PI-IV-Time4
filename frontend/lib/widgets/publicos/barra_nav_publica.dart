@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+
 import 'package:pet_care/core/tema/cores_app.dart';
 
 class BarraNavPublica extends StatelessWidget {
@@ -17,8 +18,10 @@ class BarraNavPublica extends StatelessWidget {
       currentIndex: currentIndex,
       onTap: onTap,
       type: BottomNavigationBarType.fixed,
+      backgroundColor: Colors.white,
       selectedItemColor: CoresApp.primary,
-      unselectedItemColor: Colors.grey,
+      unselectedItemColor: CoresApp.textSecondary,
+      elevation: 12,
       items: const [
         BottomNavigationBarItem(
           icon: Icon(Icons.home_outlined),
@@ -31,9 +34,9 @@ class BarraNavPublica extends StatelessWidget {
           label: 'Campanhas',
         ),
         BottomNavigationBarItem(
-          icon: Icon(Icons.person_outline_rounded),
-          activeIcon: Icon(Icons.person_rounded),
-          label: 'Perfil/Entrar',
+          icon: Icon(Icons.info_outline_rounded),
+          activeIcon: Icon(Icons.info_rounded),
+          label: 'Sobre',
         ),
       ],
     );
