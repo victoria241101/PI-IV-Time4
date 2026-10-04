@@ -34,6 +34,43 @@ class _LoginScreenState extends State<LoginScreen> {
     super.dispose();
   }
 
+  String? _validarEmail(String? value) {
+    final email = value?.trim() ?? '';
+
+    if (email.isEmpty) {
+      return 'Digite seu e-mail.';
+    }
+
+    final regexEmail = RegExp(
+      r'^[A-Za-z0-9.!#$%&’*+/=?^_`{|}~-]+@'
+      r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?'
+      r'(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$',
+    );
+
+    if (!regexEmail.hasMatch(email) ||
+        email.contains('..') ||
+        email.startsWith('.') ||
+        email.endsWith('.')) {
+      return 'Digite um e-mail válido.';
+    }
+
+    return null;
+  }
+
+  String? _validarSenha(String? value) {
+    final senha = value ?? '';
+
+    if (senha.isEmpty) {
+      return 'Digite sua senha.';
+    }
+
+    if (senha.length < 8) {
+      return 'A senha deve ter no mínimo 8 caracteres.';
+    }
+
+    return null;
+  }
+
   Future<void> _entrar() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -123,254 +160,365 @@ class _LoginScreenState extends State<LoginScreen> {
     );
   }
 
+  InputDecoration _decoracaoCampo({
+    required String hintText,
+    required IconData icon,
+    Widget? suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TipografiaApp.bodySmall.copyWith(
+        color: CoresApp.textSecondary.withAlpha(170),
+      ),
+      prefixIcon: Icon(
+        icon,
+        color: CoresApp.primary,
+        size: 21,
+      ),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: CoresApp.surfaceSoft,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: EspacamentosApp.md,
+        vertical: 17,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.black.withAlpha(12),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.black.withAlpha(12),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: CoresApp.primary,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: CoresApp.background,
       body: SafeArea(
-        child: Center(
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.symmetric(
-              horizontal: EspacamentosApp.pagePadding,
-              vertical: EspacamentosApp.xl,
-            ),
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.symmetric(
+            horizontal: EspacamentosApp.pagePadding,
+            vertical: EspacamentosApp.xl,
+          ),
+          child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 500,
-              ),
+              constraints: const BoxConstraints(maxWidth: 470),
               child: Form(
                 key: _formKey,
                 child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // ==========================
-                    // MARCA
-                    // ==========================
-
-                    Container(
-                      width: 76,
-                      height: 76,
-                      decoration: BoxDecoration(
-                        color: CoresApp.cardHighlight,
-                        shape: BoxShape.circle,
-                        boxShadow: EspacamentosApp.cardShadow,
-                      ),
-                      child: const Icon(
-                        Icons.pets_rounded,
-                        size: 42,
-                        color: CoresApp.cardHighlightText,
+                    Center(
+                      child: Column(
+                        children: [
+                          Container(
+                            width: 76,
+                            height: 76,
+                            decoration: BoxDecoration(
+                              color: CoresApp.darkBlue,
+                              borderRadius: BorderRadius.circular(24),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: CoresApp.darkBlue.withAlpha(35),
+                                  blurRadius: 24,
+                                  offset: const Offset(0, 10),
+                                ),
+                              ],
+                            ),
+                            child: const Icon(
+                              Icons.pets_rounded,
+                              size: 40,
+                              color: Colors.white,
+                            ),
+                          ),
+                          const SizedBox(height: EspacamentosApp.md),
+                          Text(
+                            'PetCare',
+                            style: TipografiaApp.heading1.copyWith(
+                              color: CoresApp.darkBlue,
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: -0.5,
+                            ),
+                          ),
+                        ],
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.md,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xxl),
 
                     Text(
-                      'PetCare',
+                      'Bem-vindo de volta!',
                       style: TipografiaApp.heading1.copyWith(
+                        color: CoresApp.textPrimary,
                         fontWeight: FontWeight.w800,
-                        color: CoresApp.cardHighlight,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xxl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xs),
 
-                    // ==========================
-                    // TÍTULO
-                    // ==========================
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Bem-vindo de volta!',
-                        style: TipografiaApp.heading1,
+                    Text(
+                      'Entre na sua conta para continuar cuidando dos seus pets.',
+                      style: TipografiaApp.bodySmall.copyWith(
+                        color: CoresApp.textSecondary,
+                        height: 1.5,
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xs,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Entre na sua conta para continuar cuidando dos seus pets.',
-                        style: TipografiaApp.bodySmall,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
-
-                    // ==========================
-                    // E-MAIL
-                    // ==========================
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'E-mail',
-                        style: TipografiaApp.bodyMedium,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
-
-                    TextFormField(
-                      controller: _emailController,
-                      keyboardType: TextInputType.emailAddress,
-                      textInputAction: TextInputAction.next,
-                      decoration: const InputDecoration(
-                        hintText: 'Digite seu e-mail',
-                        prefixIcon: Icon(
-                          Icons.email_outlined,
+                    Container(
+                      padding: const EdgeInsets.all(EspacamentosApp.lg),
+                      decoration: BoxDecoration(
+                        color: CoresApp.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.black.withAlpha(10),
                         ),
-                      ),
-                      validator: (value) {
-                        if (value == null || value.trim().isEmpty) {
-                          return 'Digite seu e-mail.';
-                        }
-
-                        if (!value.contains('@')) {
-                          return 'Digite um e-mail válido.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.md,
-                    ),
-
-                    // ==========================
-                    // SENHA
-                    // ==========================
-
-                    Align(
-                      alignment: Alignment.centerLeft,
-                      child: Text(
-                        'Senha',
-                        style: TipografiaApp.bodyMedium,
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
-
-                    TextFormField(
-                      controller: _senhaController,
-                      obscureText: _ocultarSenha,
-                      textInputAction: TextInputAction.done,
-                      onFieldSubmitted: (_) => _entrar(),
-                      decoration: InputDecoration(
-                        hintText: 'Digite sua senha',
-                        prefixIcon: const Icon(
-                          Icons.lock_outline_rounded,
-                        ),
-                        suffixIcon: IconButton(
-                          tooltip: _ocultarSenha
-                              ? 'Mostrar senha'
-                              : 'Ocultar senha',
-                          onPressed: () {
-                            setState(() {
-                              _ocultarSenha = !_ocultarSenha;
-                            });
-                          },
-                          icon: Icon(
-                            _ocultarSenha
-                                ? Icons.visibility_outlined
-                                : Icons.visibility_off_outlined,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(10),
+                            blurRadius: 30,
+                            offset: const Offset(0, 12),
                           ),
-                        ),
+                        ],
                       ),
-                      validator: (value) {
-                        if (value == null || value.isEmpty) {
-                          return 'Digite sua senha.';
-                        }
-
-                        return null;
-                      },
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
-
-                    // ==========================
-                    // ESQUECI SENHA
-                    // ==========================
-
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => const EsqueciSenhaScreen(),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'E-mail',
+                            style: TipografiaApp.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
-                          );
-                        },
-                        child: Text(
-                          'Esqueci minha senha',
-                          style: TipografiaApp.buttonSmall,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.md,
-                    ),
-
-                    // ==========================
-                    // ENTRAR
-                    // ==========================
-
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _entrar,
-                        child: const Text('Entrar'),
-                      ),
-                    ),
-
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
-
-                    // ==========================
-                    // CADASTRO
-                    // ==========================
-
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      children: [
-                        Text(
-                          'Ainda não possui uma conta? ',
-                          style: TipografiaApp.bodySmall,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pushNamed(
-                              context,
-                              '/cadastro',
-                            );
-                          },
-                          child: Text(
-                            'Cadastre-se',
-                            style: TipografiaApp.buttonSmall,
                           ),
+                          const SizedBox(height: EspacamentosApp.sm),
+
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.next,
+                            decoration: _decoracaoCampo(
+                              hintText: 'Digite seu e-mail',
+                              icon: Icons.email_outlined,
+                            ),
+                            validator: _validarEmail,
+                          ),
+
+                          const SizedBox(height: EspacamentosApp.md),
+
+                          Text(
+                            'Senha',
+                            style: TipografiaApp.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: EspacamentosApp.sm),
+
+                          TextFormField(
+                            controller: _senhaController,
+                            obscureText: _ocultarSenha,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _entrar(),
+                            decoration: _decoracaoCampo(
+                              hintText: 'Digite sua senha',
+                              icon: Icons.lock_outline_rounded,
+                              suffixIcon: IconButton(
+                                tooltip: _ocultarSenha
+                                    ? 'Mostrar senha'
+                                    : 'Ocultar senha',
+                                onPressed: () {
+                                  setState(() {
+                                    _ocultarSenha = !_ocultarSenha;
+                                  });
+                                },
+                                icon: Icon(
+                                  _ocultarSenha
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: CoresApp.textSecondary,
+                                ),
+                              ),
+                            ),
+                            validator: _validarSenha,
+                          ),
+
+                          Align(
+                            alignment: Alignment.centerRight,
+                            child: TextButton(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (_) =>
+                                    const EsqueciSenhaScreen(),
+                                  ),
+                                );
+                              },
+                              style: TextButton.styleFrom(
+                                foregroundColor: CoresApp.primary,
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 4,
+                                  vertical: 8,
+                                ),
+                              ),
+                              child: Text(
+                                'Esqueci minha senha',
+                                style: TipografiaApp.buttonSmall.copyWith(
+                                  color: CoresApp.primary,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: EspacamentosApp.sm),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _entrar,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: CoresApp.darkBlue,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Entrar',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: EspacamentosApp.lg),
+
+                          Container(
+                            width: double.infinity,
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: EspacamentosApp.md,
+                              vertical: EspacamentosApp.sm,
+                            ),
+                            decoration: BoxDecoration(
+                              color: CoresApp.primary.withAlpha(10),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: CoresApp.primary.withAlpha(22),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.verified_user_outlined,
+                                    size: 18,
+                                    color: CoresApp.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: EspacamentosApp.sm),
+                                Expanded(
+                                  child: Text(
+                                    'Seus dados são tratados com segurança e privacidade.',
+                                    style: TipografiaApp.bodySmall.copyWith(
+                                      color: CoresApp.textSecondary,
+                                      height: 1.35,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.xl),
+
+                    Center(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        children: [
+                          Text(
+                            'Ainda não possui uma conta? ',
+                            style: TipografiaApp.bodySmall.copyWith(
+                              color: CoresApp.textSecondary,
+                            ),
+                          ),
+                          GestureDetector(
+                            onTap: () {
+                              Navigator.pushNamed(
+                                context,
+                                '/cadastro',
+                              );
+                            },
+                            child: Text(
+                              'Cadastre-se',
+                              style: TipografiaApp.buttonSmall.copyWith(
+                                color: CoresApp.primary,
+                                fontWeight: FontWeight.w700,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.lg),
+
+                    Center(
+                      child: Text(
+                        'Cuidar também é uma forma de amar.',
+                        textAlign: TextAlign.center,
+                        style: TipografiaApp.bodySmall.copyWith(
+                          color: CoresApp.textSecondary.withAlpha(180),
+                          fontStyle: FontStyle.italic,
                         ),
-                      ],
+                      ),
                     ),
                   ],
                 ),

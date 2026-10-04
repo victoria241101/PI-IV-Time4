@@ -14,34 +14,98 @@ class EsqueciSenhaScreen extends StatefulWidget {
 }
 
 class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
-  final _identificadorController = TextEditingController();
-
-  bool _usarEmail = true;
+  final _formKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
 
   @override
   void dispose() {
-    _identificadorController.dispose();
+    _emailController.dispose();
     super.dispose();
   }
 
-  void _enviarCodigo() {
-    if (_identificadorController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(
-            _usarEmail
-                ? 'Digite seu e-mail.'
-                : 'Digite seu número de telefone.',
-          ),
-        ),
-      );
-      return;
+  String? _validarEmail(String? value) {
+    final email = value?.trim() ?? '';
+
+    if (email.isEmpty) {
+      return 'Digite seu e-mail.';
     }
+
+    final regexEmail = RegExp(
+      r'^[A-Za-z0-9.!#$%&’*+/=?^_`{|}~-]+@'
+      r'[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?'
+      r'(?:\.[A-Za-z0-9](?:[A-Za-z0-9-]{0,61}[A-Za-z0-9])?)+$',
+    );
+
+    if (!regexEmail.hasMatch(email) ||
+        email.contains('..') ||
+        email.startsWith('.') ||
+        email.endsWith('.')) {
+      return 'Digite um e-mail válido.';
+    }
+
+    return null;
+  }
+
+  void _enviarCodigo() {
+    if (!_formKey.currentState!.validate()) return;
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => const VerificacaoScreen(),
+        builder: (_) => VerificacaoScreen(
+          email: _emailController.text.trim(),
+        ),
+      ),
+    );
+  }
+
+  InputDecoration _decoracaoCampo() {
+    return InputDecoration(
+      hintText: 'Digite seu e-mail',
+      hintStyle: TipografiaApp.bodySmall.copyWith(
+        color: CoresApp.textSecondary.withAlpha(170),
+      ),
+      prefixIcon: const Icon(
+        Icons.email_outlined,
+        color: CoresApp.primary,
+      ),
+      filled: true,
+      fillColor: CoresApp.surfaceSoft,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: EspacamentosApp.md,
+        vertical: 17,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.black.withAlpha(12),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.black.withAlpha(12),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: CoresApp.primary,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+          width: 1.5,
+        ),
       ),
     );
   }
@@ -58,281 +122,233 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
           ),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 500,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // VOLTAR
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
+              constraints: const BoxConstraints(maxWidth: 470),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      icon: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: CoresApp.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.black.withAlpha(10),
+                          ),
+                        ),
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: CoresApp.darkBlue,
+                        ),
+                      ),
                     ),
-                    color: CoresApp.textPrimary,
-                    padding: EdgeInsets.zero,
-                  ),
 
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
-                  // ÍCONE
-                  Center(
-                    child: Container(
-                      width: 68,
-                      height: 68,
+                    Center(
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          color: CoresApp.darkBlue,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: CoresApp.darkBlue.withAlpha(35),
+                              blurRadius: 24,
+                              offset: const Offset(0, 10),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(
+                          Icons.lock_reset_rounded,
+                          size: 38,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.lg),
+
+                    Center(
+                      child: Text(
+                        'Esqueceu sua senha?',
+                        textAlign: TextAlign.center,
+                        style: TipografiaApp.heading1.copyWith(
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.xs),
+
+                    Center(
+                      child: Text(
+                        'Informe seu e-mail e enviaremos um código para recuperar sua conta.',
+                        textAlign: TextAlign.center,
+                        style: TipografiaApp.bodySmall.copyWith(
+                          color: CoresApp.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.xl),
+
+                    Container(
+                      padding: const EdgeInsets.all(EspacamentosApp.lg),
                       decoration: BoxDecoration(
-                        color: CoresApp.cardHighlight,
-                        shape: BoxShape.circle,
-                        boxShadow: EspacamentosApp.cardShadow,
-                      ),
-                      child: const Icon(
-                        Icons.lock_reset_rounded,
-                        size: 36,
-                        color: CoresApp.cardHighlightText,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.md,
-                  ),
-
-                  // TÍTULO
-                  Center(
-                    child: Text(
-                      'Esqueceu sua senha?',
-                      textAlign: TextAlign.center,
-                      style: TipografiaApp.heading1,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.xs,
-                  ),
-
-                  // DESCRIÇÃO
-                  Center(
-                    child: Text(
-                      'Digite seu e-mail ou número de telefone para receber um código de verificação.',
-                      textAlign: TextAlign.center,
-                      style: TipografiaApp.bodySmall,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
-
-                  // SELETOR EMAIL / SMS
-                  Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: CoresApp.cardHighlight.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: _buildMetodoButton(
-                            texto: 'E-mail',
-                            icone: Icons.email_outlined,
-                            selecionado: _usarEmail,
-                            onTap: () {
-                              setState(() {
-                                _usarEmail = true;
-                              });
-                            },
+                        color: CoresApp.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.black.withAlpha(10),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(10),
+                            blurRadius: 30,
+                            offset: const Offset(0, 12),
                           ),
-                        ),
-                        Expanded(
-                          child: _buildMetodoButton(
-                            texto: 'SMS',
-                            icone: Icons.phone_outlined,
-                            selecionado: !_usarEmail,
-                            onTap: () {
-                              setState(() {
-                                _usarEmail = false;
-                              });
-                            },
+                        ],
+                      ),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'E-mail da conta',
+                            style: TipografiaApp.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
+                          const SizedBox(height: EspacamentosApp.sm),
 
-                  Text(
-                    _usarEmail
-                        ? 'E-mail ou ID da conta'
-                        : 'Número de telefone',
-                    style: TipografiaApp.bodyMedium,
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.sm,
-                  ),
-
-                  TextField(
-                    controller: _identificadorController,
-                    keyboardType: _usarEmail
-                        ? TextInputType.emailAddress
-                        : TextInputType.phone,
-                    decoration: InputDecoration(
-                      hintText: _usarEmail
-                          ? 'Digite seu e-mail'
-                          : 'Digite seu telefone',
-                      prefixIcon: Icon(
-                        _usarEmail
-                            ? Icons.email_outlined
-                            : Icons.phone_outlined,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.md,
-                  ),
-
-                  // AVISO
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: CoresApp.cardHighlight.withValues(alpha: 0.08),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.info_outline_rounded,
-                          size: 20,
-                          color: CoresApp.cardHighlight,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Você receberá um código de verificação para continuar a recuperação da sua conta.',
-                            style: TipografiaApp.bodySmall,
+                          TextFormField(
+                            controller: _emailController,
+                            keyboardType: TextInputType.emailAddress,
+                            textInputAction: TextInputAction.done,
+                            onFieldSubmitted: (_) => _enviarCodigo(),
+                            decoration: _decoracaoCampo(),
+                            validator: _validarEmail,
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
+                          const SizedBox(height: EspacamentosApp.md),
 
-                  // BOTÃO
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _enviarCodigo,
-                      icon: const Icon(
-                        Icons.arrow_forward_rounded,
-                      ),
-                      label: const Text(
-                        'Enviar código de verificação',
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
-
-                  // LOGIN
-                  Center(
-                    child: Wrap(
-                      alignment: WrapAlignment.center,
-                      children: [
-                        Text(
-                          'Lembrou sua senha? ',
-                          style: TipografiaApp.bodySmall,
-                        ),
-                        GestureDetector(
-                          onTap: () {
-                            Navigator.pop(context);
-                          },
-                          child: Text(
-                            'Entrar',
-                            style: TipografiaApp.buttonSmall,
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: CoresApp.primary.withAlpha(10),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              children: [
+                                Container(
+                                  width: 34,
+                                  height: 34,
+                                  decoration: BoxDecoration(
+                                    color: CoresApp.primary.withAlpha(20),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: const Icon(
+                                    Icons.mark_email_read_outlined,
+                                    size: 18,
+                                    color: CoresApp.primary,
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Enviaremos um código de verificação para este endereço.',
+                                    style:
+                                    TipografiaApp.bodySmall.copyWith(
+                                      color: CoresApp.textSecondary,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
 
-                  const SizedBox(
-                    height: EspacamentosApp.md,
-                  ),
+                          const SizedBox(height: EspacamentosApp.lg),
 
-                  Center(
-                    child: Text(
-                      'Precisa de ajuda? Entre em contato com o suporte.',
-                      textAlign: TextAlign.center,
-                      style: TipografiaApp.bodySmall.copyWith(
-                        fontSize: 11,
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _enviarCodigo,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: CoresApp.darkBlue,
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Enviar código',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Icon(
+                                    Icons.arrow_forward_rounded,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
-                ],
+
+                    const SizedBox(height: EspacamentosApp.xl),
+
+                    Center(
+                      child: TextButton.icon(
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(
+                          Icons.arrow_back_rounded,
+                          size: 18,
+                        ),
+                        label: const Text('Voltar para o login'),
+                        style: TextButton.styleFrom(
+                          foregroundColor: CoresApp.primary,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.md),
+
+                    Center(
+                      child: Text(
+                        'Precisa de ajuda? Entre em contato com o suporte.',
+                        textAlign: TextAlign.center,
+                        style: TipografiaApp.bodySmall.copyWith(
+                          fontSize: 11,
+                          color: CoresApp.textSecondary.withAlpha(180),
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMetodoButton({
-    required String texto,
-    required IconData icone,
-    required bool selecionado,
-    required VoidCallback onTap,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(
-          vertical: 12,
-        ),
-        decoration: BoxDecoration(
-          color: selecionado
-              ? CoresApp.cardHighlight
-              : Colors.transparent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              icone,
-              size: 18,
-              color: selecionado
-                  ? CoresApp.cardHighlightText
-                  : CoresApp.textPrimary,
-            ),
-            const SizedBox(width: 6),
-            Text(
-              texto,
-              style: TipografiaApp.bodySmall.copyWith(
-                fontWeight: FontWeight.w600,
-                color: selecionado
-                    ? CoresApp.cardHighlightText
-                    : CoresApp.textPrimary,
-              ),
-            ),
-          ],
         ),
       ),
     );

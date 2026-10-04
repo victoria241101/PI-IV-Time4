@@ -12,18 +12,13 @@ class NovaSenhaScreen extends StatefulWidget {
 }
 
 class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
+  final _formKey = GlobalKey<FormState>();
+
   final _senhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
 
   bool _ocultarSenha = true;
   bool _ocultarConfirmacao = true;
-
-  @override
-  void dispose() {
-    _senhaController.dispose();
-    _confirmarSenhaController.dispose();
-    super.dispose();
-  }
 
   bool get _temOitoCaracteres =>
       _senhaController.text.length >= 8;
@@ -50,25 +45,46 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
           _temEspecial &&
           _senhasIguais;
 
-  void _resetarSenha() {
-    if (!_senhaValida) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'A senha ainda não atende a todos os critérios.',
-          ),
-        ),
-      );
-      return;
+  double get _forcaSenha {
+    if (_senhaController.text.isEmpty) return 0;
+
+    int criterios = 0;
+
+    if (_temOitoCaracteres) criterios++;
+    if (_temMaiuscula) criterios++;
+    if (_temNumero) criterios++;
+    if (_temEspecial) criterios++;
+
+    return criterios / 4;
+  }
+
+  String get _textoForcaSenha {
+    if (_senhaController.text.isEmpty) {
+      return 'Digite uma senha';
     }
 
-    // Mock: futuramente conectar ao backend.
+    if (_forcaSenha < 0.5) return 'Senha fraca';
+    if (_forcaSenha < 1) return 'Senha média';
+
+    return 'Senha forte';
+  }
+
+  Color _corForcaSenha() {
+    if (_forcaSenha < 0.5) return Colors.redAccent;
+    if (_forcaSenha < 1) return Colors.orange;
+
+    return CoresApp.primary;
+  }
+
+  void _resetarSenha() {
+    if (!_formKey.currentState!.validate()) return;
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
           'Senha alterada com sucesso!',
         ),
+        behavior: SnackBarBehavior.floating,
       ),
     );
 
@@ -85,6 +101,99 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
     );
   }
 
+  InputDecoration _decoracaoCampo({
+    required String hintText,
+    required Widget suffixIcon,
+  }) {
+    return InputDecoration(
+      hintText: hintText,
+      hintStyle: TipografiaApp.bodySmall.copyWith(
+        color: CoresApp.textSecondary.withAlpha(170),
+      ),
+      prefixIcon: const Icon(
+        Icons.lock_outline_rounded,
+        color: CoresApp.primary,
+      ),
+      suffixIcon: suffixIcon,
+      filled: true,
+      fillColor: CoresApp.surfaceSoft,
+      contentPadding: const EdgeInsets.symmetric(
+        horizontal: EspacamentosApp.md,
+        vertical: 17,
+      ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.black.withAlpha(12),
+        ),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: BorderSide(
+          color: Colors.black.withAlpha(12),
+        ),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: CoresApp.primary,
+          width: 1.5,
+        ),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+        ),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(16),
+        borderSide: const BorderSide(
+          color: Colors.redAccent,
+          width: 1.5,
+        ),
+      ),
+    );
+  }
+
+  Widget _criterio(String texto, bool atendido) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: Row(
+        children: [
+          Icon(
+            atendido
+                ? Icons.check_circle_rounded
+                : Icons.radio_button_unchecked_rounded,
+            size: 17,
+            color: atendido
+                ? CoresApp.primary
+                : CoresApp.textSecondary.withAlpha(100),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              texto,
+              style: TipografiaApp.bodySmall.copyWith(
+                fontSize: 12,
+                color: atendido
+                    ? CoresApp.textPrimary
+                    : CoresApp.textSecondary,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  @override
+  void dispose() {
+    _senhaController.dispose();
+    _confirmarSenhaController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -97,300 +206,313 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
           ),
           child: Center(
             child: ConstrainedBox(
-              constraints: const BoxConstraints(
-                maxWidth: 500,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // VOLTAR
-                  IconButton(
-                    onPressed: () {
-                      Navigator.pop(context);
-                    },
-                    icon: const Icon(
-                      Icons.arrow_back_rounded,
-                    ),
-                    color: CoresApp.textPrimary,
-                    padding: EdgeInsets.zero,
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
-
-                  // ÍCONE
-                  Center(
-                    child: Container(
-                      width: 68,
-                      height: 68,
-                      decoration: BoxDecoration(
-                        color: CoresApp.cardHighlight.withValues(
-                          alpha: 0.12,
+              constraints: const BoxConstraints(maxWidth: 470),
+              child: Form(
+                key: _formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    IconButton(
+                      onPressed: () => Navigator.pop(context),
+                      padding: EdgeInsets.zero,
+                      icon: Container(
+                        width: 44,
+                        height: 44,
+                        decoration: BoxDecoration(
+                          color: CoresApp.surface,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(
+                            color: Colors.black.withAlpha(10),
+                          ),
                         ),
-                        shape: BoxShape.circle,
-                      ),
-                      child: Icon(
-                        Icons.lock_reset_rounded,
-                        size: 34,
-                        color: CoresApp.cardHighlight,
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.md,
-                  ),
-
-                  // TÍTULO
-                  Center(
-                    child: Text(
-                      'Crie uma nova senha',
-                      textAlign: TextAlign.center,
-                      style: TipografiaApp.heading1,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.xs,
-                  ),
-
-                  Center(
-                    child: Text(
-                      'Sua nova senha deve ser diferente da anterior e atender aos critérios de segurança.',
-                      textAlign: TextAlign.center,
-                      style: TipografiaApp.bodySmall,
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
-
-                  // NOVA SENHA
-                  Text(
-                    'Nova senha',
-                    style: TipografiaApp.bodyMedium,
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.sm,
-                  ),
-
-                  TextField(
-                    controller: _senhaController,
-                    obscureText: _ocultarSenha,
-                    onChanged: (_) {
-                      setState(() {});
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Digite sua nova senha',
-                      prefixIcon: const Icon(
-                        Icons.lock_outline_rounded,
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _ocultarSenha = !_ocultarSenha;
-                          });
-                        },
-                        icon: Icon(
-                          _ocultarSenha
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                        child: const Icon(
+                          Icons.arrow_back_rounded,
+                          color: CoresApp.darkBlue,
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(
-                    height: EspacamentosApp.md,
-                  ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
-                  // INDICADOR
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: CoresApp.cardHighlight.withValues(
-                        alpha: 0.07,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
-                          children: [
-                            Text(
-                              'Segurança da senha',
-                              style: TipografiaApp.bodySmall.copyWith(
-                                fontWeight: FontWeight.w700,
-                              ),
-                            ),
-                            Text(
-                              _senhaValida
-                                  ? 'Senha forte'
-                                  : 'Verificando',
-                              style: TipografiaApp.bodySmall.copyWith(
-                                fontWeight: FontWeight.w600,
-                              ),
+                    Center(
+                      child: Container(
+                        width: 76,
+                        height: 76,
+                        decoration: BoxDecoration(
+                          color: CoresApp.darkBlue,
+                          borderRadius: BorderRadius.circular(24),
+                          boxShadow: [
+                            BoxShadow(
+                              color: CoresApp.darkBlue.withAlpha(35),
+                              blurRadius: 24,
+                              offset: const Offset(0, 10),
                             ),
                           ],
                         ),
-
-                        const SizedBox(
-                          height: 12,
-                        ),
-
-                        _buildCriterio(
-                          'Pelo menos 8 caracteres',
-                          _temOitoCaracteres,
-                        ),
-
-                        _buildCriterio(
-                          'Pelo menos uma letra maiúscula',
-                          _temMaiuscula,
-                        ),
-
-                        _buildCriterio(
-                          'Pelo menos um número',
-                          _temNumero,
-                        ),
-
-                        _buildCriterio(
-                          'Pelo menos um caractere especial',
-                          _temEspecial,
-                        ),
-                      ],
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
-
-                  // CONFIRMAR SENHA
-                  Text(
-                    'Confirmar nova senha',
-                    style: TipografiaApp.bodyMedium,
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.sm,
-                  ),
-
-                  TextField(
-                    controller: _confirmarSenhaController,
-                    obscureText: _ocultarConfirmacao,
-                    onChanged: (_) {
-                      setState(() {});
-                    },
-                    decoration: InputDecoration(
-                      hintText: 'Digite a senha novamente',
-                      prefixIcon: const Icon(
-                        Icons.lock_outline_rounded,
-                      ),
-                      suffixIcon: IconButton(
-                        onPressed: () {
-                          setState(() {
-                            _ocultarConfirmacao =
-                            !_ocultarConfirmacao;
-                          });
-                        },
-                        icon: Icon(
-                          _ocultarConfirmacao
-                              ? Icons.visibility_outlined
-                              : Icons.visibility_off_outlined,
+                        child: const Icon(
+                          Icons.lock_reset_rounded,
+                          size: 38,
+                          color: Colors.white,
                         ),
                       ),
                     ),
-                  ),
 
-                  const SizedBox(
-                    height: EspacamentosApp.xs,
-                  ),
+                    const SizedBox(height: EspacamentosApp.lg),
 
-                  if (_confirmarSenhaController.text.isNotEmpty)
-                    Row(
-                      children: [
-                        Icon(
-                          _senhasIguais
-                              ? Icons.check_circle_outline
-                              : Icons.error_outline,
-                          size: 16,
-                          color: _senhasIguais
-                              ? CoresApp.cardHighlight
-                              : Colors.red,
+                    Center(
+                      child: Text(
+                        'Crie uma nova senha',
+                        textAlign: TextAlign.center,
+                        style: TipografiaApp.heading1.copyWith(
+                          fontWeight: FontWeight.w800,
                         ),
-                        const SizedBox(width: 6),
-                        Text(
-                          _senhasIguais
-                              ? 'As senhas coincidem'
-                              : 'As senhas não coincidem',
-                          style: TipografiaApp.bodySmall.copyWith(
-                            fontSize: 12,
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.xs),
+
+                    Center(
+                      child: Text(
+                        'Escolha uma senha forte para proteger sua conta.',
+                        textAlign: TextAlign.center,
+                        style: TipografiaApp.bodySmall.copyWith(
+                          color: CoresApp.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ),
+
+                    const SizedBox(height: EspacamentosApp.xl),
+
+                    Container(
+                      padding: const EdgeInsets.all(EspacamentosApp.lg),
+                      decoration: BoxDecoration(
+                        color: CoresApp.surface,
+                        borderRadius: BorderRadius.circular(24),
+                        border: Border.all(
+                          color: Colors.black.withAlpha(10),
+                        ),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withAlpha(10),
+                            blurRadius: 30,
+                            offset: const Offset(0, 12),
                           ),
-                        ),
-                      ],
-                    ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
-
-                  // BOTÃO
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton.icon(
-                      onPressed: _senhaValida
-                          ? _resetarSenha
-                          : null,
-                      icon: const Icon(
-                        Icons.lock_reset_rounded,
+                        ],
                       ),
-                      label: const Text(
-                        'Redefinir senha e entrar',
-                      ),
-                    ),
-                  ),
-
-                  const SizedBox(
-                    height: EspacamentosApp.md,
-                  ),
-
-                  // SEGURANÇA
-                  Container(
-                    padding: const EdgeInsets.all(14),
-                    decoration: BoxDecoration(
-                      color: CoresApp.cardHighlight.withValues(
-                        alpha: 0.06,
-                      ),
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Icon(
-                          Icons.shield_outlined,
-                          size: 20,
-                          color: CoresApp.cardHighlight,
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: Text(
-                            'Por segurança, a alteração da senha será registrada na sua conta.',
-                            style: TipografiaApp.bodySmall.copyWith(
-                              fontSize: 11,
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            'Nova senha',
+                            style: TipografiaApp.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
-                        ),
-                      ],
+                          const SizedBox(height: EspacamentosApp.sm),
+
+                          TextFormField(
+                            controller: _senhaController,
+                            obscureText: _ocultarSenha,
+                            onChanged: (_) => setState(() {}),
+                            decoration: _decoracaoCampo(
+                              hintText: 'Digite sua nova senha',
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _ocultarSenha = !_ocultarSenha;
+                                  });
+                                },
+                                icon: Icon(
+                                  _ocultarSenha
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: CoresApp.textSecondary,
+                                ),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Digite uma senha.';
+                              }
+
+                              if (!_temOitoCaracteres) {
+                                return 'A senha deve ter no mínimo 8 caracteres.';
+                              }
+
+                              if (!_temMaiuscula) {
+                                return 'Adicione uma letra maiúscula.';
+                              }
+
+                              if (!_temNumero) {
+                                return 'Adicione um número.';
+                              }
+
+                              if (!_temEspecial) {
+                                return 'Adicione um caractere especial.';
+                              }
+
+                              return null;
+                            },
+                          ),
+
+                          if (_senhaController.text.isNotEmpty) ...[
+                            const SizedBox(height: EspacamentosApp.sm),
+                            _buildForcaSenha(),
+                          ],
+
+                          const SizedBox(height: EspacamentosApp.lg),
+
+                          Text(
+                            'Confirmar nova senha',
+                            style: TipografiaApp.bodyMedium.copyWith(
+                              fontWeight: FontWeight.w700,
+                            ),
+                          ),
+                          const SizedBox(height: EspacamentosApp.sm),
+
+                          TextFormField(
+                            controller:
+                            _confirmarSenhaController,
+                            obscureText: _ocultarConfirmacao,
+                            onChanged: (_) => setState(() {}),
+                            decoration: _decoracaoCampo(
+                              hintText: 'Digite a senha novamente',
+                              suffixIcon: IconButton(
+                                onPressed: () {
+                                  setState(() {
+                                    _ocultarConfirmacao =
+                                    !_ocultarConfirmacao;
+                                  });
+                                },
+                                icon: Icon(
+                                  _ocultarConfirmacao
+                                      ? Icons.visibility_outlined
+                                      : Icons.visibility_off_outlined,
+                                  color: CoresApp.textSecondary,
+                                ),
+                              ),
+                            ),
+                            validator: (value) {
+                              if (value == null || value.isEmpty) {
+                                return 'Confirme sua senha.';
+                              }
+
+                              if (value != _senhaController.text) {
+                                return 'As senhas não coincidem.';
+                              }
+
+                              return null;
+                            },
+                          ),
+
+                          if (_confirmarSenhaController
+                              .text
+                              .isNotEmpty) ...[
+                            const SizedBox(height: EspacamentosApp.xs),
+                            Row(
+                              children: [
+                                Icon(
+                                  _senhasIguais
+                                      ? Icons.check_circle_outline
+                                      : Icons.error_outline,
+                                  size: 17,
+                                  color: _senhasIguais
+                                      ? CoresApp.primary
+                                      : Colors.redAccent,
+                                ),
+                                const SizedBox(width: 6),
+                                Text(
+                                  _senhasIguais
+                                      ? 'As senhas coincidem'
+                                      : 'As senhas não coincidem',
+                                  style:
+                                  TipografiaApp.bodySmall.copyWith(
+                                    fontSize: 12,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+
+                          const SizedBox(height: EspacamentosApp.xl),
+
+                          SizedBox(
+                            width: double.infinity,
+                            height: 56,
+                            child: ElevatedButton(
+                              onPressed: _senhaValida
+                                  ? _resetarSenha
+                                  : null,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: CoresApp.darkBlue,
+                                disabledBackgroundColor:
+                                CoresApp.textSecondary
+                                    .withAlpha(35),
+                                foregroundColor: Colors.white,
+                                elevation: 0,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius:
+                                  BorderRadius.circular(16),
+                                ),
+                              ),
+                              child: const Row(
+                                mainAxisAlignment:
+                                MainAxisAlignment.center,
+                                children: [
+                                  Text(
+                                    'Redefinir senha e entrar',
+                                    style: TextStyle(
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.w700,
+                                    ),
+                                  ),
+                                  SizedBox(width: 10),
+                                  Icon(
+                                    Icons.check_rounded,
+                                    size: 20,
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: EspacamentosApp.lg),
+
+                          Container(
+                            padding: const EdgeInsets.all(14),
+                            decoration: BoxDecoration(
+                              color: CoresApp.primary.withAlpha(10),
+                              borderRadius: BorderRadius.circular(14),
+                            ),
+                            child: Row(
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
+                              children: [
+                                const Icon(
+                                  Icons.shield_outlined,
+                                  size: 20,
+                                  color: CoresApp.primary,
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: Text(
+                                    'Por segurança, a alteração da senha será registrada na sua conta.',
+                                    style:
+                                    TipografiaApp.bodySmall.copyWith(
+                                      color: CoresApp.textSecondary,
+                                      height: 1.4,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
                     ),
-                  ),
-                ],
+                  ],
+                ),
               ),
             ),
           ),
@@ -399,36 +521,67 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
     );
   }
 
-  Widget _buildCriterio(
-      String texto,
-      bool atendido,
-      ) {
-    return Padding(
-      padding: const EdgeInsets.only(
-        bottom: 7,
+  Widget _buildForcaSenha() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.symmetric(
+        horizontal: 14,
+        vertical: 13,
       ),
-      child: Row(
+      decoration: BoxDecoration(
+        color: CoresApp.primary.withAlpha(10),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Icon(
-            atendido
-                ? Icons.check_circle
-                : Icons.radio_button_unchecked,
-            size: 17,
-            color: atendido
-                ? CoresApp.cardHighlight
-                : CoresApp.textPrimary.withValues(
-              alpha: 0.45,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              texto,
-              style: TipografiaApp.bodySmall.copyWith(
-                fontSize: 12,
+          Row(
+            mainAxisAlignment:
+            MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Segurança da senha',
+                style: TipografiaApp.bodySmall.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
               ),
+              Text(
+                _textoForcaSenha,
+                style: TipografiaApp.bodySmall.copyWith(
+                  color: _corForcaSenha(),
+                  fontWeight: FontWeight.w700,
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          ClipRRect(
+            borderRadius: BorderRadius.circular(20),
+            child: Stack(
+              children: [
+                Container(
+                  height: 7,
+                  width: double.infinity,
+                  color: CoresApp.textSecondary.withAlpha(25),
+                ),
+                AnimatedFractionallySizedBox(
+                  duration: const Duration(milliseconds: 300),
+                  curve: Curves.easeOutCubic,
+                  alignment: Alignment.centerLeft,
+                  widthFactor: _forcaSenha,
+                  child: Container(
+                    height: 7,
+                    color: _corForcaSenha(),
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(height: 12),
+          _criterio('8+ caracteres', _temOitoCaracteres),
+          _criterio('Maiúscula', _temMaiuscula),
+          _criterio('Número', _temNumero),
+          _criterio('Especial', _temEspecial),
         ],
       ),
     );
