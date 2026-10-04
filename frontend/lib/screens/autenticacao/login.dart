@@ -4,6 +4,14 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 
+import 'package:pet_care/modelos/dados_banner.dart';
+import 'package:pet_care/modelos/resumo_consulta.dart';
+import 'package:pet_care/modelos/resumo_pet.dart';
+
+import 'package:pet_care/screens/tutor/inicio_tutor.dart';
+
+import 'esqueci_senha.dart';
+
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
 
@@ -29,8 +37,85 @@ class _LoginScreenState extends State<LoginScreen> {
   void _entrar() {
     if (!_formKey.currentState!.validate()) return;
 
-    // TODO: conectar ao backend/autenticação.
+    Navigator.pushReplacement(
+      context,
+      MaterialPageRoute(
+        builder: (_) => InicioTutor(
+          saudacao: 'Olá,',
+          nomeTutor: 'Victoria',
+          pets: const [
+            ResumoPet(
+              id: 'pet-001',
+              name: 'Mel',
+              species: 'Cachorro',
+              breed: 'Golden Retriever',
+              age: '3 anos',
+              weight: 25.5,
+            ),
+            ResumoPet(
+              id: 'pet-002',
+              name: 'Luna',
+              species: 'Gato',
+              breed: 'Siamês',
+              age: '2 anos',
+              weight: 4.2,
+            ),
+          ],
+          proximaConsulta: const ResumoConsulta(
+            id: 'consulta-001',
+            type: 'Consulta veterinária',
+            date: '15/10/2026',
+            time: '14:00',
+            vetName: 'Dra. Ana Oliveira',
+            petName: 'Mel',
+            status: 'Confirmada',
+            instructions: 'Chegar com 10 minutos de antecedência.',
+            clinicAddress: 'Rua das Flores, 120 - Campinas/SP',
+          ),
+          banners: const [],
+          onConfirmarConsulta: (consultaId) async {
+            return const ResumoConsulta(
+              id: 'consulta-001',
+              type: 'Consulta veterinária',
+              date: '15/10/2026',
+              time: '14:00',
+              vetName: 'Dra. Ana Oliveira',
+              petName: 'Mel',
+              status: 'Confirmada',
+              instructions: 'Chegar com 10 minutos de antecedência.',
+              clinicAddress: 'Rua das Flores, 120 - Campinas/SP',
+            );
+          },
+          carregarDetalhesPet: (petId) async {
+            throw UnimplementedError(
+              'Detalhes do pet ainda não estão conectados ao backend.',
+            );
+          },
+          onAgendarNovaConsulta: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Agendamento ainda não está conectado ao backend.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+          onNotificacoes: () {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text(
+                  'Notificações ainda não estão disponíveis.',
+                ),
+                behavior: SnackBarBehavior.floating,
+              ),
+            );
+          },
+        ),
+      ),
+    );
   }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -222,7 +307,13 @@ class _LoginScreenState extends State<LoginScreen> {
                       alignment: Alignment.centerRight,
                       child: TextButton(
                         onPressed: () {
-                          // TODO: recuperação de senha.
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) =>
+                              const EsqueciSenhaScreen(),
+                            ),
+                          );
                         },
                         child: Text(
                           'Esqueci minha senha',
@@ -284,4 +375,5 @@ class _LoginScreenState extends State<LoginScreen> {
         ),
       ),
     );
-  }}
+  }
+}
