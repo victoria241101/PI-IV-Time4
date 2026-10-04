@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/screens/tutor/doar.dart';
+import 'doar.dart';
 
 class DetalhesDoacao extends StatelessWidget {
   const DetalhesDoacao({

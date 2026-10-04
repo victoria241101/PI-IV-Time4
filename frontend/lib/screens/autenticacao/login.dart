@@ -8,6 +8,7 @@ import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
 
 import 'package:pet_care/screens/tutor/inicio_tutor.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 import 'esqueci_senha.dart';
 
@@ -35,6 +36,14 @@ class _LoginScreenState extends State<LoginScreen> {
 
   void _entrar() {
     if (!_formKey.currentState!.validate()) return;
+
+    // Registra o usuário como autenticado.
+    // Por enquanto, o nome continua mockado porque
+    // ainda não estamos buscando os dados no backend.
+    SessaoUsuario.instancia.entrar(
+      nome: 'Victoria',
+      email: _emailController.text.trim(),
+    );
 
     Navigator.pushReplacement(
       context,
