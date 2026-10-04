@@ -6,6 +6,8 @@ import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import 'package:pet_care/widgets/cartao_campanha.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
 
+import 'detalhes_doacao.dart';
+
 class Doacao extends StatefulWidget {
   const Doacao({super.key});
 
@@ -31,17 +33,24 @@ class _DoacaoState extends State<Doacao> {
     });
   }
 
-  void _abrirCampanha(String nomeAnimal) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        SnackBar(
-          content: Text(
-            'Campanha de $nomeAnimal selecionada.',
-          ),
-          behavior: SnackBarBehavior.floating,
+  void _abrirCampanha({
+    required String nomeAnimal,
+    required String titulo,
+    required double valorArrecadado,
+    required double meta,
+    bool urgente = false,
+  }) {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => DetalhesDoacao(
+          nomeAnimal: nomeAnimal,
+          titulo: titulo,
+          valorArrecadado: valorArrecadado,
+          meta: meta,
+          urgente: urgente,
         ),
-      );
+      ),
+    );
   }
 
   @override
@@ -131,7 +140,13 @@ class _DoacaoState extends State<Doacao> {
                       valorArrecadado: 1250,
                       meta: 2000,
                       urgente: true,
-                      onTap: () => _abrirCampanha('Bobby'),
+                      onTap: () => _abrirCampanha(
+                        nomeAnimal: 'Bobby',
+                        titulo: 'Cirurgia ortopédica de emergência',
+                        valorArrecadado: 1250,
+                        meta: 2000,
+                        urgente: true,
+                      ),
                     ),
 
                     const SizedBox(height: EspacamentosApp.lg),
@@ -141,7 +156,12 @@ class _DoacaoState extends State<Doacao> {
                       titulo: 'Tratamento veterinário',
                       valorArrecadado: 400,
                       meta: 850,
-                      onTap: () => _abrirCampanha('Luna'),
+                      onTap: () => _abrirCampanha(
+                        nomeAnimal: 'Luna',
+                        titulo: 'Tratamento veterinário',
+                        valorArrecadado: 400,
+                        meta: 850,
+                      ),
                     ),
                   ],
                 ),
