@@ -7,8 +7,8 @@ const https = require('https');
 const fs = require('fs');
 const path = require('path');
 
-// Diretório de destino para os arquivos .jar
-const LIB_DIR = path.join(__dirname, 'lib');
+// Diretório de destino para os arquivos .jar (raiz de servidor_java/lib)
+const LIB_DIR = path.join(__dirname, '..', 'lib');
 
 // Lista oficial de dependências necessárias para o backend Java
 const DEPENDENCIAS = [

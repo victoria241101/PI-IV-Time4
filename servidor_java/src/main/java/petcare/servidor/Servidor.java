@@ -1,3 +1,7 @@
+package petcare.servidor;
+
+import petcare.servidor.banco.MongoConexao;
+
 import java.io.IOException;
 import java.net.ServerSocket;
 import java.net.Socket;

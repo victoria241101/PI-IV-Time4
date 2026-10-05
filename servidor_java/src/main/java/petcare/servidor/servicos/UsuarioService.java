@@ -1,3 +1,5 @@
+package petcare.servidor.servicos;
+
 import com.google.gson.JsonObject;
 import org.bson.Document;
 

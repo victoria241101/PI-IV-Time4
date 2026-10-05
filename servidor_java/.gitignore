@@ -1,4 +1,6 @@
 *.class
 lib/*.jar
+lib/
+out/
 node_modules/
 package-lock.json

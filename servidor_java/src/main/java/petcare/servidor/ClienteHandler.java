@@ -1,3 +1,8 @@
+package petcare.servidor;
+
+import petcare.servidor.protocolo.CodigoErro;
+import petcare.servidor.servicos.UsuarioService;
+
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;

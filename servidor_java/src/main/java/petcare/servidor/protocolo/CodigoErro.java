@@ -1,3 +1,5 @@
+package petcare.servidor.protocolo;
+
 /**
  * Códigos de erro padronizados do protocolo TCP do Servidor PetCare.
  * 
