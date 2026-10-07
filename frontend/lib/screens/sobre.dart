@@ -2,48 +2,11 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
 
-class SobrePublico extends StatefulWidget {
-  const SobrePublico({
+class Sobre extends StatelessWidget {
+  const Sobre({
     super.key,
-    this.currentIndex = 2,
   });
-
-  final int currentIndex;
-
-  @override
-  State<SobrePublico> createState() => _SobrePublicoState();
-}
-
-class _SobrePublicoState extends State<SobrePublico> {
-  late int _currentIndex;
-
-  @override
-  void initState() {
-    super.initState();
-    _currentIndex = widget.currentIndex;
-  }
-
-  void _onNavTap(int index) {
-    if (index == 2) {
-      return;
-    }
-
-    if (index == 0) {
-      Navigator.of(context).popUntil(
-            (route) => route.isFirst,
-      );
-      return;
-    }
-
-    if (index == 1) {
-      Navigator.pushReplacementNamed(
-        context,
-        '/campanhas',
-      );
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -53,7 +16,7 @@ class _SobrePublicoState extends State<SobrePublico> {
         backgroundColor: CoresApp.background,
         elevation: 0,
         leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
+          onPressed: () => Navigator.pop(context),
           icon: const Icon(
             Icons.arrow_back_rounded,
             color: CoresApp.darkBlue,
@@ -242,10 +205,6 @@ class _SobrePublicoState extends State<SobrePublico> {
             ],
           ),
         ),
-      ),
-      bottomNavigationBar: BarraNavPublica(
-        currentIndex: _currentIndex,
-        onTap: _onNavTap,
       ),
     );
   }

@@ -4,7 +4,7 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
 import 'package:pet_care/screens/doacao/doacao.dart';
-import 'package:pet_care/screens/publico/sobre_publico.dart';
+import 'package:pet_care/screens/sobre.dart';
 
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
@@ -41,7 +41,7 @@ class _InicioGeralState extends State<InicioGeral> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const SobrePublico(),
+          builder: (_) => const Sobre(),
         ),
       );
       return;
@@ -362,7 +362,7 @@ class _InicioGeralState extends State<InicioGeral> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const SobrePublico(),
+                        builder: (_) => const Sobre(),
                       ),
                     );
                   },

@@ -5,7 +5,7 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/doacao/doacao.dart';
-import 'package:pet_care/screens/publico/sobre_publico.dart';
+import 'package:pet_care/screens/sobre.dart';
 
 import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
@@ -42,7 +42,7 @@ class _InicioPublicoState extends State<InicioPublico> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const SobrePublico(),
+          builder: (_) => const Sobre(),
         ),
       );
     }
@@ -360,7 +360,7 @@ class _InicioPublicoState extends State<InicioPublico> {
                     Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => const SobrePublico(),
+                        builder: (_) => const Sobre(),
                       ),
                     );
                   },

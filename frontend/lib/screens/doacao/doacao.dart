@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
-import 'package:pet_care/screens/publico/sobre_publico.dart';
+import 'package:pet_care/screens/sobre.dart';
 
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import 'package:pet_care/widgets/cartao_campanha.dart';
@@ -73,7 +73,7 @@ class _DoacaoState extends State<Doacao> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => const SobrePublico(),
+          builder: (_) => const Sobre(),
         ),
       );
     }
