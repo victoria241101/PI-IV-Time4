@@ -5,7 +5,7 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 
 import 'package:pet_care/screens/doacao/doacao.dart';
 import 'package:pet_care/screens/sobre.dart';
-
+import 'package:pet_care/screens/tutor/cadastro_pet.dart';
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 
@@ -63,11 +63,20 @@ class _InicioGeralState extends State<InicioGeral> {
     );
   }
 
-  void _adicionarPet() {
+  Future<void> _adicionarPet() async {
+    final cadastrado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const CadastroPetScreen(),
+      ),
+    );
+
+    if (!mounted || cadastrado != true) return;
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
         content: Text(
-          'Cadastro do pet será implementado em seguida.',
+          'Pet cadastrado com sucesso!',
         ),
         behavior: SnackBarBehavior.floating,
       ),
