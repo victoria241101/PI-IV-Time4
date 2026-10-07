@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
-import 'package:pet_care/screens/doacao/doacao.dart';
 
 class SobrePublico extends StatefulWidget {
   const SobrePublico({
