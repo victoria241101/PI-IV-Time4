@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 class CadastroPetScreen extends StatefulWidget {
   const CadastroPetScreen({super.key});
@@ -26,12 +27,16 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     super.dispose();
   }
 
-  void _cadastrarPet() {
+  Future<void> _cadastrarPet() async {
     FocusScope.of(context).unfocus();
 
     if (!(_formKey.currentState?.validate() ?? false)) {
       return;
     }
+
+    await SessaoUsuario.instancia.tornarTutor();
+
+    if (!mounted) return;
 
     Navigator.pop(context, true);
   }
