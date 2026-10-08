@@ -2,6 +2,7 @@ package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
 import petcare.servidor.servicos.UsuarioService;
+import petcare.servidor.servicos.HashSenhaService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
