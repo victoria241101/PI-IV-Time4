@@ -163,6 +163,8 @@ public class ClienteHandler implements Runnable {
                                         case "CALCULAR_STATUS_VACINA":
                                         case "VERIFICAR_CONFLITO_HORARIO":
                                         case "GERAR_HASH_SENHA":
+                                            resposta = HashSenhaService.executar(campos.get("senha"));
+                                            break;
                                         case "CALCULAR_PROGRESSO_CAMPANHA":
                                         case "VALIDAR_DOCUMENTO":
                                             respostaJson = respostaErro(CodigoErro.COMANDO_NAO_IMPLEMENTADO,
