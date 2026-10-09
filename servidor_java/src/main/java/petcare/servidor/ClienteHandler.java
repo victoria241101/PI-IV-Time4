@@ -1,7 +1,6 @@
 package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
-import petcare.servidor.servicos.UsuarioService;
 import petcare.servidor.servicos.HashSenhaService;
 
 import com.google.gson.Gson;
@@ -147,16 +146,6 @@ public class ClienteHandler implements Runnable {
 
                                     // 3. Roteamento do comando normalizado via switch
                                     switch (comando) {
-                                        // =====================================================================
-                                        // COMANDOS IMPLEMENTADOS (legados de usuário)
-                                        // =====================================================================
-                                        case "CADASTRAR":
-                                            respostaJson = UsuarioService.cadastrar(dados);
-                                            break;
-
-                                        case "LOGIN":
-                                            respostaJson = UsuarioService.login(dados);
-                                            break;
 
                                         // =====================================================================
                                         // COMO REGISTRAR UM NOVO COMANDO:
