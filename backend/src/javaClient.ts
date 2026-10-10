@@ -7,6 +7,7 @@ interface RespostaJava {
     codigo?: string;
     dados?: {
         hash?: string;
+        valida?: boolean;
     };
 }
 

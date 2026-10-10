@@ -222,4 +222,81 @@ router.post("/cadastro", async (req, res) => {
     }
 });
 
+router.post("/login", async (req, res) => {
+    try {
+        const { email, senha } = req.body ?? {};
+
+        if (
+            typeof email !== "string" ||
+            !email.trim() ||
+            typeof senha !== "string" ||
+            !senha
+        ) {
+            return res.status(400).json({
+                mensagem: "E-mail e senha são obrigatórios."
+            });
+        }
+
+        const emailNormalizado = email.trim().toLowerCase();
+
+        const banco = obterBanco();
+
+        const usuario = await banco.collection("usuarios").findOne({
+            email: emailNormalizado
+        });
+
+        if (!usuario) {
+            return res.status(401).json({
+                mensagem: "E-mail ou senha inválidos."
+            });
+        }
+
+        if (typeof usuario.senhaHash !== "string") {
+            return res.status(500).json({
+                mensagem: "Não foi possível autenticar o usuário."
+            });
+        }
+
+        const respostaJava = await enviarComandoJava(
+            "VERIFICAR_SENHA",
+            {
+                senha: senha,
+                hash: usuario.senhaHash
+            }
+        );
+
+        if (
+            respostaJava.status !== "OK" ||
+            typeof respostaJava.dados?.valida !== "boolean"
+        ) {
+            return res.status(502).json({
+                mensagem: "Não foi possível verificar a senha."
+            });
+        }
+
+        if (!respostaJava.dados.valida) {
+            return res.status(401).json({
+                mensagem: "E-mail ou senha inválidos."
+            });
+        }
+
+        if (usuario.ativo !== true) {
+            return res.status(403).json({
+                mensagem: "Esta conta está desativada."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Credenciais verificadas com sucesso."
+        });
+
+    } catch (erro) {
+        console.error("Erro ao processar login:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro interno ao processar login."
+        });
+    }
+});
+
 export default router;
