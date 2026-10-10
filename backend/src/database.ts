@@ -1,5 +1,5 @@
 import "dotenv/config";
-import { MongoClient } from "mongodb";
+import { MongoClient, Db } from "mongodb";
 
 const uri = process.env.MONGODB_URI;
 
@@ -9,10 +9,34 @@ if (!uri) {
 
 const client = new MongoClient(uri);
 
+let banco: Db;
+
 export async function conectarBanco() {
     await client.connect();
 
+    banco = client.db("petcare");
+
+    /*const usuarios = banco.collection("usuarios");
+
+    await usuarios.createIndex(
+        { email: 1 },
+        { unique: true }
+    );
+
+    await usuarios.createIndex(
+        { cpf: 1 },
+        { unique: true }
+    );
+    */
     console.log("Conectado ao MongoDB Atlas!");
 
-    return client.db("petcare");
+    return banco;
+}
+
+export function obterBanco(): Db {
+    if (!banco) {
+        throw new Error("O banco de dados ainda não foi conectado.");
+    }
+
+    return banco;
 }

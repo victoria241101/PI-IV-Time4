@@ -1,0 +1,136 @@
+import { Router } from "express";
+import { enviarComandoJava } from "../javaClient.js";
+import { obterBanco } from "../database.js";
+import { ObjectId } from "mongodb";
+
+
+// Calcular dígitos verificadores do CPF
+function calcularDigito(cpf: string, quantidade: number): number {
+    let soma = 0;
+
+    for (let i = 0; i < quantidade; i++) {
+        const digito = Number(cpf[i]);
+        const peso = quantidade + 1 - i;
+
+        soma += digito * peso;
+    }
+
+    const resto = soma % 11;
+    const resultado = 11 - resto;
+
+    return resultado >= 10 ? 0 : resultado;
+}
+
+const router = Router();
+
+router.post("/cadastro", async (req, res) => {
+    try {
+        const { nome, email, cpf, senha } = req.body ?? {};
+
+        if (
+            typeof nome !== "string" || !nome.trim() ||
+            typeof email !== "string" || !email.trim() ||
+            typeof cpf !== "string" || !cpf.trim() ||
+            typeof senha !== "string" || !senha.trim()
+        ) {
+            return res.status(400).json({
+                mensagem: "Preencha todos os campos obrigatórios."
+            });
+        }
+
+        const banco = obterBanco();
+
+        const usuarios = banco.collection("usuarios");
+        const tutores = banco.collection("tutores");
+        const pets = banco.collection("pets");
+
+        const usuarioId = new ObjectId();
+
+        // Verificação email
+        const emailNormalizado = email.trim().toLowerCase();
+
+        const usuarioExistente = await usuarios.findOne({
+            email: emailNormalizado
+        });
+
+        if (usuarioExistente) {
+            return res.status(409).json({
+                mensagem: "Este e-mail já está cadastrado."
+            });
+        }
+
+        const formatoEmail = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+
+        if (!formatoEmail.test(emailNormalizado)) {
+            return res.status(400).json({
+                mensagem: "Informe um e-mail válido."
+            });
+        }
+
+        // Verificação CPF
+        const cpfNormalizado = cpf.replace(/\D/g, "");
+
+        const cpfExistente = await usuarios.findOne({
+            cpf: cpfNormalizado
+        });
+
+        if (cpfExistente) {
+            return res.status(409).json({
+                mensagem: "Este CPF já está cadastrado."
+            });
+        }
+
+        if (cpfNormalizado.length !== 11) {
+            return res.status(400).json({
+                mensagem: "O CPF deve conter 11 dígitos."
+            });
+        }
+
+        if (/^(\d)\1{10}$/.test(cpfNormalizado)) {
+            return res.status(400).json({
+                mensagem: "CPF inválido."
+            });
+        }
+
+        const primeiroDigito = calcularDigito(cpfNormalizado, 9);
+        const segundoDigito = calcularDigito(cpfNormalizado, 10);
+
+        if (
+            primeiroDigito !== Number(cpfNormalizado[9]) ||
+            segundoDigito !== Number(cpfNormalizado[10])
+        ) {
+            return res.status(400).json({
+                mensagem: "CPF inválido."
+            });
+        }
+
+        const respostaJava = await enviarComandoJava(
+            "GERAR_HASH_SENHA",
+            { senha }
+        );
+
+        if (
+            respostaJava.status !== "OK" ||
+            !respostaJava.dados?.hash
+        ) {
+            return res.status(502).json({
+                mensagem: "Não foi possível gerar o hash da senha."
+            });
+        }
+
+        res.json({
+            mensagem: "Dados recebidos e senha processada com sucesso!",
+            nome,
+            email
+        });
+
+    } catch (erro) {
+        console.error("Erro na comunicação com o servidor Java.");
+
+        res.status(503).json({
+            mensagem: "Serviço de cadastro temporariamente indisponível."
+        });
+    }
+});
+
+export default router;
