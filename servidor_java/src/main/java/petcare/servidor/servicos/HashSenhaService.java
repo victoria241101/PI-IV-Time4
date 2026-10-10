@@ -1,4 +1,4 @@
-package petcare.servidor.servicos;
+package main.java.petcare.servidor.servicos;
 
 import com.google.gson.JsonObject;
 import petcare.servidor.ClienteHandler;

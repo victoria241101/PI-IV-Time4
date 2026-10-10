@@ -2,6 +2,7 @@ package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
 import petcare.servidor.servicos.HashSenhaService;
+import petcare.servidor.servicos.VacinaService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -161,6 +162,8 @@ public class ClienteHandler implements Runnable {
                                         // COMANDOS PREVISTOS (aguardando implementação dos serviços de cálculo)
                                         // =====================================================================
                                         case "CALCULAR_STATUS_VACINA":
+                                            respostaJson = VacinaService.calcularStatus(dados);
+                                            break;
                                         case "VERIFICAR_CONFLITO_HORARIO":
                                         case "GERAR_HASH_SENHA":
                                             resposta = HashSenhaService.executar(campos.get("senha"));
