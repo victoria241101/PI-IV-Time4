@@ -80,6 +80,49 @@ public class HashSenhaService {
         return MessageDigest.isEqual(esperado, calculado); // comparação em tempo constante
     }
 
+    public static JsonObject verificar(JsonObject dados) {
+    JsonObject resposta = new JsonObject();
+
+    if (
+        dados == null ||
+        !dados.has("senha") ||
+        !dados.get("senha").isJsonPrimitive() ||
+        !dados.get("senha").getAsJsonPrimitive().isString() ||
+        !dados.has("hash") ||
+        !dados.get("hash").isJsonPrimitive() ||
+        !dados.get("hash").getAsJsonPrimitive().isString()
+    ) {
+        resposta.addProperty("status", "ERRO");
+        resposta.addProperty("codigo", "DADOS_INVALIDOS");
+        resposta.addProperty("mensagem", "Senha ou hash inválido.");
+        return resposta;
+    }
+
+    String senha = dados.get("senha").getAsString();
+    String hash = dados.get("hash").getAsString();
+
+    boolean senhaCorreta;
+
+    try {
+        senhaCorreta = verificar(senha, hash);
+    } catch (RuntimeException e) {
+        resposta.addProperty("status", "ERRO");
+        resposta.addProperty("codigo", "DADOS_INVALIDOS");
+        resposta.addProperty("mensagem", "Não foi possível verificar a senha.");
+        return resposta;
+    }
+
+    resposta.addProperty("status", "OK");
+    resposta.addProperty("mensagem", "Verificação de senha concluída.");
+
+    JsonObject resultado = new JsonObject();
+    resultado.addProperty("valida", senhaCorreta);
+
+    resposta.add("dados", resultado);
+
+    return resposta;
+}
+
     private static byte[] pbkdf2(char[] senha, byte[] salt, int iteracoes, int tamanhoBytes) {
         PBEKeySpec spec = new PBEKeySpec(senha, salt, iteracoes, tamanhoBytes * 8);
         try {

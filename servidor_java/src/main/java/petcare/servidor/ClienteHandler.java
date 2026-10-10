@@ -175,6 +175,9 @@ public class ClienteHandler implements Runnable {
                                         case "GERAR_HASH_SENHA":
                                             respostaJson = HashSenhaService.gerar(dados);
                                             break;
+                                        case "VERIFICAR_SENHA":
+                                            respostaJson = HashSenhaService.verificar(dados);
+                                            break;
                                         case "CALCULAR_PROGRESSO_CAMPANHA":
                                             respostaJson = respostaErro(
                                             CodigoErro.COMANDO_NAO_IMPLEMENTADO,
