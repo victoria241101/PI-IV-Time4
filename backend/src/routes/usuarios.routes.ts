@@ -30,6 +30,7 @@ router.post("/cadastro", async (req, res) => {
             email,
             cpf,
             senha,
+            confirmarSenha,
             possuiPet,
             pet
         } = req.body ?? {};
@@ -42,6 +43,26 @@ router.post("/cadastro", async (req, res) => {
         ) {
             return res.status(400).json({
                 mensagem: "Preencha todos os campos obrigatórios."
+            });
+        }
+
+        if (!/^[\p{L}\s'-]+$/u.test(nome.trim())) {
+            return res.status(400).json({
+                mensagem: "O nome deve conter apenas letras."
+            });
+        }
+
+        if (senha.length < 8) {
+        return res.status(400).json({
+            mensagem: "A senha deve conter pelo menos 8 caracteres."
+        });   
+        }   
+        if (
+            typeof confirmarSenha !== "string" ||
+            senha !== confirmarSenha
+        ) {
+            return res.status(400).json({
+                mensagem: "As senhas não coincidem."
             });
         }
 
@@ -95,6 +116,12 @@ router.post("/cadastro", async (req, res) => {
         }
 
         // Verificação CPF
+        if (!/^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/.test(cpf)) {
+            return res.status(400).json({
+                mensagem: "Formato de CPF inválido."
+            });
+        }
+        
         const cpfNormalizado = cpf.replace(/\D/g, "");
 
         const cpfExistente = await usuarios.findOne({
@@ -179,15 +206,6 @@ router.post("/cadastro", async (req, res) => {
             };
         }
 
-        console.log("Usuário preparado:", {
-            id: novoUsuario._id.toString(),
-            nome: novoUsuario.nome,
-            email: novoUsuario.email
-        });
-
-        console.log("Tutor preparado:", novoTutor);
-
-        console.log("Pet preparado:", novoPet);
 
         res.json({
             mensagem: "Dados recebidos e senha processada com sucesso!",
