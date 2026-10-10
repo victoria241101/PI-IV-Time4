@@ -1,7 +1,8 @@
 package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
-import petcare.servidor.servicos.UsuarioService;
+import petcare.servidor.servicos.HashSenhaService;
+import petcare.servidor.servicos.VacinaService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -146,16 +147,6 @@ public class ClienteHandler implements Runnable {
 
                                     // 3. Roteamento do comando normalizado via switch
                                     switch (comando) {
-                                        // =====================================================================
-                                        // COMANDOS IMPLEMENTADOS (legados de usuário)
-                                        // =====================================================================
-                                        case "CADASTRAR":
-                                            respostaJson = UsuarioService.cadastrar(dados);
-                                            break;
-
-                                        case "LOGIN":
-                                            respostaJson = UsuarioService.login(dados);
-                                            break;
 
                                         // =====================================================================
                                         // COMO REGISTRAR UM NOVO COMANDO:
@@ -171,8 +162,12 @@ public class ClienteHandler implements Runnable {
                                         // COMANDOS PREVISTOS (aguardando implementação dos serviços de cálculo)
                                         // =====================================================================
                                         case "CALCULAR_STATUS_VACINA":
+                                            respostaJson = VacinaService.calcularStatus(dados);
+                                            break;
                                         case "VERIFICAR_CONFLITO_HORARIO":
                                         case "GERAR_HASH_SENHA":
+                                            resposta = HashSenhaService.executar(campos.get("senha"));
+                                            break;
                                         case "CALCULAR_PROGRESSO_CAMPANHA":
                                         case "VALIDAR_DOCUMENTO":
                                             respostaJson = respostaErro(CodigoErro.COMANDO_NAO_IMPLEMENTADO,
