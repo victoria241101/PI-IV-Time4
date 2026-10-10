@@ -1,8 +1,8 @@
 package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
-import petcare.servidor.servicos.HashSenhaService;
-import petcare.servidor.servicos.VacinaService;
+import main.java.petcare.servidor.servicos.HashSenhaService;
+import main.java.petcare.servidor.servicos.VacinaService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -105,7 +105,9 @@ public class ClienteHandler implements Runnable {
                     return;
                 }
 
-                System.out.println("[ClienteHandler] Mensagem recebida de " + enderecoCliente + ": " + linhaRecebida);
+                System.out.println(
+                    "[ClienteHandler] Requisição recebida de " + enderecoCliente
+                );
 
                 JsonObject respostaJson;
 
@@ -165,10 +167,20 @@ public class ClienteHandler implements Runnable {
                                             respostaJson = VacinaService.calcularStatus(dados);
                                             break;
                                         case "VERIFICAR_CONFLITO_HORARIO":
+                                            respostaJson = respostaErro(
+                                            CodigoErro.COMANDO_NAO_IMPLEMENTADO,
+                                            "Comando previsto, mas ainda não implementado: " + comando
+                                        );
+                                            break;
                                         case "GERAR_HASH_SENHA":
-                                            resposta = HashSenhaService.executar(campos.get("senha"));
+                                            respostaJson = HashSenhaService.gerar(dados);
                                             break;
                                         case "CALCULAR_PROGRESSO_CAMPANHA":
+                                            respostaJson = respostaErro(
+                                            CodigoErro.COMANDO_NAO_IMPLEMENTADO,
+                                            "Comando previsto, mas ainda não implementado: " + comando
+                                        );
+                                            break;
                                         case "VALIDAR_DOCUMENTO":
                                             respostaJson = respostaErro(CodigoErro.COMANDO_NAO_IMPLEMENTADO,
                                                     "Comando previsto, mas ainda não implementado: " + comando);
