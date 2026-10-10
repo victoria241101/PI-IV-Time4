@@ -25,7 +25,14 @@ const router = Router();
 
 router.post("/cadastro", async (req, res) => {
     try {
-        const { nome, email, cpf, senha } = req.body ?? {};
+        const {
+            nome,
+            email,
+            cpf,
+            senha,
+            possuiPet,
+            pet
+        } = req.body ?? {};
 
         if (
             typeof nome !== "string" || !nome.trim() ||
@@ -36,6 +43,26 @@ router.post("/cadastro", async (req, res) => {
             return res.status(400).json({
                 mensagem: "Preencha todos os campos obrigatórios."
             });
+        }
+
+        if (typeof possuiPet !== "boolean") {
+            return res.status(400).json({
+                mensagem: "Informe se possui um pet."
+            });
+        }
+
+        if (possuiPet) {
+            if (
+                !pet ||
+                typeof pet.nome !== "string" || !pet.nome.trim() ||
+                typeof pet.especie !== "string" || !pet.especie.trim() ||
+                typeof pet.raca !== "string" || !pet.raca.trim() ||
+                typeof pet.sexo !== "string" || !pet.sexo.trim()
+            ) {
+                return res.status(400).json({
+                    mensagem: "Preencha todos os dados do pet."
+                });
+            }
         }
 
         const banco = obterBanco();
@@ -104,6 +131,8 @@ router.post("/cadastro", async (req, res) => {
             });
         }
 
+        // -----------------------------
+
         const respostaJava = await enviarComandoJava(
             "GERAR_HASH_SENHA",
             { senha }
@@ -117,6 +146,48 @@ router.post("/cadastro", async (req, res) => {
                 mensagem: "Não foi possível gerar o hash da senha."
             });
         }
+        
+        const novoUsuario = {
+            _id: usuarioId,
+            nome: nome.trim(),
+            email: emailNormalizado,
+            cpf: cpfNormalizado,
+            senhaHash: respostaJava.dados.hash,
+            tipo: "USUARIO",
+            ativo: true
+        };
+
+        let novoTutor = null;
+        let novoPet = null;
+
+        if (possuiPet) {
+            const tutorId = new ObjectId();
+
+            novoTutor = {
+                _id: tutorId,
+                usuarioId: usuarioId
+            };
+
+            novoPet = {
+                _id: new ObjectId(),
+                tutorId: tutorId,
+                nome: pet.nome.trim(),
+                especie: pet.especie.trim(),
+                raca: pet.raca.trim(),
+                sexo: pet.sexo.trim(),
+                ativo: true
+            };
+        }
+
+        console.log("Usuário preparado:", {
+            id: novoUsuario._id.toString(),
+            nome: novoUsuario.nome,
+            email: novoUsuario.email
+        });
+
+        console.log("Tutor preparado:", novoTutor);
+
+        console.log("Pet preparado:", novoPet);
 
         res.json({
             mensagem: "Dados recebidos e senha processada com sucesso!",
