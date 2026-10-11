@@ -16,18 +16,18 @@ export async function conectarBanco() {
 
     banco = client.db("petcare");
 
-    /*const usuarios = banco.collection("usuarios");
-
-    await usuarios.createIndex(
-        { email: 1 },
-        { unique: true }
-    );
+    const usuarios = banco.collection("usuarios");
 
     await usuarios.createIndex(
         { cpf: 1 },
-        { unique: true }
+        {
+            unique: true,
+            partialFilterExpression: {
+                cpf: { $type: "string" }
+            }
+        }
     );
-    */
+
     console.log("Conectado ao MongoDB Atlas!");
 
     return banco;
@@ -39,4 +39,8 @@ export function obterBanco(): Db {
     }
 
     return banco;
+}
+
+export function obterCliente(): MongoClient {
+    return client;
 }

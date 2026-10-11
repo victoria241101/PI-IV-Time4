@@ -1,7 +1,10 @@
 import { Router } from "express";
 import { enviarComandoJava } from "../javaClient.js";
-import { obterBanco } from "../database.js";
-import { ObjectId } from "mongodb";
+import { obterBanco, obterCliente } from "../database.js";
+import { ObjectId, MongoServerError } from "mongodb";
+import { gerarToken } from "../jwtService.js";
+import { autenticar } from "../middlewares/auth.middleware.js";
+
 
 
 // Calcular dígitos verificadores do CPF
@@ -207,17 +210,46 @@ router.post("/cadastro", async (req, res) => {
         }
 
 
-        res.json({
-            mensagem: "Dados recebidos e senha processada com sucesso!",
-            nome,
-            email
+        const cliente = obterCliente();
+        const sessao = cliente.startSession();
+
+        try {
+            await sessao.withTransaction(async () => {
+
+                await usuarios.insertOne(novoUsuario, {
+                    session: sessao
+                });
+
+                if (novoTutor && novoPet) {
+                    await tutores.insertOne(novoTutor, {
+                        session: sessao
+                    });
+
+                    await pets.insertOne(novoPet, {
+                        session: sessao
+                    });
+                }
+            });
+
+        } finally {
+            await sessao.endSession();
+        }
+
+        return res.status(201).json({
+            mensagem: "Cadastro realizado com sucesso!"
         });
 
-    } catch (erro) {
-        console.error("Erro na comunicação com o servidor Java.");
+        } catch (erro) {
+        if (erro instanceof MongoServerError && erro.code === 11000) {
+            return res.status(409).json({
+                mensagem: "E-mail ou CPF já cadastrado."
+            });
+        }
 
-        res.status(503).json({
-            mensagem: "Serviço de cadastro temporariamente indisponível."
+        console.error("Erro ao realizar cadastro:", erro);
+
+        return res.status(503).json({
+            mensagem: "Não foi possível concluir o cadastro. Tente novamente."
         });
     }
 });
@@ -286,8 +318,11 @@ router.post("/login", async (req, res) => {
             });
         }
 
+        const token = await gerarToken(usuario._id.toString());
+
         return res.status(200).json({
-            mensagem: "Credenciais verificadas com sucesso."
+            mensagem: "Login realizado com sucesso.",
+            token: token
         });
 
     } catch (erro) {
@@ -298,5 +333,45 @@ router.post("/login", async (req, res) => {
         });
     }
 });
+
+
+router.get("/perfil", autenticar, async (req, res) => {
+    try {
+        const usuarioId = res.locals.usuarioId;
+
+        const banco = obterBanco();
+
+        const usuario = await banco.collection("usuarios").findOne(
+            { _id: new ObjectId(usuarioId) },
+            {
+                projection: {
+                    nome: 1,
+                    email: 1,
+                    cpf: 1,
+                    tipo: 1
+                }
+            }
+        );
+
+        if (!usuario) {
+            return res.status(404).json({
+                mensagem: "Usuário não encontrado."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Perfil encontrado com sucesso!",
+            usuario: usuario
+        });
+
+    } catch (erro) {
+        console.error("Erro ao buscar perfil:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro ao buscar perfil do usuário."
+        });
+    }
+});
+
 
 export default router;
