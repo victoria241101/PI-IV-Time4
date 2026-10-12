@@ -1,6 +1,7 @@
 package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
+import petcare.servidor.servicos.ConflitoHorarioService;
 import main.java.petcare.servidor.servicos.HashSenhaService;
 import main.java.petcare.servidor.servicos.VacinaService;
 
@@ -167,10 +168,7 @@ public class ClienteHandler implements Runnable {
                                             respostaJson = VacinaService.calcularStatus(dados);
                                             break;
                                         case "VERIFICAR_CONFLITO_HORARIO":
-                                            respostaJson = respostaErro(
-                                            CodigoErro.COMANDO_NAO_IMPLEMENTADO,
-                                            "Comando previsto, mas ainda não implementado: " + comando
-                                        );
+                                            respostaJson = ConflitoHorarioService.verificarConflito(dados);
                                             break;
                                         case "GERAR_HASH_SENHA":
                                             respostaJson = HashSenhaService.gerar(dados);
