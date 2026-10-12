@@ -28,6 +28,19 @@ export async function conectarBanco() {
         }
     );
 
+    const tutores = banco.collection("tutores");
+
+    await tutores.createIndex(
+        { usuarioId: 1 },
+        {
+            unique: true,
+            partialFilterExpression: {
+                usuarioId: { $type: "objectId" }
+            }
+        }
+    );
+
+
     console.log("Conectado ao MongoDB Atlas!");
 
     return banco;

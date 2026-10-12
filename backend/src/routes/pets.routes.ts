@@ -1,0 +1,277 @@
+import { Router } from "express";
+import { autenticar } from "../middlewares/auth.middleware.js";
+import { obterBanco, obterCliente } from "../database.js";
+import { ObjectId } from "mongodb";
+
+const router = Router();
+
+
+router.post("/", autenticar, async (req, res) => {
+    const { nome, especie, raca, sexo } = req.body;
+
+    // Validar os dados do pet
+    if (
+        typeof nome !== "string" || !nome.trim() ||
+        typeof especie !== "string" || !especie.trim() ||
+        typeof raca !== "string" || !raca.trim() ||
+        typeof sexo !== "string" || !sexo.trim()
+    ) {
+        return res.status(400).json({
+            mensagem: "Preencha todos os campos do pet."
+        });
+    }
+
+    const usuarioId = new ObjectId(res.locals.usuarioId);
+
+    const cliente = obterCliente();
+    const sessao = cliente.startSession();
+
+    try {
+        const banco = obterBanco();
+        const tutores = banco.collection("tutores");
+        const pets = banco.collection("pets");
+
+        let petId: ObjectId | undefined;
+
+        await sessao.withTransaction(async () => {
+            // Procurar tutor existente
+            let tutor = await tutores.findOne(
+                { usuarioId },
+                { session: sessao }
+            );
+
+            // Criar tutor se ainda não existir
+            if (!tutor) {
+                const novoTutor = {
+                    _id: new ObjectId(),
+                    usuarioId
+                };
+
+                await tutores.insertOne(novoTutor, {
+                    session: sessao
+                });
+
+                tutor = novoTutor;
+            }
+
+            // Criar pet vinculado ao tutor
+            petId = new ObjectId();
+
+            await pets.insertOne(
+                {
+                    _id: petId,
+                    tutorId: tutor._id,
+                    nome: nome.trim(),
+                    especie: especie.trim(),
+                    raca: raca.trim(),
+                    sexo: sexo.trim(),
+                    ativo: true
+                },
+                { session: sessao }
+            );
+        });
+
+        return res.status(201).json({
+            mensagem: "Pet cadastrado com sucesso!",
+            petId: petId?.toString()
+        });
+
+    } catch (erro) {
+        console.error("Erro ao cadastrar pet:", erro);
+
+        return res.status(503).json({
+            mensagem: "Não foi possível cadastrar o pet."
+        });
+
+    } finally {
+        await sessao.endSession();
+    }
+});
+
+
+router.get("/", autenticar, async (req, res) => {
+    try {
+        // Identifica o usuário autenticado pelo JWT
+        const usuarioId = new ObjectId(res.locals.usuarioId);
+
+        const banco = obterBanco();
+
+        // Procura o tutor vinculado ao usuário
+        const tutor = await banco.collection("tutores").findOne({
+            usuarioId
+        });
+
+        // Se não possui tutor, ainda não possui pets
+        if (!tutor) {
+            return res.status(200).json({
+                mensagem: "Nenhum pet cadastrado.",
+                pets: []
+            });
+        }
+
+        // Busca apenas os pets ativos desse tutor
+        const pets = await banco.collection("pets")
+            .find({
+                tutorId: tutor._id,
+                ativo: true
+            })
+            .toArray();
+
+        return res.status(200).json({
+            mensagem: "Pets encontrados com sucesso!",
+            pets
+        });
+
+    } catch (erro) {
+        console.error("Erro ao listar pets:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro ao buscar pets do usuário."
+        });
+    }
+});
+
+
+router.put("/:id", autenticar, async (req, res) => {
+    const { nome, especie, raca, sexo } = req.body;
+
+    // Validar os dados recebidos
+    if (
+        typeof nome !== "string" || !nome.trim() ||
+        typeof especie !== "string" || !especie.trim() ||
+        typeof raca !== "string" || !raca.trim() ||
+        typeof sexo !== "string" || !sexo.trim()
+    ) {
+        return res.status(400).json({
+            mensagem: "Preencha todos os campos do pet."
+        });
+    }
+
+    // Validar o ID do pet
+    const petId = req.params.id;
+
+    if (typeof petId !== "string" || !ObjectId.isValid(petId)) {
+    return res.status(400).json({
+        mensagem: "ID do pet inválido."
+    });
+}
+
+    try {
+        const banco = obterBanco();
+
+        // Identificar o tutor autenticado
+        const usuarioId = new ObjectId(res.locals.usuarioId);
+
+        const tutor = await banco.collection("tutores").findOne({
+            usuarioId
+        });
+
+        if (!tutor) {
+            return res.status(404).json({
+                mensagem: "Pet não encontrado."
+            });
+        }
+
+        // Atualizar somente se o pet pertencer ao tutor
+        const resultado = await banco.collection("pets").updateOne(
+            {
+                _id: new ObjectId(petId),
+                tutorId: tutor._id,
+                ativo: true
+            },
+            {
+                $set: {
+                    nome: nome.trim(),
+                    especie: especie.trim(),
+                    raca: raca.trim(),
+                    sexo: sexo.trim()
+                }
+            }
+        );
+
+        if (resultado.matchedCount === 0) {
+            return res.status(404).json({
+                mensagem: "Pet não encontrado."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Pet atualizado com sucesso!"
+        });
+
+    } catch (erro) {
+        console.error("Erro ao atualizar pet:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro ao atualizar pet."
+        });
+    }
+});
+
+
+router.delete("/:id", autenticar, async (req, res) => {
+    const petId = req.params.id;
+
+    // Validar o ID recebido
+    if (typeof petId !== "string" || !ObjectId.isValid(petId)) {
+    return res.status(400).json({
+        mensagem: "ID do pet inválido."
+    });
+}
+
+    try {
+        const banco = obterBanco();
+
+        // Identificar o usuário autenticado
+        const usuarioId = new ObjectId(res.locals.usuarioId);
+
+        // Encontrar o tutor desse usuário
+        const tutor = await banco.collection("tutores").findOne({
+            usuarioId
+        });
+
+        if (!tutor) {
+            return res.status(404).json({
+                mensagem: "Pet não encontrado."
+            });
+        }
+
+        // Desativar somente um pet pertencente ao tutor
+        const resultado = await banco.collection("pets").updateOne(
+            {
+                _id: new ObjectId(petId),
+                tutorId: tutor._id,
+                ativo: true
+            },
+            {
+                $set: {
+                    ativo: false
+                }
+            }
+        );
+
+        if (resultado.matchedCount === 0) {
+            return res.status(404).json({
+                mensagem: "Pet não encontrado."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Pet excluído com sucesso!"
+        });
+
+    } catch (erro) {
+        console.error("Erro ao excluir pet:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro ao excluir pet."
+        });
+    }
+});
+
+
+
+export default router;
+
+
+

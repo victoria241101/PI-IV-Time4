@@ -2,7 +2,7 @@
 import type { Request, Response, NextFunction } from "express";
 import { verificarToken } from "../jwtService.js";
 import { obterBanco } from "../database.js";
-import { ObjectId } from "mongodb";
+import { ObjectId, type Filter } from "mongodb";
 
 export async function autenticar(
     req: Request,
@@ -41,11 +41,22 @@ export async function autenticar(
     try {
         const banco = obterBanco();
 
-        const filtro = ObjectId.isValid(usuarioId)
-            ? { _id: new ObjectId(usuarioId) }
-            : { _id: usuarioId };
+        
+    type UsuarioDocumento = {
+        _id: ObjectId | string;
+        ativo?: boolean;
+    };
 
-        const usuario = await banco.collection("usuarios").findOne(filtro);
+    const usuarios = banco.collection<UsuarioDocumento>("usuarios");
+
+    const filtro: Filter<UsuarioDocumento> = {
+        _id: ObjectId.isValid(usuarioId)
+            ? new ObjectId(usuarioId)
+            : usuarioId
+    };
+
+    const usuario = await usuarios.findOne(filtro);
+
 
         if (!usuario || usuario.ativo !== true) {
             return res.status(401).json({
