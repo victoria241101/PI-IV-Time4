@@ -2,7 +2,7 @@ import { Router } from "express";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
-import { ObjectId } from "mongodb";
+import { ObjectId, MongoServerError } from "mongodb";
 
 const router = Router();
 
@@ -200,7 +200,12 @@ router.post(
                 triagemId: resultado.insertedId
             });
 
+
         } catch (erro) {
+            if (erro instanceof MongoServerError && erro.code === 11000) {
+                return res.status(409).json({
+                    mensagem: "Esta consulta já possui uma triagem registrada."
+            });
             console.error("Erro ao registrar triagem:", erro);
 
             return res.status(500).json({
@@ -208,7 +213,7 @@ router.post(
             });
         }
     }
-);
+});
 
 router.patch(
     "/:id/finalizar-triagem",
@@ -344,6 +349,11 @@ router.patch(
             });
 
         } catch (erro) {
+            if (erro instanceof MongoServerError && erro.code === 11000) {
+                return res.status(409).json({
+                    mensagem: "Esta consulta já possui um atendimento registrado."
+            });
+}
             console.error("Erro ao iniciar atendimento:", erro);
 
             return res.status(500).json({

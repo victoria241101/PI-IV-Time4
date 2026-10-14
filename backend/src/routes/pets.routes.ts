@@ -269,7 +269,101 @@ router.delete("/:id", autenticar, async (req, res) => {
     }
 });
 
+router.get("/:id/historico-clinico", autenticar, async (req, res) => {
+    try {
+        const petId = req.params.id;
 
+        if (typeof petId !== "string" || !petId.trim()) {
+            return res.status(400).json({
+                mensagem: "ID do pet inválido."
+            });
+        }
+
+        const banco = obterBanco();
+        const usuarioId = new ObjectId(res.locals.usuarioId);
+
+        // Nosso banco possui IDs antigos em texto e novos ObjectIds
+        const idsPossiveis: (string | ObjectId)[] = [petId];
+
+        if (ObjectId.isValid(petId)) {
+            idsPossiveis.push(new ObjectId(petId));
+        }
+
+        const pet = await banco.collection<{ _id: string | ObjectId; tutorId: string | ObjectId; nome: string; especie: string; raca: string }>("pets").findOne({
+            _id: { $in: idsPossiveis }
+        });
+
+        if (!pet) {
+            return res.status(404).json({
+                mensagem: "Pet não encontrado."
+            });
+        }
+
+        // Verifica se o usuário é tutor desse pet
+        const tutor = await banco.collection<{
+            _id: string | ObjectId;
+            usuarioId: ObjectId;
+        }>("tutores").findOne({
+            _id: pet.tutorId,
+            usuarioId
+        });
+
+        // Verifica se é um veterinário ativo
+        const veterinario = await banco.collection("veterinarios").findOne({
+            usuarioId,
+            ativo: true
+        });
+
+        if (!tutor && !veterinario) {
+            return res.status(403).json({
+                mensagem: "Você não tem permissão para consultar este histórico."
+            });
+        }
+
+        // Busca todas as consultas do pet
+        const consultas = await banco.collection("consultas")
+            .find({
+                petId: { $in: idsPossiveis }
+            })
+            .sort({ dataHora: -1 })
+            .toArray();
+
+        const historico = await Promise.all(
+            consultas.map(async (consulta) => {
+
+                const triagem = await banco.collection("triagens")
+                    .findOne({ consultaId: consulta._id });
+
+                const atendimento = await banco.collection("atendimentos")
+                    .findOne({ consultaId: consulta._id });
+
+                return {
+                    consulta,
+                    triagem,
+                    atendimento
+                };
+            })
+        );
+
+        return res.status(200).json({
+            mensagem: "Histórico clínico encontrado com sucesso!",
+            pet: {
+                id: pet._id,
+                nome: pet.nome,
+                especie: pet.especie,
+                raca: pet.raca
+            },
+            historico
+        });
+
+    } catch (erro) {
+        console.error("Erro ao consultar histórico clínico:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro ao consultar histórico clínico."
+        });
+    }
+});
 
 export default router;
 
