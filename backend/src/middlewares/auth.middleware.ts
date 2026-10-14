@@ -45,6 +45,7 @@ export async function autenticar(
     type UsuarioDocumento = {
         _id: ObjectId | string;
         ativo?: boolean;
+        tipo?: string;
     };
 
     const usuarios = banco.collection<UsuarioDocumento>("usuarios");
@@ -65,6 +66,7 @@ export async function autenticar(
         }
 
         res.locals.usuarioId = usuarioId;
+        res.locals.usuarioTipo = usuario.tipo;
 
         
 
