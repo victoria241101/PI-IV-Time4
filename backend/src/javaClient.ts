@@ -8,6 +8,8 @@ interface RespostaJava {
     dados?: {
         hash?: string;
         valida?: boolean;
+        conflito?: boolean;
+        sugestoes?: string[];
     };
 }
 
