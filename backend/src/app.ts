@@ -7,6 +7,7 @@ import consultasRoutes from "./routes/consultas.routes.js";
 import procedimentosRoutes from "./routes/procedimentos.routes.js";
 import internacoesRoutes from "./routes/internacoes.routes.js";
 import prescricoesRoutes from "./routes/prescricoes.routes.js";
+import examesRoutes from "./routes/exames.routes.js";
 
 const app = express();
 
@@ -18,6 +19,7 @@ app.use("/consultas", consultasRoutes);
 app.use("/procedimentos", procedimentosRoutes);
 app.use("/internacoes", internacoesRoutes);
 app.use("/prescricoes", prescricoesRoutes);
+app.use("/exames", examesRoutes);
 
 app.get("/", (req, res) => {
     res.json({
