@@ -5,6 +5,7 @@ import usuariosRoutes from "./routes/usuarios.routes.js";
 import petsRoutes from "./routes/pets.routes.js";
 import consultasRoutes from "./routes/consultas.routes.js";
 import procedimentosRoutes from "./routes/procedimentos.routes.js";
+import internacoesRoutes from "./routes/internacoes.routes.js";
 
 const app = express();
 
@@ -14,6 +15,7 @@ app.use("/usuarios", usuariosRoutes);
 app.use("/pets", petsRoutes);
 app.use("/consultas", consultasRoutes);
 app.use("/procedimentos", procedimentosRoutes);
+app.use("/internacoes", internacoesRoutes);
 
 app.get("/", (req, res) => {
     res.json({
