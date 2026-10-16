@@ -370,7 +370,15 @@ router.post(
     async (req, res) => {
         try {
             const { id } = req.params;
-            const { diagnostico, tratamento, observacoes } = req.body;
+            const {
+                diagnostico,
+                tratamento,
+                observacoes,
+                anamnese,
+                exameFisico,
+                prognostico,
+                codigoICDVet
+            } = req.body;
 
             if (!id) {
                 return res.status(400).json({
@@ -396,6 +404,33 @@ router.post(
             ) {
                 return res.status(400).json({
                     mensagem: "As observações devem ser um texto."
+                });
+            }
+
+            // Valida os campos do prontuário clínico
+            if (
+                typeof anamnese !== "string" ||
+                !anamnese.trim() ||
+                typeof exameFisico !== "string" ||
+                !exameFisico.trim() ||
+                typeof prognostico !== "string" ||
+                !prognostico.trim()
+            ) {
+                return res.status(400).json({
+                    mensagem: "Informe anamnese, exame físico e prognóstico válidos."
+                });
+            }
+
+            // O código ICD-Vet pode ser informado quando disponível
+            if (
+                codigoICDVet !== undefined &&
+                (
+                    typeof codigoICDVet !== "string" ||
+                    !codigoICDVet.trim()
+                )
+            ) {
+                return res.status(400).json({
+                    mensagem: "O código ICD-Vet deve ser um texto válido."
                 });
             }
 
@@ -457,9 +492,16 @@ router.post(
                 consultaId: id,
                 petId: consulta.petId,
                 veterinarioId: veterinario._id,
+
+                // Informações do prontuário clínico
+                anamnese: anamnese.trim(),
+                exameFisico: exameFisico.trim(),
                 diagnostico: diagnostico.trim(),
+                prognostico: prognostico.trim(),
+                codigoICDVet: codigoICDVet?.trim() ?? "",
                 tratamento: tratamento.trim(),
                 observacoes: observacoes?.trim() ?? "",
+
                 dataHora: new Date()
             });
 
