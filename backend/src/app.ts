@@ -11,6 +11,7 @@ import examesRoutes from "./routes/exames.routes.js";
 import administracoesRoutes from "./routes/administracoes.routes.js";
 import tarefasClinicasRoutes from "./routes/tarefasClinicas.routes.js";
 import planosTratamentoRoutes from "./routes/planosTratamento.routes.js";
+import orientacoesAltaRoutes from "./routes/orientacoesAlta.routes.js";
 
 const app = express();
 
@@ -26,6 +27,7 @@ app.use("/exames", examesRoutes);
 app.use("/administracoes", administracoesRoutes);
 app.use("/tarefas-clinicas", tarefasClinicasRoutes);
 app.use("/planos-tratamento", planosTratamentoRoutes);
+app.use("/orientacoes-alta", orientacoesAltaRoutes);
 
 app.get("/", (req, res) => {
     res.json({
