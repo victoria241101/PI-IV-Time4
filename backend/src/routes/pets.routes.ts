@@ -370,6 +370,15 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             .sort({ dataAdministracao: -1 })
             .toArray();
 
+        // Busca as tarefas clínicas do pet
+        const tarefasClinicas = await banco
+            .collection("tarefasClinicas")
+            .find({
+                petId: { $in: idsPossiveis }
+            })
+            .sort({ dataCriacao: -1 })
+            .toArray();  
+            
         const historico = await Promise.all(
             consultas.map(async (consulta) => {
 
@@ -400,7 +409,8 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             internacoes,
             prescricoes,
             exames,
-            administracoes
+            administracoes,
+            tarefasClinicas
         });
 
     } catch (erro) {
