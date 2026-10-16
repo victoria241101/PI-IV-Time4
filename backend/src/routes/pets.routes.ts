@@ -345,6 +345,15 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             })
             .sort({ dataEntrada: -1 })
             .toArray();    
+        
+        // Busca as prescrições veterinárias do pet
+        const prescricoes = await banco.collection("prescricoes")
+            .find({
+                petId: { $in: idsPossiveis }
+            })
+            .sort({ dataPrescricao: -1 })
+            .toArray();
+
         const historico = await Promise.all(
             consultas.map(async (consulta) => {
 
@@ -372,7 +381,8 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             },
             historico,
             procedimentos,
-            internacoes
+            internacoes,
+            prescricoes
         });
 
     } catch (erro) {
