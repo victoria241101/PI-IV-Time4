@@ -5,7 +5,7 @@ import { enviarComandoJava } from "../javaClient.js";
 import { ObjectId } from "mongodb";
 
 async function redefinirSenha() {
-    const email = "beatriz.veterinaria@petcare.com";
+    const email =  "pedro.enfermeiro@petcare.com";
 
     await conectarBanco();
 
@@ -15,27 +15,28 @@ async function redefinirSenha() {
     // Procura a conta da Beatriz
     const usuario = await usuarios.findOne({
         email,
-        tipo: "VETERINARIO",
+        tipo: "ENFERMEIRO",
         ativo: true
     });
 
     if (!usuario) {
-        throw new Error("Conta da Beatriz não encontrada.");
+        throw new Error("Conta do Pedro não encontrada.");
     }
 
     // Confirma que a conta pertence à veterinária correta
-    const veterinario = await banco.collection<{
+    // Confirma que a conta pertence ao enfermeiro Pedro
+    const enfermeiro = await banco.collection<{
         _id: string;
         usuarioId: ObjectId;
         ativo: boolean;
-    }>("veterinarios").findOne({
-        _id: "VET002",
+    }>("enfermeiros").findOne({
+        _id: "ENF002",
         usuarioId: usuario._id,
         ativo: true
     });
 
-    if (!veterinario) {
-        throw new Error("Conta não vinculada à veterinária Beatriz.");
+    if (!enfermeiro) {
+        throw new Error("Conta não vinculada ao enfermeiro Pedro.");
     }
 
     // Gera uma nova senha temporária
@@ -58,7 +59,7 @@ async function redefinirSenha() {
     const resultado = await usuarios.updateOne(
         {
             _id: usuario._id,
-            tipo: "VETERINARIO",
+            tipo: "ENFERMEIRO",
             ativo: true
         },
         {
