@@ -1,65 +1,61 @@
 import "dotenv/config";
 import { randomBytes } from "node:crypto";
+import { ObjectId } from "mongodb";
 import { conectarBanco, obterBanco, obterCliente } from "../database.js";
 import { enviarComandoJava } from "../javaClient.js";
-import { ObjectId } from "mongodb";
 
-async function redefinirSenha() {
-    const email =  "pedro.enfermeiro@petcare.com";
+async function redefinirSenha(): Promise<void> {
+    const email = "juliana.secretaria@petcare.com";
 
     await conectarBanco();
 
     const banco = obterBanco();
     const usuarios = banco.collection("usuarios");
 
-    // Procura a conta da Beatriz
+    // Localiza somente a conta ativa da secretária Juliana.
     const usuario = await usuarios.findOne({
         email,
-        tipo: "ENFERMEIRO",
+        tipo: "SECRETARIA",
         ativo: true
     });
 
-    if (!usuario) {
-        throw new Error("Conta do Pedro não encontrada.");
+    if (!usuario || !(usuario._id instanceof ObjectId)) {
+        throw new Error("Conta ativa da Juliana não encontrada com ObjectId válido.");
     }
 
-    // Confirma que a conta pertence à veterinária correta
-    // Confirma que a conta pertence ao enfermeiro Pedro
-    const enfermeiro = await banco.collection<{
+    // Confere se a conta está vinculada ao registro profissional correto.
+    const secretaria = await banco.collection<{
         _id: string;
         usuarioId: ObjectId;
         ativo: boolean;
-    }>("enfermeiros").findOne({
-        _id: "ENF002",
+    }>("secretaria").findOne({
+        _id: "SEC001",
         usuarioId: usuario._id,
         ativo: true
     });
 
-    if (!enfermeiro) {
-        throw new Error("Conta não vinculada ao enfermeiro Pedro.");
+    if (!secretaria) {
+        throw new Error("Conta não vinculada à secretária Juliana (SEC001).");
     }
 
-    // Gera uma nova senha temporária
+    // Gera uma senha aleatória; nunca reutiliza a senha de outro usuário.
     const senhaTemporaria = randomBytes(24).toString("base64url");
 
-    // Solicita ao Java o hash da nova senha
-    const respostaJava = await enviarComandoJava(
-        "GERAR_HASH_SENHA",
-        { senha: senhaTemporaria }
-    );
+    // O serviço Java gera o hash PBKDF2 utilizado pelo login.
+    const respostaJava = await enviarComandoJava("GERAR_HASH_SENHA", {
+        senha: senhaTemporaria
+    });
 
-    if (
-        respostaJava.status !== "OK" ||
-        !respostaJava.dados?.hash
-    ) {
-        throw new Error("Não foi possível gerar o hash da senha.");
+    if (respostaJava.status !== "OK" || !respostaJava.dados?.hash) {
+        throw new Error("Não foi possível gerar o hash da senha pelo Java.");
     }
 
-    // Atualiza apenas o hash da senha
+    // Altera apenas o hash da conta identificada e validada.
     const resultado = await usuarios.updateOne(
         {
             _id: usuario._id,
-            tipo: "ENFERMEIRO",
+            email,
+            tipo: "SECRETARIA",
             ativo: true
         },
         {
@@ -69,13 +65,14 @@ async function redefinirSenha() {
         }
     );
 
-    if (resultado.modifiedCount !== 1) {
-        throw new Error("Não foi possível atualizar a senha.");
+    if (resultado.matchedCount !== 1 || resultado.modifiedCount !== 1) {
+        throw new Error("Não foi possível atualizar a senha da Juliana.");
     }
 
-    console.log("Senha redefinida com sucesso!");
-    console.log("Email:", email);
+    console.log("Senha da Juliana redefinida com sucesso!");
+    console.log("E-mail:", email);
     console.log("Nova senha temporária:", senhaTemporaria);
+    console.log("Guarde a senha em local seguro e não a compartilhe.");
 }
 
 redefinirSenha()
