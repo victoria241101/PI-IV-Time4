@@ -2,6 +2,7 @@ package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
 import petcare.servidor.servicos.ConflitoHorarioService;
+import petcare.servidor.servicos.ProgressoCampanhaService;
 import main.java.petcare.servidor.servicos.HashSenhaService;
 import main.java.petcare.servidor.servicos.VacinaService;
 
@@ -177,10 +178,7 @@ public class ClienteHandler implements Runnable {
                                             respostaJson = HashSenhaService.verificar(dados);
                                             break;
                                         case "CALCULAR_PROGRESSO_CAMPANHA":
-                                            respostaJson = respostaErro(
-                                            CodigoErro.COMANDO_NAO_IMPLEMENTADO,
-                                            "Comando previsto, mas ainda não implementado: " + comando
-                                        );
+                                            respostaJson = ProgressoCampanhaService.calcularProgresso(dados);
                                             break;
                                         case "VALIDAR_DOCUMENTO":
                                             respostaJson = respostaErro(CodigoErro.COMANDO_NAO_IMPLEMENTADO,
