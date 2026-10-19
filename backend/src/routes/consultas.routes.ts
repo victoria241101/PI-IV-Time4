@@ -1,10 +1,19 @@
 import { Router } from "express";
+import { ObjectId, MongoServerError, type Document, type Filter } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
-import { ObjectId, MongoServerError } from "mongodb";
 
 const router = Router();
+
+// Suporta IDs antigos ("C002") e novos (ObjectId do MongoDB).
+function obterFiltroConsulta(id: string): Filter<Document> {
+    // O driver tipa _id como ObjectId por padrão, mas o banco
+    // também possui consultas antigas com identificadores de texto.
+    return {
+        _id: ObjectId.isValid(id) ? new ObjectId(id) : id
+    } as Filter<Document>;
+}
 
 router.patch(
     "/:id/confirmar-chegada",
@@ -12,7 +21,7 @@ router.patch(
     permitirFuncoes("SECRETARIA"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
 
             if (!id) {
                 return res.status(400).json({
@@ -21,15 +30,11 @@ router.patch(
             }
 
             const banco = obterBanco();
-
-            // Os IDs das consultas são strings, como "C001".
-            const consultas = banco.collection<{ _id: string; status: string }>(
-                "consultas"
-            );
+            const consultas = banco.collection<Document>("consultas");
 
             const resultado = await consultas.updateOne(
                 {
-                    _id: id,
+                    ...obterFiltroConsulta(id),
                     status: "agendada"
                 },
                 {
@@ -48,7 +53,6 @@ router.patch(
             return res.status(200).json({
                 mensagem: "Chegada do paciente confirmada com sucesso!"
             });
-
         } catch (erro) {
             console.error("Erro ao confirmar chegada:", erro);
 
@@ -65,7 +69,7 @@ router.patch(
     permitirFuncoes("ENFERMEIRO"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
 
             if (!id) {
                 return res.status(400).json({
@@ -74,15 +78,11 @@ router.patch(
             }
 
             const banco = obterBanco();
-
-            const consultas = banco.collection<{
-                _id: string;
-                status: string;
-            }>("consultas");
+            const consultas = banco.collection<Document>("consultas");
 
             const resultado = await consultas.updateOne(
                 {
-                    _id: id,
+                    ...obterFiltroConsulta(id),
                     status: "chegada_confirmada"
                 },
                 {
@@ -101,7 +101,6 @@ router.patch(
             return res.status(200).json({
                 mensagem: "Triagem iniciada com sucesso!"
             });
-
         } catch (erro) {
             console.error("Erro ao iniciar triagem:", erro);
 
@@ -118,7 +117,7 @@ router.post(
     permitirFuncoes("ENFERMEIRO"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
             const { peso, temperatura, sintomas, observacoes } = req.body;
 
             if (!id) {
@@ -127,7 +126,6 @@ router.post(
                 });
             }
 
-            // Verifica se os dados obrigatórios foram informados
             if (
                 typeof peso !== "number" ||
                 !Number.isFinite(peso) ||
@@ -152,16 +150,10 @@ router.post(
             }
 
             const banco = obterBanco();
+            const consultas = banco.collection<Document>("consultas");
 
-            const consultas = banco.collection<{
-                _id: string;
-                status: string;
-                petId: string;
-            }>("consultas");
-
-            // A triagem só pode ser registrada se estiver em andamento
             const consulta = await consultas.findOne({
-                _id: id,
+                ...obterFiltroConsulta(id),
                 status: "em_triagem"
             });
 
@@ -172,11 +164,7 @@ router.post(
             }
 
             const triagens = banco.collection("triagens");
-
-            // Evita cadastrar uma segunda triagem para a mesma consulta
-            const triagemExistente = await triagens.findOne({
-                consultaId: id
-            });
+            const triagemExistente = await triagens.findOne({ consultaId: id });
 
             if (triagemExistente) {
                 return res.status(409).json({
@@ -199,13 +187,13 @@ router.post(
                 mensagem: "Triagem registrada com sucesso!",
                 triagemId: resultado.insertedId
             });
-
-
         } catch (erro) {
             if (erro instanceof MongoServerError && erro.code === 11000) {
                 return res.status(409).json({
                     mensagem: "Esta consulta já possui uma triagem registrada."
-            });
+                });
+            }
+
             console.error("Erro ao registrar triagem:", erro);
 
             return res.status(500).json({
@@ -213,7 +201,7 @@ router.post(
             });
         }
     }
-});
+);
 
 router.patch(
     "/:id/finalizar-triagem",
@@ -221,7 +209,7 @@ router.patch(
     permitirFuncoes("ENFERMEIRO"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
 
             if (!id) {
                 return res.status(400).json({
@@ -230,18 +218,10 @@ router.patch(
             }
 
             const banco = obterBanco();
-
-            const consultas = banco.collection<{
-                _id: string;
-                status: string;
-            }>("consultas");
-
+            const consultas = banco.collection<Document>("consultas");
             const triagens = banco.collection("triagens");
 
-            // Verifica se a triagem foi registrada
-            const triagem = await triagens.findOne({
-                consultaId: id
-            });
+            const triagem = await triagens.findOne({ consultaId: id });
 
             if (!triagem) {
                 return res.status(409).json({
@@ -249,10 +229,9 @@ router.patch(
                 });
             }
 
-            // Só finaliza uma consulta que está em triagem
             const resultado = await consultas.updateOne(
                 {
-                    _id: id,
+                    ...obterFiltroConsulta(id),
                     status: "em_triagem"
                 },
                 {
@@ -272,7 +251,6 @@ router.patch(
             return res.status(200).json({
                 mensagem: "Triagem finalizada! Paciente aguardando veterinário."
             });
-
         } catch (erro) {
             console.error("Erro ao finalizar triagem:", erro);
 
@@ -289,7 +267,7 @@ router.patch(
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
 
             if (!id) {
                 return res.status(400).json({
@@ -298,20 +276,13 @@ router.patch(
             }
 
             const banco = obterBanco();
-
-            const consultas = banco.collection<{
-                _id: string;
-                status: string;
-                veterinarioId: string;
-            }>("consultas");
-
+            const consultas = banco.collection<Document>("consultas");
             const veterinarios = banco.collection<{
                 _id: string;
                 usuarioId?: ObjectId;
                 ativo: boolean;
             }>("veterinarios");
 
-            // Identifica o veterinário que está logado
             const veterinario = await veterinarios.findOne({
                 usuarioId: new ObjectId(res.locals.usuarioId),
                 ativo: true
@@ -323,10 +294,9 @@ router.patch(
                 });
             }
 
-            // Apenas o veterinário responsável pode iniciar o atendimento
             const resultado = await consultas.updateOne(
                 {
-                    _id: id,
+                    ...obterFiltroConsulta(id),
                     veterinarioId: veterinario._id,
                     status: "aguardando_veterinario"
                 },
@@ -347,13 +317,7 @@ router.patch(
             return res.status(200).json({
                 mensagem: "Atendimento veterinário iniciado com sucesso!"
             });
-
         } catch (erro) {
-            if (erro instanceof MongoServerError && erro.code === 11000) {
-                return res.status(409).json({
-                    mensagem: "Esta consulta já possui um atendimento registrado."
-            });
-}
             console.error("Erro ao iniciar atendimento:", erro);
 
             return res.status(500).json({
@@ -369,7 +333,7 @@ router.post(
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
             const {
                 diagnostico,
                 tratamento,
@@ -386,7 +350,6 @@ router.post(
                 });
             }
 
-            // Verifica os dados obrigatórios
             if (
                 typeof diagnostico !== "string" ||
                 !diagnostico.trim() ||
@@ -407,7 +370,6 @@ router.post(
                 });
             }
 
-            // Valida os campos do prontuário clínico
             if (
                 typeof anamnese !== "string" ||
                 !anamnese.trim() ||
@@ -421,13 +383,9 @@ router.post(
                 });
             }
 
-            // O código ICD-Vet pode ser informado quando disponível
             if (
                 codigoICDVet !== undefined &&
-                (
-                    typeof codigoICDVet !== "string" ||
-                    !codigoICDVet.trim()
-                )
+                (typeof codigoICDVet !== "string" || !codigoICDVet.trim())
             ) {
                 return res.status(400).json({
                     mensagem: "O código ICD-Vet deve ser um texto válido."
@@ -435,14 +393,12 @@ router.post(
             }
 
             const banco = obterBanco();
-
             const veterinarios = banco.collection<{
                 _id: string;
                 usuarioId?: ObjectId;
                 ativo: boolean;
             }>("veterinarios");
 
-            // Identifica o veterinário logado
             const veterinario = await veterinarios.findOne({
                 usuarioId: new ObjectId(res.locals.usuarioId),
                 ativo: true
@@ -454,17 +410,9 @@ router.post(
                 });
             }
 
-            const consultas = banco.collection<{
-                _id: string;
-                petId: string;
-                veterinarioId: string;
-                status: string;
-            }>("consultas");
-
-            // Verifica se a consulta está em andamento
-            // e pertence ao veterinário logado
+            const consultas = banco.collection<Document>("consultas");
             const consulta = await consultas.findOne({
-                _id: id,
+                ...obterFiltroConsulta(id),
                 veterinarioId: veterinario._id,
                 status: "em_consulta"
             });
@@ -476,8 +424,6 @@ router.post(
             }
 
             const atendimentos = banco.collection("atendimentos");
-
-            // Evita registrar dois atendimentos para a mesma consulta
             const atendimentoExistente = await atendimentos.findOne({
                 consultaId: id
             });
@@ -492,8 +438,6 @@ router.post(
                 consultaId: id,
                 petId: consulta.petId,
                 veterinarioId: veterinario._id,
-
-                // Informações do prontuário clínico
                 anamnese: anamnese.trim(),
                 exameFisico: exameFisico.trim(),
                 diagnostico: diagnostico.trim(),
@@ -501,7 +445,6 @@ router.post(
                 codigoICDVet: codigoICDVet?.trim() ?? "",
                 tratamento: tratamento.trim(),
                 observacoes: observacoes?.trim() ?? "",
-
                 dataHora: new Date()
             });
 
@@ -509,8 +452,13 @@ router.post(
                 mensagem: "Atendimento registrado com sucesso!",
                 atendimentoId: resultado.insertedId
             });
-
         } catch (erro) {
+            if (erro instanceof MongoServerError && erro.code === 11000) {
+                return res.status(409).json({
+                    mensagem: "Esta consulta já possui um atendimento registrado."
+                });
+            }
+
             console.error("Erro ao registrar atendimento:", erro);
 
             return res.status(500).json({
@@ -526,7 +474,7 @@ router.patch(
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
-            const { id } = req.params;
+            const id = String(req.params.id ?? "");
 
             if (!id) {
                 return res.status(400).json({
@@ -535,14 +483,12 @@ router.patch(
             }
 
             const banco = obterBanco();
-
             const veterinarios = banco.collection<{
                 _id: string;
                 usuarioId?: ObjectId;
                 ativo: boolean;
             }>("veterinarios");
 
-            // Identifica o veterinário logado
             const veterinario = await veterinarios.findOne({
                 usuarioId: new ObjectId(res.locals.usuarioId),
                 ativo: true
@@ -554,15 +500,9 @@ router.patch(
                 });
             }
 
-            const consultas = banco.collection<{
-                _id: string;
-                status: string;
-                veterinarioId: string;
-            }>("consultas");
-
+            const consultas = banco.collection<Document>("consultas");
             const atendimentos = banco.collection("atendimentos");
 
-            // Verifica se o atendimento clínico foi registrado
             const atendimento = await atendimentos.findOne({
                 consultaId: id,
                 veterinarioId: veterinario._id
@@ -574,10 +514,9 @@ router.patch(
                 });
             }
 
-            // Finaliza somente a consulta do veterinário responsável
             const resultado = await consultas.updateOne(
                 {
-                    _id: id,
+                    ...obterFiltroConsulta(id),
                     veterinarioId: veterinario._id,
                     status: "em_consulta"
                 },
@@ -598,7 +537,6 @@ router.patch(
             return res.status(200).json({
                 mensagem: "Consulta finalizada com sucesso!"
             });
-
         } catch (erro) {
             console.error("Erro ao finalizar atendimento:", erro);
 

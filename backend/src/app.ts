@@ -12,6 +12,8 @@ import administracoesRoutes from "./routes/administracoes.routes.js";
 import tarefasClinicasRoutes from "./routes/tarefasClinicas.routes.js";
 import planosTratamentoRoutes from "./routes/planosTratamento.routes.js";
 import orientacoesAltaRoutes from "./routes/orientacoesAlta.routes.js";
+import agendamentosRoutes from "./routes/agendamentos.routes.js";
+import prontuarioPdfRoutes from "./routes/prontuarioPdf.routes.js";
 
 const app = express();
 
@@ -20,6 +22,7 @@ app.use(express.json());
 app.use("/usuarios", usuariosRoutes);
 app.use("/pets", petsRoutes);
 app.use("/consultas", consultasRoutes);
+app.use("/consultas", prontuarioPdfRoutes);
 app.use("/procedimentos", procedimentosRoutes);
 app.use("/internacoes", internacoesRoutes);
 app.use("/prescricoes", prescricoesRoutes);
@@ -28,6 +31,8 @@ app.use("/administracoes", administracoesRoutes);
 app.use("/tarefas-clinicas", tarefasClinicasRoutes);
 app.use("/planos-tratamento", planosTratamentoRoutes);
 app.use("/orientacoes-alta", orientacoesAltaRoutes);
+app.use("/agendamentos", agendamentosRoutes);
+
 
 app.get("/", (req, res) => {
     res.json({
