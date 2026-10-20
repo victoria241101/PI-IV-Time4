@@ -14,6 +14,8 @@ import planosTratamentoRoutes from "./routes/planosTratamento.routes.js";
 import orientacoesAltaRoutes from "./routes/orientacoesAlta.routes.js";
 import agendamentosRoutes from "./routes/agendamentos.routes.js";
 import prontuarioPdfRoutes from "./routes/prontuarioPdf.routes.js";
+import campanhasRoutes from "./routes/campanhas.routes.js";
+import doacoesRoutes from "./routes/doacoes.routes.js";
 
 const app = express();
 
@@ -32,6 +34,8 @@ app.use("/tarefas-clinicas", tarefasClinicasRoutes);
 app.use("/planos-tratamento", planosTratamentoRoutes);
 app.use("/orientacoes-alta", orientacoesAltaRoutes);
 app.use("/agendamentos", agendamentosRoutes);
+app.use("/campanhas", campanhasRoutes);
+app.use("/doacoes", doacoesRoutes);
 
 
 app.get("/", (req, res) => {

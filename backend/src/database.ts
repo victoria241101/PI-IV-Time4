@@ -40,6 +40,9 @@ export async function conectarBanco() {
         }
     );
 
+    const doacoes = banco.collection("doacoes");
+
+    await doacoes.createIndex({ campanhaId: 1 });
 
     console.log("Conectado ao MongoDB Atlas!");
 
