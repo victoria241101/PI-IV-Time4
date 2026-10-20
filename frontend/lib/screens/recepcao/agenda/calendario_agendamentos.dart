@@ -7,6 +7,7 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/avatar_pet.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
 class CalendarioAgendamentos extends StatefulWidget {
@@ -14,19 +15,25 @@ class CalendarioAgendamentos extends StatefulWidget {
     super.key,
     required this.consultas,
     required this.dataInicial,
-    required this.onCancelar,
-    required this.onReagendar,
+    this.onCancelar,
+    this.onReagendar,
+    this.onConsultaTap,
+    this.mostrarFotoPet = false,
+    this.mostrarMotivo = true,
   });
 
   final List<ConsultaRecepcao> consultas;
   final DateTime dataInicial;
-  final ValueChanged<ConsultaRecepcao> onCancelar;
+  final ValueChanged<ConsultaRecepcao>? onCancelar;
   final void Function(
     ConsultaRecepcao consulta,
     String horario,
     String profissional,
-  )
+  )?
   onReagendar;
+  final ValueChanged<ConsultaRecepcao>? onConsultaTap;
+  final bool mostrarFotoPet;
+  final bool mostrarMotivo;
 
   @override
   State<CalendarioAgendamentos> createState() => _CalendarioAgendamentosState();
@@ -331,21 +338,42 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
 
   Widget _cartaoAgendamento(ConsultaRecepcao consulta) {
     return InkWell(
-      onTap: () => _abrirDetalhes(consulta),
+      onTap: () => widget.onConsultaTap == null
+          ? _abrirDetalhes(consulta)
+          : widget.onConsultaTap!(consulta),
       borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
       child: CartaoBase(
         padding: const EdgeInsets.all(EspacamentosApp.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              '${consulta.pet} · ${consulta.especie}',
-              style: TipografiaApp.bodyMedium.copyWith(
-                fontWeight: FontWeight.w600,
-              ),
+            Row(
+              children: [
+                if (widget.mostrarFotoPet) ...[
+                  AvatarPet(
+                    fotoUrl: consulta.fotoPet,
+                    nome: consulta.pet,
+                    tamanho: 40,
+                  ),
+                  const SizedBox(width: EspacamentosApp.sm),
+                ],
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        '${consulta.pet} · ${consulta.especie}',
+                        style: TipografiaApp.bodyMedium.copyWith(
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                      const SizedBox(height: 2),
+                      Text(consulta.profissional, style: TipografiaApp.caption),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            const SizedBox(height: 2),
-            Text(consulta.profissional, style: TipografiaApp.caption),
             const SizedBox(height: EspacamentosApp.xs),
             Row(
               children: [
@@ -464,24 +492,30 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                       ),
                       _detalhe('Tutor', text: consulta.tutor),
                       _detalhe('Veterinário', text: consulta.profissional),
-                      _detalhe('Sala', text: consulta.sala),
                       _detalhe(
-                        'Atendimento',
-                        text: consulta.motivo,
-                        last: true,
+                        'Sala',
+                        text: consulta.sala,
+                        last: !widget.mostrarMotivo,
                       ),
+                      if (widget.mostrarMotivo)
+                        _detalhe(
+                          'Atendimento',
+                          text: consulta.motivo,
+                          last: true,
+                        ),
                     ],
                   ),
                 ),
                 const SizedBox(height: EspacamentosApp.md),
                 if (consulta.status != StatusConsultaRecepcao.emConsulta &&
-                    consulta.status != StatusConsultaRecepcao.finalizado)
+                    consulta.status != StatusConsultaRecepcao.finalizado &&
+                    widget.onReagendar != null)
                   OutlinedButton.icon(
                     onPressed: () async {
                       Navigator.pop(ctx);
                       final escolha = await _abrirReagendamento(consulta);
                       if (escolha == null || !mounted) return;
-                      widget.onReagendar(
+                      widget.onReagendar?.call(
                         consulta,
                         escolha.horario,
                         escolha.profissional,
@@ -494,14 +528,15 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                     ),
                   ),
                 if (consulta.status != StatusConsultaRecepcao.emConsulta &&
-                    consulta.status != StatusConsultaRecepcao.finalizado) ...[
+                    consulta.status != StatusConsultaRecepcao.finalizado &&
+                    widget.onCancelar != null) ...[
                   const SizedBox(height: EspacamentosApp.xs),
                   TextButton.icon(
                     onPressed: () async {
                       Navigator.pop(ctx);
                       final confirmar = await _confirmarCancelamento(consulta);
                       if (confirmar && mounted) {
-                        widget.onCancelar(consulta);
+                        widget.onCancelar?.call(consulta);
                       }
                     },
                     icon: const Icon(Icons.delete_outline_rounded),

@@ -48,6 +48,7 @@ class ConsultaRecepcao {
     required this.sala,
     required this.status,
     this.emergencia = false,
+    this.fotoPetUrl,
   });
 
   final String id;
@@ -62,6 +63,9 @@ class ConsultaRecepcao {
   String sala;
   StatusConsultaRecepcao status;
   final bool emergencia;
+  final String? fotoPetUrl;
+
+  String? get fotoPet => fotoPetUrl;
 
   String get duracao => '$duracaoMinutos min';
 }

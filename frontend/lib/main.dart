@@ -1,3 +1,4 @@
+// inicializacao e rotas principais do aplicativo
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
@@ -6,20 +7,14 @@ import 'package:pet_care/screens/autenticacao/cadastro.dart';
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/publico/inicio_publico.dart';
 import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
+import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
 
 void main() {
-  runApp(
-    const AplicativoVeterinaria(
-      home: InicioRecepcao(),
-    ),
-  );
+  runApp(const AplicativoVeterinaria(home: InicioVeterinario()));
 }
 
 class AplicativoVeterinaria extends StatelessWidget {
-  const AplicativoVeterinaria({
-    super.key,
-    required this.home,
-  });
+  const AplicativoVeterinaria({super.key, required this.home});
 
   final Widget home;
 
@@ -36,6 +31,7 @@ class AplicativoVeterinaria extends StatelessWidget {
         '/cadastro': (context) => const CadastroScreen(),
         '/inicio-publico': (context) => const InicioPublico(),
         '/recepcao': (context) => const InicioRecepcao(),
+        '/veterinario': (context) => const InicioVeterinario(),
       },
     );
   }
