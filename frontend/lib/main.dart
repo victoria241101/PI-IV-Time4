@@ -1,14 +1,16 @@
 import 'package:flutter/material.dart';
+
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
-import 'package:pet_care/screens/autenticacao/cadastro.dart';import 'package:pet_care/screens/gerais/splash_screen.dart';
+import 'package:pet_care/screens/autenticacao/cadastro.dart';
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/publico/inicio_publico.dart';
+import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
 
 void main() {
   runApp(
     const AplicativoVeterinaria(
-      home: SplashScreen(),
+      home: InicioRecepcao(),
     ),
   );
 }
@@ -33,6 +35,7 @@ class AplicativoVeterinaria extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
         '/inicio-publico': (context) => const InicioPublico(),
+        '/recepcao': (context) => const InicioRecepcao(),
       },
     );
   }
