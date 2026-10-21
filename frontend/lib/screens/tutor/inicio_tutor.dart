@@ -13,6 +13,7 @@ import 'package:pet_care/widgets/cartao_proxima_consulta.dart';
 import 'package:pet_care/widgets/lista_horizontal_pets.dart';
 import 'package:pet_care/widgets/modal_detalhes_consulta.dart';
 import 'package:pet_care/widgets/titulo_secao.dart';
+import 'package:pet_care/screens/gerais/perfil_geral.dart';
 
 
 import '../doacao/doacao.dart';
@@ -75,6 +76,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
     }
   }
 
+
   void _onNavTap(int index) {
     if (index == 2) {
       Navigator.of(context).push(
@@ -86,8 +88,19 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       return;
     }
 
+    if (index == 3) {
+      Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          builder: (_) => const PerfilGeral(),
+        ),
+      );
+
+      return;
+    }
+
     setState(() => _currentNavIndex = index);
   }
+
 
   void _onAppointmentDetails() {
     ModalDetalhesConsulta.show(
