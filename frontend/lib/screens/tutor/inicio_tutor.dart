@@ -14,6 +14,7 @@ import 'package:pet_care/widgets/lista_horizontal_pets.dart';
 import 'package:pet_care/widgets/modal_detalhes_consulta.dart';
 import 'package:pet_care/widgets/titulo_secao.dart';
 import 'package:pet_care/screens/gerais/perfil_geral.dart';
+import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 
 
 import '../doacao/doacao.dart';
