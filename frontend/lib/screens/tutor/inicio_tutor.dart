@@ -210,7 +210,13 @@ class _EstadoInicioTutor extends State<InicioTutor> {
               CabecalhoApp(
                 greeting: widget.saudacao,
                 name: widget.nomeTutor,
-                onNotificationTap: widget.onNotificacoes,
+                onNotificationTap: () {
+                  if (widget.onNotificacoes != null) {
+                    widget.onNotificacoes!();
+                  } else {
+                    ModalNotificacoesTutor.show(context);
+                  }
+                },
               ),
               const SizedBox(height: EspacamentosApp.xl),
               const TituloSecao(title: 'Meus pets'),
