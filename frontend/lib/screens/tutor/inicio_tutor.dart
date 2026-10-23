@@ -15,7 +15,8 @@ import 'package:pet_care/widgets/modal_detalhes_consulta.dart';
 import 'package:pet_care/widgets/titulo_secao.dart';
 import 'package:pet_care/screens/gerais/perfil_geral.dart';
 import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
-
+import 'package:pet_care/screens/tutor/consultas_tutor.dart';
+import 'package:pet_care/widgets/barra_nav_tutor.dart';
 
 import '../doacao/doacao.dart';
 
@@ -40,6 +41,7 @@ class InicioTutor extends StatefulWidget {
     this.onCancelarConsulta,
     this.onAgendarNovaConsulta,
     this.onNotificacoes,
+    this.consultas = const [],
   });
 
   final String saudacao;
@@ -53,6 +55,7 @@ class InicioTutor extends StatefulWidget {
   final AcaoConsulta? onCancelarConsulta;
   final VoidCallback? onAgendarNovaConsulta;
   final VoidCallback? onNotificacoes;
+  final List<ResumoConsulta> consultas;
 
   @override
   State<InicioTutor> createState() => _EstadoInicioTutor();
@@ -198,8 +201,10 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: CoresApp.background,
+
       body: SafeArea(
-        child: SingleChildScrollView(
+        child: _currentNavIndex == 0
+            ? SingleChildScrollView(
           padding: const EdgeInsets.only(
             top: EspacamentosApp.lg,
             bottom: EspacamentosApp.xxl,
@@ -252,34 +257,15 @@ class _EstadoInicioTutor extends State<InicioTutor> {
               CarrosselBanners(banners: widget.banners),
             ],
           ),
+        )
+            : ConsultasTutor(
+          consultas: widget.consultas,
         ),
       ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTap,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home_outlined),
-            activeIcon: Icon(Icons.home_rounded),
-            label: 'Início',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_today_outlined),
-            activeIcon: Icon(Icons.calendar_today_rounded),
-            label: 'Consultas',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.volunteer_activism_outlined),
-            activeIcon: Icon(Icons.volunteer_activism_rounded),
-            label: 'Doações',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_outline_rounded),
-            activeIcon: Icon(Icons.person_rounded),
-            label: 'Perfil',
-          ),
-        ],
-      ),
+        bottomNavigationBar: BarraNavTutor(
+          currentIndex: _currentNavIndex,
+          onTap: _onNavTap,
+        ),
     );
   }
 }

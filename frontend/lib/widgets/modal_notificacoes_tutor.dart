@@ -199,7 +199,7 @@ class _PainelNotificacoesTutorState
                     EspacamentosApp.pagePadding,
                   ),
                   itemCount: _notificacoes.length,
-                  separatorBuilder: (_, __) =>
+                  separatorBuilder: (_, _) =>
                   const SizedBox(height: EspacamentosApp.sm),
                   itemBuilder: (context, index) {
                     final notificacao = _notificacoes[index];
