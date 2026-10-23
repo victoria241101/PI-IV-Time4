@@ -33,31 +33,77 @@ class _PaginaDetalhesPetState extends State<PaginaDetalhesPet> {
   @override
   void initState() {
     super.initState();
-    _detalhes = widget.carregarDetalhes(widget.pet.id);
+    _carregar();
+  }
+
+  @override
+  void didUpdateWidget(covariant PaginaDetalhesPet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.pet.id != widget.pet.id ||
+        oldWidget.carregarDetalhes != widget.carregarDetalhes) {
+      _carregar();
+    }
+  }
+
+  void _carregar() {
+    debugPrint('Carregando detalhes do pet: ${widget.pet.id}');
+    _detalhes = _buscarDetalhes();
+  }
+
+  Future<DetalhesPet> _buscarDetalhes() async {
+    try {
+      final detalhes = await widget.carregarDetalhes(widget.pet.id);
+
+      debugPrint(
+        'Detalhes carregados com sucesso para o pet: ${widget.pet.id}',
+      );
+
+      return detalhes;
+    } catch (erro, stackTrace) {
+      debugPrint('Erro ao carregar detalhes do pet: $erro');
+      debugPrint('StackTrace: $stackTrace');
+      debugPrint('ID do pet: ${widget.pet.id}');
+      rethrow;
+    }
   }
 
   void _tentarNovamente() {
-    setState(() {
-      _detalhes = widget.carregarDetalhes(widget.pet.id);
-    });
+    setState(_carregar);
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Informações do pet')),
+      appBar: AppBar(
+        title: const Text('Informações do pet'),
+      ),
       body: FutureBuilder<DetalhesPet>(
         future: _detalhes,
         builder: (context, snapshot) {
           if (snapshot.connectionState != ConnectionState.done) {
-            return const Center(child: CircularProgressIndicator());
+            return const Center(
+              child: CircularProgressIndicator(),
+            );
           }
 
-          if (snapshot.hasError || !snapshot.hasData) {
-            return _ErroCarregamento(onRetry: _tentarNovamente);
+          if (snapshot.hasError) {
+            return _ErroCarregamento(
+              onRetry: _tentarNovamente,
+              mensagem: 'Não foi possível carregar as informações do pet.',
+            );
           }
 
-          return _ConteudoDetalhesPet(detalhes: snapshot.data!);
+          if (!snapshot.hasData) {
+            return _ErroCarregamento(
+              onRetry: _tentarNovamente,
+              mensagem: 'Nenhuma informação foi encontrada para este pet.',
+            );
+          }
+
+          return _ConteudoDetalhesPet(
+            detalhes: snapshot.data!,
+          );
         },
       ),
     );
@@ -65,9 +111,21 @@ class _PaginaDetalhesPetState extends State<PaginaDetalhesPet> {
 }
 
 class _ConteudoDetalhesPet extends StatelessWidget {
-  const _ConteudoDetalhesPet({required this.detalhes});
+  const _ConteudoDetalhesPet({
+    required this.detalhes,
+  });
 
   final DetalhesPet detalhes;
+
+  String _formatarPeso(double? peso) {
+    if (peso == null) return 'Não informado';
+
+    final valor = peso % 1 == 0
+        ? peso.toStringAsFixed(0)
+        : peso.toStringAsFixed(1).replaceAll('.', ',');
+
+    return '$valor kg';
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,7 +141,9 @@ class _ConteudoDetalhesPet extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Center(child: _CabecalhoPet(pet: pet)),
+          Center(
+            child: _CabecalhoPet(pet: pet),
+          ),
           const SizedBox(height: EspacamentosApp.xl),
           Row(
             children: [
@@ -103,7 +163,10 @@ class _ConteudoDetalhesPet extends StatelessWidget {
             ],
           ),
           const SizedBox(height: EspacamentosApp.xl),
-          Text('Histórico de saúde', style: TipografiaApp.heading3),
+          Text(
+            'Histórico de saúde',
+            style: TipografiaApp.heading3,
+          ),
           const SizedBox(height: EspacamentosApp.md),
           _AtalhosHistorico(detalhes: detalhes),
           const SizedBox(height: EspacamentosApp.xl),
@@ -114,21 +177,16 @@ class _ConteudoDetalhesPet extends StatelessWidget {
           ],
           if (detalhes.lembretes.isNotEmpty) ...[
             const SizedBox(height: EspacamentosApp.xl),
-            Text('Lembretes de cuidado', style: TipografiaApp.heading3),
+            Text(
+              'Lembretes de cuidado',
+              style: TipografiaApp.heading3,
+            ),
             const SizedBox(height: EspacamentosApp.md),
             _ListaLembretes(lembretes: detalhes.lembretes),
           ],
         ],
       ),
     );
-  }
-
-  String _formatarPeso(double? peso) {
-    if (peso == null) return 'Não informado';
-    final value = peso % 1 == 0
-        ? peso.toStringAsFixed(0)
-        : peso.toStringAsFixed(1).replaceAll('.', ',');
-    return '$value kg';
   }
 }
 
@@ -159,38 +217,47 @@ class _CabecalhoPet extends StatelessWidget {
           child: ClipOval(
             child: pet.photoUrl == null
                 ? Container(
-                    color: CoresApp.primary.withAlpha(24),
-                    child: const Icon(
-                      Icons.pets_rounded,
-                      size: 42,
-                      color: CoresApp.primary,
-                    ),
-                  )
+              color: CoresApp.primary.withAlpha(24),
+              child: const Icon(
+                Icons.pets_rounded,
+                size: 42,
+                color: CoresApp.primary,
+              ),
+            )
                 : Image.network(
-                    pet.photoUrl!,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => Container(
-                      color: CoresApp.primary.withAlpha(24),
-                      child: const Icon(
-                        Icons.pets_rounded,
-                        size: 42,
-                        color: CoresApp.primary,
-                      ),
-                    ),
-                  ),
+              pet.photoUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (_, _, _) => Container(
+                color: CoresApp.primary.withAlpha(24),
+                child: const Icon(
+                  Icons.pets_rounded,
+                  size: 42,
+                  color: CoresApp.primary,
+                ),
+              ),
+            ),
           ),
         ),
         const SizedBox(height: EspacamentosApp.md),
-        Text(pet.name, style: TipografiaApp.heading1),
+        Text(
+          pet.name,
+          style: TipografiaApp.heading1,
+        ),
         const SizedBox(height: EspacamentosApp.xs),
-        Text(pet.breed ?? pet.species, style: TipografiaApp.bodySmall),
+        Text(
+          pet.breed ?? pet.species,
+          style: TipografiaApp.bodySmall,
+        ),
       ],
     );
   }
 }
 
 class _DadoDestaque extends StatelessWidget {
-  const _DadoDestaque({required this.value, required this.label});
+  const _DadoDestaque({
+    required this.value,
+    required this.label,
+  });
 
   final String value;
   final String label;
@@ -210,7 +277,10 @@ class _DadoDestaque extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: EspacamentosApp.xs),
-          Text(label, style: TipografiaApp.caption),
+          Text(
+            label,
+            style: TipografiaApp.caption,
+          ),
         ],
       ),
     );
@@ -222,7 +292,10 @@ class _AtalhosHistorico extends StatelessWidget {
 
   final DetalhesPet detalhes;
 
-  void _abrir(BuildContext context, {CategoriaHistoricoPet? categoria}) {
+  void _abrir(
+      BuildContext context, {
+        CategoriaHistoricoPet? categoria,
+      }) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => PaginaHistoricoPet(
@@ -238,30 +311,39 @@ class _AtalhosHistorico extends StatelessWidget {
   Widget build(BuildContext context) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        final itemWidth = (constraints.maxWidth - EspacamentosApp.sm) / 2;
-        final items = <({String label, IconData icon, VoidCallback onTap})>[
+        final itemWidth =
+            (constraints.maxWidth - EspacamentosApp.sm) / 2;
+
+        final items =
+        <({String label, IconData icon, VoidCallback onTap})>[
           (
-            label: 'Vacinas',
-            icon: Icons.vaccines_outlined,
-            onTap: () =>
-                _abrir(context, categoria: CategoriaHistoricoPet.vacina),
+          label: 'Vacinas',
+          icon: Icons.vaccines_outlined,
+          onTap: () => _abrir(
+            context,
+            categoria: CategoriaHistoricoPet.vacina,
+          ),
           ),
           (
-            label: 'Medicamentos',
-            icon: Icons.medication_outlined,
-            onTap: () =>
-                _abrir(context, categoria: CategoriaHistoricoPet.medicamento),
+          label: 'Medicamentos',
+          icon: Icons.medication_outlined,
+          onTap: () => _abrir(
+            context,
+            categoria: CategoriaHistoricoPet.medicamento,
+          ),
           ),
           (
-            label: 'Exames',
-            icon: Icons.science_outlined,
-            onTap: () =>
-                _abrir(context, categoria: CategoriaHistoricoPet.exame),
+          label: 'Exames',
+          icon: Icons.science_outlined,
+          onTap: () => _abrir(
+            context,
+            categoria: CategoriaHistoricoPet.exame,
+          ),
           ),
           (
-            label: 'Histórico',
-            icon: Icons.history_rounded,
-            onTap: () => _abrir(context),
+          label: 'Histórico',
+          icon: Icons.history_rounded,
+          onTap: () => _abrir(context),
           ),
         ];
 
@@ -305,15 +387,27 @@ class _InformacoesBasicas extends StatelessWidget {
                 color: CoresApp.primary,
               ),
               const SizedBox(width: EspacamentosApp.sm),
-              Text('Informações básicas', style: TipografiaApp.heading3),
+              Text(
+                'Informações básicas',
+                style: TipografiaApp.heading3,
+              ),
             ],
           ),
           const SizedBox(height: EspacamentosApp.md),
-          _LinhaInformacao(label: 'Sexo', value: detalhes.sexo),
+          _LinhaInformacao(
+            label: 'Sexo',
+            value: detalhes.sexo,
+          ),
           const Divider(height: EspacamentosApp.xl),
-          _LinhaInformacao(label: 'Nascimento', value: detalhes.dataNascimento),
+          _LinhaInformacao(
+            label: 'Nascimento',
+            value: detalhes.dataNascimento,
+          ),
           const Divider(height: EspacamentosApp.xl),
-          _LinhaInformacao(label: 'Microchip', value: detalhes.microchip),
+          _LinhaInformacao(
+            label: 'Microchip',
+            value: detalhes.microchip,
+          ),
         ],
       ),
     );
@@ -321,7 +415,10 @@ class _InformacoesBasicas extends StatelessWidget {
 }
 
 class _LinhaInformacao extends StatelessWidget {
-  const _LinhaInformacao({required this.label, required this.value});
+  const _LinhaInformacao({
+    required this.label,
+    required this.value,
+  });
 
   final String label;
   final String value;
@@ -331,7 +428,10 @@ class _LinhaInformacao extends StatelessWidget {
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(label, style: TipografiaApp.bodySmall),
+        Text(
+          label,
+          style: TipografiaApp.bodySmall,
+        ),
         const SizedBox(width: EspacamentosApp.md),
         Expanded(
           child: Text(
@@ -380,7 +480,10 @@ class _ProximaConsulta extends StatelessWidget {
             ],
           ),
           const SizedBox(height: EspacamentosApp.md),
-          Text(consulta.type, style: TipografiaApp.bodyMedium),
+          Text(
+            consulta.type,
+            style: TipografiaApp.bodyMedium,
+          ),
           const SizedBox(height: EspacamentosApp.xs),
           Text(
             '${consulta.date} às ${consulta.time}',
@@ -427,12 +530,19 @@ class _LembreteItem extends StatelessWidget {
       padding: const EdgeInsets.all(EspacamentosApp.sm + 4),
       decoration: BoxDecoration(
         color: color.withAlpha(14),
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
-        border: Border.all(color: color.withAlpha(35)),
+        borderRadius: BorderRadius.circular(
+          EspacamentosApp.radiusMd,
+        ),
+        border: Border.all(
+          color: color.withAlpha(35),
+        ),
       ),
       child: Row(
         children: [
-          IconeCategoriaHistorico(categoria: lembrete.categoria, size: 19),
+          IconeCategoriaHistorico(
+            categoria: lembrete.categoria,
+            size: 19,
+          ),
           const SizedBox(width: EspacamentosApp.md),
           Expanded(
             child: Column(
@@ -446,7 +556,9 @@ class _LembreteItem extends StatelessWidget {
                 ),
                 Text(
                   lembrete.prazo,
-                  style: TipografiaApp.captionBold.copyWith(color: color),
+                  style: TipografiaApp.captionBold.copyWith(
+                    color: color,
+                  ),
                 ),
               ],
             ),
@@ -458,9 +570,13 @@ class _LembreteItem extends StatelessWidget {
 }
 
 class _ErroCarregamento extends StatelessWidget {
-  const _ErroCarregamento({required this.onRetry});
+  const _ErroCarregamento({
+    required this.onRetry,
+    required this.mensagem,
+  });
 
   final VoidCallback onRetry;
+  final String mensagem;
 
   @override
   Widget build(BuildContext context) {
@@ -477,7 +593,7 @@ class _ErroCarregamento extends StatelessWidget {
             ),
             const SizedBox(height: EspacamentosApp.md),
             Text(
-              'Não foi possível carregar as informações do pet.',
+              mensagem,
               style: TipografiaApp.bodyMedium,
               textAlign: TextAlign.center,
             ),
