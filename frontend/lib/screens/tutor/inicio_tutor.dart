@@ -259,7 +259,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           ),
         )
             : ConsultasTutor(
-          consultas: widget.consultas,
+          consultas: widget.consultas, nomesPets: [],
         ),
       ),
         bottomNavigationBar: BarraNavTutor(

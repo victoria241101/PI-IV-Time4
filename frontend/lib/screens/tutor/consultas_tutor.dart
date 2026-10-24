@@ -5,11 +5,13 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
+import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 
 class ConsultasTutor extends StatefulWidget {
   const ConsultasTutor({
     super.key,
     required this.consultas,
+    required this.nomesPets,
     this.onConsultaTap,
     this.onAgendarTap,
   });
@@ -17,6 +19,7 @@ class ConsultasTutor extends StatefulWidget {
   final List<ResumoConsulta> consultas;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
   final ValueChanged<DateTime>? onAgendarTap;
+  final List<String> nomesPets;
 
   @override
   State<ConsultasTutor> createState() => _ConsultasTutorState();
@@ -107,21 +110,14 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     final data = _dataSelecionada;
     if (data == null) return;
 
-    if (widget.onAgendarTap != null) {
-      widget.onAgendarTap!(data);
-      return;
-    }
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'A próxima etapa do agendamento será implementada.',
-          ),
-          behavior: SnackBarBehavior.floating,
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => DetalhesAgendamentoTutor(
+          dataSelecionada: data,
+          nomesPets: widget.nomesPets,
         ),
-      );
+      ),
+    );
   }
 
   @override
