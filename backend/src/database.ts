@@ -44,6 +44,16 @@ export async function conectarBanco() {
 
     await doacoes.createIndex({ campanhaId: 1 });
 
+    const conversas = banco.collection("conversas");
+
+    await conversas.createIndex({ chave: 1 }, { unique: true });
+    await conversas.createIndex({ participantes: 1 });
+    await conversas.createIndex({ usuarioId: 1 });
+
+    const mensagens = banco.collection("mensagens");
+
+    await mensagens.createIndex({ conversaId: 1, _id: 1 });
+
     console.log("Conectado ao MongoDB Atlas!");
 
     return banco;
