@@ -6,7 +6,7 @@ import { obterBanco } from "../database.js";
 import { montarUsuarioAutenticado } from "../chat/sessao.js";
 import { validarBusca } from "../chat/paginacao.js";
 import { listarContatos, type Contato } from "../chat/contatos.js";
-import { abrirCaixaSecretaria, abrirDireta } from "../chat/conversas.js";
+import { abrirCaixaSecretaria, abrirDireta, listarConversas } from "../chat/conversas.js";
 import { ehObjectIdHex } from "../chat/validacao.js";
 import { normalizarTipoUsuario } from "../chat/papeis.js";
 import { temVinculo } from "../chat/vinculos.js";
@@ -275,7 +275,35 @@ router.post("/conversas", async (req, res) => {
     }
 });
 
+/**
+ * 6.3 GET /chat/conversas
+ * Lista as conversas do usuário por ultimaMensagemEm decrescente (as sem mensagem por último).
+ */
+router.get("/conversas", async (req, res) => {
+    const usuario = obterUsuario(res);
+    if (!usuario) {
+        return res.status(403).json({
+            mensagem: "Seu tipo de usuário não tem acesso ao chat."
+        });
+    }
+
+    try {
+        const db = obterBanco();
+        const conversas = await listarConversas(db, usuario);
+        return res.status(200).json({
+            mensagem: "Conversas listadas com sucesso!",
+            conversas
+        });
+    } catch (erro) {
+        console.error("Erro ao listar conversas:", erro);
+        return res.status(500).json({
+            mensagem: "Erro interno no servidor."
+        });
+    }
+});
+
 export default router;
+
 
 
 

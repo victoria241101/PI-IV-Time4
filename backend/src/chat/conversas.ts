@@ -1,6 +1,16 @@
-import { ObjectId, type Db } from "mongodb";
-import type { ConversaDocumento } from "./tipos.js";
+import { ObjectId, type Db, type Filter } from "mongodb";
+import {
+    LIMITE_CONVERSAS,
+    PAPEL_SECRETARIA,
+    type ConversaDocumento,
+    type PapelChat,
+    type TipoConversa,
+    type UltimaMensagem,
+    type UsuarioAutenticado
+} from "./tipos.js";
 import { chaveSecretaria, chaveDireta } from "./chaves.js";
+import { normalizarTipoUsuario } from "./papeis.js";
+import type { Contato } from "./contatos.js";
 
 /**
  * Abre ou reaproveita a caixa de conversa compartilhada de um usuário com a Secretaria.
@@ -121,4 +131,142 @@ export async function abrirDireta(
         throw erro;
     }
 }
+
+export interface ConversaResumo {
+    _id: ObjectId;
+    tipo: TipoConversa;
+    outro: Contato;
+    ultimaMensagem: UltimaMensagem | null;
+    ultimaMensagemEm: Date | null;
+}
+
+/**
+ * 6.3 Listar conversas do usuário autenticado.
+ * - Não-secretária: caixas com usuarioId igual ao dele e diretas em que ele participa (inclusive vazias).
+ * - Secretária: todas as caixas que já tenham mensagem (ultimaMensagemEm diferente de null).
+ * Ordenadas por ultimaMensagemEm decrescente (as sem mensagem por último) e limitadas a LIMITE_CONVERSAS.
+ * Busca nomes e tipos dos participantes em uma única consulta à coleção usuarios.
+ */
+export async function listarConversas(
+    db: Db,
+    usuario: UsuarioAutenticado
+): Promise<ConversaResumo[]> {
+    const colecaoConversas = db.collection<ConversaDocumento>("conversas");
+
+    let filtro: Filter<ConversaDocumento>;
+
+    if (usuario.papel === PAPEL_SECRETARIA) {
+        filtro = {
+            tipo: "secretaria",
+            ultimaMensagemEm: { $ne: null }
+        };
+    } else {
+        const usuarioObjectId = new ObjectId(usuario.id);
+        filtro = {
+            $or: [
+                { tipo: "secretaria", usuarioId: usuarioObjectId },
+                { tipo: "direta", participantes: usuarioObjectId }
+            ]
+        };
+    }
+
+    const conversas = await colecaoConversas
+        .find(filtro)
+        .sort({ ultimaMensagemEm: -1, _id: -1 })
+        .limit(LIMITE_CONVERSAS)
+        .toArray();
+
+    if (conversas.length === 0) {
+        return [];
+    }
+
+    const idsOutrosUsuarios: ObjectId[] = [];
+    const ehSecretaria = usuario.papel === PAPEL_SECRETARIA;
+    const usuarioIdHex = usuario.id.toLowerCase();
+
+    for (const c of conversas) {
+        if (c.tipo === "secretaria") {
+            if (ehSecretaria && c.usuarioId) {
+                idsOutrosUsuarios.push(c.usuarioId);
+            }
+        } else if (c.tipo === "direta" && Array.isArray(c.participantes)) {
+            const outroId = c.participantes.find(
+                p => p.toHexString().toLowerCase() !== usuarioIdHex
+            );
+            if (outroId) {
+                idsOutrosUsuarios.push(outroId);
+            }
+        }
+    }
+
+    const mapaUsuarios = new Map<string, { nome: string; papel: PapelChat }>();
+
+    if (idsOutrosUsuarios.length > 0) {
+        const usuariosDocs = await db
+            .collection<{ _id: ObjectId; nome?: string; tipo?: string }>("usuarios")
+            .find(
+                { _id: { $in: idsOutrosUsuarios } },
+                { projection: { _id: 1, nome: 1, tipo: 1 } }
+            )
+            .toArray();
+
+        for (const doc of usuariosDocs) {
+            const papelNorm = normalizarTipoUsuario(doc.tipo);
+            if (papelNorm) {
+                mapaUsuarios.set(doc._id.toHexString().toLowerCase(), {
+                    nome: typeof doc.nome === "string" ? doc.nome : "",
+                    papel: papelNorm
+                });
+            }
+        }
+    }
+
+    const resultado: ConversaResumo[] = [];
+
+    for (const c of conversas) {
+        let outro: Contato;
+
+        if (c.tipo === "secretaria") {
+            if (!ehSecretaria) {
+                outro = {
+                    tipo: "secretaria",
+                    nome: "Secretaria"
+                };
+            } else {
+                const outroHex = c.usuarioId ? c.usuarioId.toHexString().toLowerCase() : "";
+                const usuarioInfo = mapaUsuarios.get(outroHex);
+                outro = {
+                    tipo: "usuario",
+                    usuarioId: c.usuarioId ? c.usuarioId.toHexString() : "",
+                    nome: usuarioInfo ? usuarioInfo.nome : "",
+                    papel: usuarioInfo ? usuarioInfo.papel : "USUARIO"
+                };
+            }
+        } else {
+            // direta
+            const outroId = Array.isArray(c.participantes)
+                ? c.participantes.find(p => p.toHexString().toLowerCase() !== usuarioIdHex)
+                : undefined;
+            const outroHex = outroId ? outroId.toHexString().toLowerCase() : "";
+            const usuarioInfo = mapaUsuarios.get(outroHex);
+            outro = {
+                tipo: "usuario",
+                usuarioId: outroId ? outroId.toHexString() : "",
+                nome: usuarioInfo ? usuarioInfo.nome : "",
+                papel: usuarioInfo ? usuarioInfo.papel : "USUARIO"
+            };
+        }
+
+        resultado.push({
+            _id: c._id,
+            tipo: c.tipo,
+            outro,
+            ultimaMensagem: c.ultimaMensagem ?? null,
+            ultimaMensagemEm: c.ultimaMensagemEm ?? null
+        });
+    }
+
+    return resultado;
+}
+
 
