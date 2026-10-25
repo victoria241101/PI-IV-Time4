@@ -6,10 +6,18 @@ import { obterBanco } from "../database.js";
 import { montarUsuarioAutenticado } from "../chat/sessao.js";
 import { validarBusca } from "../chat/paginacao.js";
 import { listarContatos, type Contato } from "../chat/contatos.js";
-import { abrirCaixaSecretaria } from "../chat/conversas.js";
+import { abrirCaixaSecretaria, abrirDireta } from "../chat/conversas.js";
 import { ehObjectIdHex } from "../chat/validacao.js";
 import { normalizarTipoUsuario } from "../chat/papeis.js";
-import { PAPEL_SECRETARIA, type UsuarioAutenticado } from "../chat/tipos.js";
+import { temVinculo } from "../chat/vinculos.js";
+import { podeConversarDireta } from "../chat/permissoes.js";
+import {
+    PAPEL_TUTOR,
+    PAPEL_VETERINARIO,
+    PAPEL_ENFERMEIRO,
+    PAPEL_SECRETARIA,
+    type UsuarioAutenticado
+} from "../chat/tipos.js";
 
 const router = Router();
 
@@ -209,9 +217,55 @@ router.post("/conversas", async (req, res) => {
             });
         }
 
-        // Demais casos (conversa direta)
-        return res.status(400).json({
-            mensagem: "Conversa direta ainda não disponível."
+        // Demais casos: conversa direta
+        let vinculo = false;
+        if (usuario.papel === PAPEL_TUTOR && papelAlvo === PAPEL_VETERINARIO) {
+            vinculo = await temVinculo(db, new ObjectId(usuario.id), alvoDoc._id);
+        } else if (usuario.papel === PAPEL_VETERINARIO && papelAlvo === PAPEL_TUTOR) {
+            vinculo = await temVinculo(db, alvoDoc._id, new ObjectId(usuario.id));
+        }
+
+        const permitido = podeConversarDireta(usuario.papel, papelAlvo, vinculo);
+        if (!permitido) {
+            let mensagemErro = "Você não tem permissão para conversar com este usuário.";
+            if (usuario.papel === PAPEL_TUTOR && papelAlvo === PAPEL_VETERINARIO) {
+                mensagemErro = "Você só pode conversar com veterinários que atendem seus pets.";
+            } else if (usuario.papel === PAPEL_VETERINARIO && papelAlvo === PAPEL_TUTOR) {
+                mensagemErro = "Você só pode conversar com tutores que você atende.";
+            } else if (usuario.papel === PAPEL_TUTOR && papelAlvo === PAPEL_TUTOR) {
+                mensagemErro = "Tutores não podem conversar diretamente entre si.";
+            } else if (
+                (usuario.papel === PAPEL_TUTOR && papelAlvo === PAPEL_ENFERMEIRO) ||
+                (usuario.papel === PAPEL_ENFERMEIRO && papelAlvo === PAPEL_TUTOR)
+            ) {
+                mensagemErro = "Tutores e enfermeiros não podem conversar diretamente entre si.";
+            } else if (usuario.papel === PAPEL_VETERINARIO && papelAlvo === PAPEL_VETERINARIO) {
+                mensagemErro = "Veterinários não podem conversar diretamente entre si.";
+            } else if (usuario.papel === PAPEL_ENFERMEIRO && papelAlvo === PAPEL_ENFERMEIRO) {
+                mensagemErro = "Enfermeiros não podem conversar diretamente entre si.";
+            }
+
+            return res.status(403).json({
+                mensagem: mensagemErro
+            });
+        }
+
+        const { conversa, criada } = await abrirDireta(db, new ObjectId(usuario.id), alvoDoc._id);
+
+        const outro: Contato = {
+            tipo: "usuario",
+            usuarioId: alvoDoc._id.toHexString(),
+            nome: typeof alvoDoc.nome === "string" ? alvoDoc.nome : "",
+            papel: papelAlvo
+        };
+
+        return res.status(criada ? 201 : 200).json({
+            mensagem: criada ? "Conversa criada com sucesso!" : "Conversa aberta com sucesso!",
+            conversa: {
+                _id: conversa._id,
+                tipo: conversa.tipo,
+                outro
+            }
         });
     } catch (erro) {
         console.error("Erro ao abrir conversa:", erro);
@@ -222,5 +276,6 @@ router.post("/conversas", async (req, res) => {
 });
 
 export default router;
+
 
 
