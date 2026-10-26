@@ -6,11 +6,17 @@ import { obterBanco } from "../database.js";
 import { montarUsuarioAutenticado } from "../chat/sessao.js";
 import { validarBusca } from "../chat/paginacao.js";
 import { listarContatos, type Contato } from "../chat/contatos.js";
-import { abrirCaixaSecretaria, abrirDireta, listarConversas } from "../chat/conversas.js";
-import { ehObjectIdHex } from "../chat/validacao.js";
+import {
+    abrirCaixaSecretaria,
+    abrirDireta,
+    listarConversas,
+    buscarConversaAcessivel
+} from "../chat/conversas.js";
+import { ehObjectIdHex, validarTexto } from "../chat/validacao.js";
 import { normalizarTipoUsuario } from "../chat/papeis.js";
 import { temVinculo } from "../chat/vinculos.js";
 import { podeConversarDireta } from "../chat/permissoes.js";
+import { enviarMensagem } from "../chat/mensagens.js";
 import {
     PAPEL_TUTOR,
     PAPEL_VETERINARIO,
@@ -302,7 +308,58 @@ router.get("/conversas", async (req, res) => {
     }
 });
 
+/**
+ * 6.4 POST /chat/conversas/:id/mensagens
+ * Envia uma mensagem de texto em uma conversa existente acessível ao usuário.
+ */
+router.post("/conversas/:id/mensagens", async (req, res) => {
+    const { id } = req.params;
+    if (!ehObjectIdHex(id)) {
+        return res.status(400).json({
+            mensagem: "ID de conversa inválido."
+        });
+    }
+
+    const usuario = obterUsuario(res);
+    if (!usuario) {
+        return res.status(403).json({
+            mensagem: "Seu tipo de usuário não tem acesso ao chat."
+        });
+    }
+
+    try {
+        const db = obterBanco();
+        const conversa = await buscarConversaAcessivel(db, id, usuario);
+        if (!conversa) {
+            return res.status(404).json({
+                mensagem: "Conversa não encontrada ou acesso negado."
+            });
+        }
+
+        const validacaoTexto = validarTexto(req.body?.texto);
+        if (!validacaoTexto.ok) {
+            return res.status(400).json({
+                mensagem: validacaoTexto.mensagem
+            });
+        }
+
+        const resultado = await enviarMensagem(db, conversa, usuario, validacaoTexto.valor);
+
+        return res.status(201).json({
+            mensagem: "Mensagem enviada com sucesso!",
+            mensagemId: resultado.mensagemId,
+            criadoEm: resultado.criadoEm
+        });
+    } catch (erro) {
+        console.error("Erro ao enviar mensagem:", erro);
+        return res.status(500).json({
+            mensagem: "Erro interno no servidor."
+        });
+    }
+});
+
 export default router;
+
 
 
 

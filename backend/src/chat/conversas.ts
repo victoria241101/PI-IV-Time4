@@ -10,6 +10,8 @@ import {
 } from "./tipos.js";
 import { chaveSecretaria, chaveDireta } from "./chaves.js";
 import { normalizarTipoUsuario } from "./papeis.js";
+import { podeAcessarConversa } from "./acesso.js";
+import { ehObjectIdHex } from "./validacao.js";
 import type { Contato } from "./contatos.js";
 
 /**
@@ -268,5 +270,34 @@ export async function listarConversas(
 
     return resultado;
 }
+
+/**
+ * Busca uma conversa pelo _id e verifica se o usuário autenticado tem permissão de acesso.
+ * Devolve o documento da conversa se existir e for acessível; caso contrário, devolve null.
+ */
+export async function buscarConversaAcessivel(
+    db: Db,
+    conversaId: string,
+    usuario: UsuarioAutenticado
+): Promise<ConversaDocumento | null> {
+    if (!ehObjectIdHex(conversaId)) {
+        return null;
+    }
+
+    const conversa = await db
+        .collection<ConversaDocumento>("conversas")
+        .findOne({ _id: new ObjectId(conversaId) });
+
+    if (!conversa) {
+        return null;
+    }
+
+    if (!podeAcessarConversa(conversa, usuario)) {
+        return null;
+    }
+
+    return conversa;
+}
+
 
 
