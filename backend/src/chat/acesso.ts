@@ -1,4 +1,5 @@
-import type { TipoConversa, UsuarioAutenticado, PapelChat } from "./tipos.js";
+import { ObjectId, type Filter } from "mongodb";
+import type { TipoConversa, UsuarioAutenticado, PapelChat, MensagemDocumento } from "./tipos.js";
 import { LADO_SECRETARIA, PAPEL_SECRETARIA } from "./tipos.js";
 
 export type ConversaParaAcesso = {
@@ -86,4 +87,48 @@ export function mensagemEhDoLado(
     }
 
     return false;
+}
+
+export type ConversaParaFiltroNaoLidas = {
+    _id: ObjectId;
+    tipo: TipoConversa;
+    leituras: Record<string, Date>;
+};
+
+/**
+ * Monta o filtro do MongoDB para contar mensagens não lidas de um lado da conversa.
+ * Função pura: não acessa o banco de dados.
+ *
+ * O filtro inclui:
+ * - conversaId da conversa
+ * - criadoEm maior que leituras[lado] (omitido se não houver ponteiro)
+ * - Mensagens que NÃO sejam do próprio lado:
+ *   - secretaria: lado "SECRETARIA" conta remetenteTipo ≠ "SECRETARIA";
+ *                 lado do usuário conta remetenteTipo = "SECRETARIA"
+ *   - direta: remetenteId ≠ lado
+ */
+export function montarFiltroNaoLidas(
+    conversa: ConversaParaFiltroNaoLidas,
+    lado: string
+): Filter<MensagemDocumento> {
+    const filtro: Record<string, unknown> = {
+        conversaId: conversa._id
+    };
+
+    const ponteiro = conversa.leituras[lado];
+    if (ponteiro) {
+        filtro.criadoEm = { $gt: ponteiro };
+    }
+
+    if (conversa.tipo === "secretaria") {
+        if (lado === LADO_SECRETARIA) {
+            filtro.remetenteTipo = { $ne: PAPEL_SECRETARIA };
+        } else {
+            filtro.remetenteTipo = PAPEL_SECRETARIA;
+        }
+    } else if (conversa.tipo === "direta") {
+        filtro.remetenteId = { $ne: new ObjectId(lado) };
+    }
+
+    return filtro as Filter<MensagemDocumento>;
 }

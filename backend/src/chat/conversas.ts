@@ -3,6 +3,7 @@ import {
     LIMITE_CONVERSAS,
     PAPEL_SECRETARIA,
     type ConversaDocumento,
+    type MensagemDocumento,
     type PapelChat,
     type TipoConversa,
     type UltimaMensagem,
@@ -10,7 +11,7 @@ import {
 } from "./tipos.js";
 import { chaveSecretaria, chaveDireta } from "./chaves.js";
 import { normalizarTipoUsuario } from "./papeis.js";
-import { podeAcessarConversa } from "./acesso.js";
+import { podeAcessarConversa, ladoDoUsuario, montarFiltroNaoLidas } from "./acesso.js";
 import { ehObjectIdHex } from "./validacao.js";
 import type { Contato } from "./contatos.js";
 
@@ -140,6 +141,7 @@ export interface ConversaResumo {
     outro: Contato;
     ultimaMensagem: UltimaMensagem | null;
     ultimaMensagemEm: Date | null;
+    naoLidas: number;
 }
 
 /**
@@ -223,9 +225,15 @@ export async function listarConversas(
         }
     }
 
+    const contagens = await Promise.allSettled(
+        conversas.map(c => contarNaoLidas(db, c, usuario))
+    );
+
     const resultado: ConversaResumo[] = [];
 
-    for (const c of conversas) {
+    for (let i = 0; i < conversas.length; i++) {
+        const c = conversas[i];
+        if (!c) continue;
         let outro: Contato;
 
         if (c.tipo === "secretaria") {
@@ -259,12 +267,21 @@ export async function listarConversas(
             };
         }
 
+        let naoLidas = 0;
+        const contagem = contagens[i];
+        if (contagem && contagem.status === "fulfilled") {
+            naoLidas = contagem.value;
+        } else if (contagem && contagem.status === "rejected") {
+            console.error("Erro ao contar mensagens não lidas:", contagem.reason);
+        }
+
         resultado.push({
             _id: c._id,
             tipo: c.tipo,
             outro,
             ultimaMensagem: c.ultimaMensagem ?? null,
-            ultimaMensagemEm: c.ultimaMensagemEm ?? null
+            ultimaMensagemEm: c.ultimaMensagemEm ?? null,
+            naoLidas
         });
     }
 
@@ -299,5 +316,33 @@ export async function buscarConversaAcessivel(
     return conversa;
 }
 
+/**
+ * Conta o número de mensagens não lidas para o usuário na conversa.
+ * Usa montarFiltroNaoLidas para gerar o filtro e countDocuments para contar.
+ */
+export async function contarNaoLidas(
+    db: Db,
+    conversa: ConversaDocumento,
+    usuario: UsuarioAutenticado
+): Promise<number> {
+    const lado = ladoDoUsuario(conversa, usuario);
+    if (!lado) return 0;
+    const filtro = montarFiltroNaoLidas(conversa, lado);
+    return db.collection<MensagemDocumento>("mensagens").countDocuments(filtro);
+}
 
-
+/**
+ * Marca a conversa como lida para o usuário, atualizando leituras.<lado> com a data atual.
+ */
+export async function marcarComoLida(
+    db: Db,
+    conversa: ConversaDocumento,
+    usuario: UsuarioAutenticado
+): Promise<void> {
+    const lado = ladoDoUsuario(conversa, usuario);
+    if (!lado) return;
+    await db.collection<ConversaDocumento>("conversas").updateOne(
+        { _id: conversa._id },
+        { $set: { [`leituras.${lado}`]: new Date() } }
+    );
+}

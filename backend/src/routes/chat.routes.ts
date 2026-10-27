@@ -10,7 +10,8 @@ import {
     abrirCaixaSecretaria,
     abrirDireta,
     listarConversas,
-    buscarConversaAcessivel
+    buscarConversaAcessivel,
+    marcarComoLida
 } from "../chat/conversas.js";
 import { ehObjectIdHex, validarTexto } from "../chat/validacao.js";
 import { normalizarTipoUsuario } from "../chat/papeis.js";
@@ -419,6 +420,47 @@ router.get("/conversas/:id/mensagens", async (req, res) => {
         });
     } catch (erro) {
         console.error("Erro ao listar mensagens:", erro);
+        return res.status(500).json({
+            mensagem: "Erro interno no servidor."
+        });
+    }
+});
+
+/**
+ * 6.6 PATCH /chat/conversas/:id/lida
+ * Marca a conversa como lida para o usuário autenticado.
+ */
+router.patch("/conversas/:id/lida", async (req, res) => {
+    const { id } = req.params;
+    if (!ehObjectIdHex(id)) {
+        return res.status(400).json({
+            mensagem: "ID de conversa inválido."
+        });
+    }
+
+    const usuario = obterUsuario(res);
+    if (!usuario) {
+        return res.status(403).json({
+            mensagem: "Seu tipo de usuário não tem acesso ao chat."
+        });
+    }
+
+    try {
+        const db = obterBanco();
+        const conversa = await buscarConversaAcessivel(db, id, usuario);
+        if (!conversa) {
+            return res.status(404).json({
+                mensagem: "Conversa não encontrada ou acesso negado."
+            });
+        }
+
+        await marcarComoLida(db, conversa, usuario);
+
+        return res.status(200).json({
+            mensagem: "Conversa marcada como lida."
+        });
+    } catch (erro) {
+        console.error("Erro ao marcar conversa como lida:", erro);
         return res.status(500).json({
             mensagem: "Erro interno no servidor."
         });
