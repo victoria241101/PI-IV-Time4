@@ -18,9 +18,28 @@ import 'package:pet_care/widgets/cartao_base.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
 class InicioVeterinario extends StatefulWidget {
-  const InicioVeterinario({super.key, this.profissional});
+  const InicioVeterinario({
+    super.key,
+    this.profissional,
+    this.mostrarTodasConsultas = false,
+    this.descricaoClientes,
+    this.paginaConsultaBuilder,
+    this.filtroConsultas,
+    this.terceiraAbaBuilder,
+    this.terceiraAbaItem,
+    this.rotuloAcaoConsulta,
+    this.cartoesCompactos = false,
+  });
 
   final String? profissional;
+  final bool mostrarTodasConsultas;
+  final String? descricaoClientes;
+  final Widget Function(ConsultaRecepcao consulta)? paginaConsultaBuilder;
+  final bool Function(ConsultaRecepcao consulta)? filtroConsultas;
+  final Widget Function(List<ConsultaRecepcao> consultas)? terceiraAbaBuilder;
+  final BottomNavigationBarItem? terceiraAbaItem;
+  final String? Function(ConsultaRecepcao consulta)? rotuloAcaoConsulta;
+  final bool cartoesCompactos;
 
   @override
   State<InicioVeterinario> createState() => _InicioVeterinarioState();
@@ -74,16 +93,26 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
   String get _nomeUsuario =>
       SessaoUsuario.instancia.nomeUsuario ?? _profissionalAtual;
 
-  List<ConsultaRecepcao> get _consultasDoVeterinario =>
-      AgendaClinica.instancia.consultas
-          .where((consulta) => consulta.profissional == _profissionalAtual)
-          .toList()
-        ..sort((a, b) {
-          final porData = a.data.compareTo(b.data);
-          return porData != 0 ? porData : a.horario.compareTo(b.horario);
-        });
+  List<ConsultaRecepcao> get _consultasDoPerfil {
+    final consultas = AgendaClinica.instancia.consultas
+        .where(
+          (consulta) =>
+              widget.mostrarTodasConsultas ||
+              consulta.profissional == _profissionalAtual,
+        )
+        .toList();
+    consultas.sort((a, b) {
+      final porData = a.data.compareTo(b.data);
+      return porData != 0 ? porData : a.horario.compareTo(b.horario);
+    });
+    return consultas;
+  }
 
-  List<ConsultaRecepcao> get _consultasAtivasDeHoje => _consultasDoVeterinario
+  List<ConsultaRecepcao> get _consultasVisiveis => _consultasDoPerfil
+      .where((consulta) => widget.filtroConsultas?.call(consulta) ?? true)
+      .toList();
+
+  List<ConsultaRecepcao> get _consultasAtivasDeHoje => _consultasVisiveis
       .where(
         (consulta) =>
             DateUtils.isSameDay(consulta.data, _hoje) &&
@@ -94,7 +123,9 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
   void _abrirConsulta(ConsultaRecepcao consulta) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (_) => ConsultaVeterinario(consulta: consulta),
+        builder: (_) =>
+            widget.paginaConsultaBuilder?.call(consulta) ??
+            ConsultaVeterinario(consulta: consulta),
       ),
     );
   }
@@ -107,7 +138,8 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
 
   @override
   Widget build(BuildContext context) {
-    final consultas = _consultasDoVeterinario;
+    final consultas = _consultasDoPerfil;
+    final consultasVisiveis = _consultasVisiveis;
     final consultasAtivasHoje = _consultasAtivasDeHoje;
 
     return Scaffold(
@@ -136,7 +168,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
                 children: [
                   _listaDeConsultas(consultasAtivasHoje),
                   CalendarioAgendamentos(
-                    consultas: consultas
+                    consultas: consultasVisiveis
                         .where(
                           (consulta) =>
                               consulta.status !=
@@ -148,10 +180,12 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
                     mostrarFotoPet: true,
                     mostrarMotivo: false,
                   ),
-                  ClientesVeterinario(
-                    consultas: consultas,
-                    profissional: _profissionalAtual,
-                  ),
+                  widget.terceiraAbaBuilder?.call(consultas) ??
+                      ClientesVeterinario(
+                        consultas: consultas,
+                        profissional: _profissionalAtual,
+                        descricao: widget.descricaoClientes,
+                      ),
                   const ChatRecepcao(),
                 ],
               ),
@@ -162,7 +196,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
       bottomNavigationBar: BarraNavegacaoApp(
         currentIndex: _abaAtual,
         onTap: (index) => setState(() => _abaAtual = index),
-        items: const [
+        items: [
           BottomNavigationBarItem(
             icon: Icon(Icons.today_outlined),
             activeIcon: Icon(Icons.today_rounded),
@@ -173,12 +207,13 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
             activeIcon: Icon(Icons.calendar_month_rounded),
             label: 'Agenda',
           ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.people_outline_rounded),
-            activeIcon: Icon(Icons.people_rounded),
-            label: 'Clientes',
-          ),
-          BottomNavigationBarItem(
+          widget.terceiraAbaItem ??
+              const BottomNavigationBarItem(
+                icon: Icon(Icons.people_outline_rounded),
+                activeIcon: Icon(Icons.people_rounded),
+                label: 'Clientes',
+              ),
+          const BottomNavigationBarItem(
             icon: Icon(Icons.chat_bubble_outline_rounded),
             activeIcon: Icon(Icons.chat_bubble_rounded),
             label: 'Chat',
@@ -218,69 +253,106 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         else
           for (final consulta in consultas) ...[
             _cartaoConsulta(consulta),
-            const SizedBox(height: EspacamentosApp.sm),
+            SizedBox(
+              height: widget.cartoesCompactos
+                  ? EspacamentosApp.xs
+                  : EspacamentosApp.sm,
+            ),
           ],
       ],
     );
   }
 
   Widget _cartaoConsulta(ConsultaRecepcao consulta) {
-    return CartaoBase(
-      onTap: () => _abrirConsulta(consulta),
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 50,
-            child: Text(
-              consulta.horario,
-              style: TipografiaApp.bodyMedium.copyWith(
-                color: CoresApp.primaryDark,
-                fontWeight: FontWeight.w700,
-              ),
+    final acao = widget.rotuloAcaoConsulta?.call(consulta);
+    final linhaConsulta = Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        SizedBox(
+          width: 50,
+          child: Text(
+            consulta.horario,
+            style: TipografiaApp.bodyMedium.copyWith(
+              color: CoresApp.primaryDark,
+              fontWeight: FontWeight.w700,
             ),
           ),
-          const SizedBox(width: EspacamentosApp.sm),
-          AvatarPet(fotoUrl: consulta.fotoPet, nome: consulta.pet, tamanho: 48),
-          const SizedBox(width: EspacamentosApp.sm),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
+        ),
+        const SizedBox(width: EspacamentosApp.sm),
+        AvatarPet(fotoUrl: consulta.fotoPet, nome: consulta.pet, tamanho: 48),
+        const SizedBox(width: EspacamentosApp.sm),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      '${consulta.pet} · ${consulta.especie}',
+                      style: TipografiaApp.bodyMedium,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  const Icon(
+                    Icons.chevron_right_rounded,
+                    color: CoresApp.iconDefault,
+                  ),
+                ],
+              ),
+              const SizedBox(height: EspacamentosApp.xs),
+              Text(
+                consulta.tutor,
+                style: TipografiaApp.caption,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+              ),
+              const SizedBox(height: EspacamentosApp.xs),
+              IndicadorStatus(
+                label: consulta.status.rotulo,
+                color: consulta.status.cor,
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+
+    return CartaoBase(
+      onTap: () => _abrirConsulta(consulta),
+      padding: EdgeInsets.symmetric(
+        horizontal: EspacamentosApp.md,
+        vertical: widget.cartoesCompactos
+            ? EspacamentosApp.sm
+            : EspacamentosApp.md,
+      ),
+      child: acao == null
+          ? linhaConsulta
+          : Column(
               children: [
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        '${consulta.pet} · ${consulta.especie}',
-                        style: TipografiaApp.bodyMedium,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ),
-                    const Icon(
-                      Icons.chevron_right_rounded,
-                      color: CoresApp.iconDefault,
-                    ),
-                  ],
-                ),
+                linhaConsulta,
                 const SizedBox(height: EspacamentosApp.xs),
-                Text(
-                  consulta.tutor,
-                  style: TipografiaApp.caption,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: EspacamentosApp.xs),
-                IndicadorStatus(
-                  label: consulta.status.rotulo,
-                  color: consulta.status.cor,
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton.icon(
+                    onPressed: () => _abrirConsulta(consulta),
+                    icon: const Icon(Icons.arrow_forward_rounded),
+                    label: Text(acao),
+                    style: widget.cartoesCompactos
+                        ? TextButton.styleFrom(
+                            visualDensity: VisualDensity.compact,
+                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                            minimumSize: const Size(0, 36),
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: EspacamentosApp.sm,
+                            ),
+                          )
+                        : null,
+                  ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
     );
   }
 

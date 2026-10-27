@@ -20,6 +20,7 @@ class CampoFormularioApp extends StatelessWidget {
     this.textCapitalization = TextCapitalization.none,
     this.textInputAction,
     this.onChanged,
+    this.enabled = true,
   });
 
   final TextEditingController controller;
@@ -33,12 +34,14 @@ class CampoFormularioApp extends StatelessWidget {
   final TextCapitalization textCapitalization;
   final TextInputAction? textInputAction;
   final ValueChanged<String>? onChanged;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
     final radius = BorderRadius.circular(EspacamentosApp.radiusMd);
     return TextFormField(
       controller: controller,
+      enabled: enabled,
       keyboardType: keyboardType,
       inputFormatters: inputFormatters,
       validator: validator,

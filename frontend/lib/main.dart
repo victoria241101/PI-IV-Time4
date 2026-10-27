@@ -5,12 +5,13 @@ import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
 import 'package:pet_care/screens/autenticacao/cadastro.dart';
 import 'package:pet_care/screens/autenticacao/login.dart';
+import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
 import 'package:pet_care/screens/publico/inicio_publico.dart';
 import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
 import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
 
 void main() {
-  runApp(const AplicativoVeterinaria(home: InicioVeterinario()));
+  runApp(const AplicativoVeterinaria(home: InicioEnfermeiro()));
 }
 
 class AplicativoVeterinaria extends StatelessWidget {
@@ -32,6 +33,7 @@ class AplicativoVeterinaria extends StatelessWidget {
         '/inicio-publico': (context) => const InicioPublico(),
         '/recepcao': (context) => const InicioRecepcao(),
         '/veterinario': (context) => const InicioVeterinario(),
+        '/enfermeiro': (context) => const InicioEnfermeiro(),
       },
     );
   }

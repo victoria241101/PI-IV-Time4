@@ -1,4 +1,4 @@
-// busca de clientes e historico clinico do veterinario
+// busca de clientes e historico clinico compartilhado pela equipe
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
@@ -18,10 +18,16 @@ class ClientesVeterinario extends StatefulWidget {
     super.key,
     required this.consultas,
     required this.profissional,
+    this.mostrarInternadosInicialmente = false,
+    this.somenteInternados = false,
+    this.descricao,
   });
 
   final List<ConsultaRecepcao> consultas;
   final String profissional;
+  final bool mostrarInternadosInicialmente;
+  final bool somenteInternados;
+  final String? descricao;
 
   @override
   State<ClientesVeterinario> createState() => _ClientesVeterinarioState();
@@ -29,7 +35,14 @@ class ClientesVeterinario extends StatefulWidget {
 
 class _ClientesVeterinarioState extends State<ClientesVeterinario> {
   final _buscaController = TextEditingController();
-  bool _mostrarInternados = false;
+  late bool _mostrarInternados;
+
+  @override
+  void initState() {
+    super.initState();
+    _mostrarInternados =
+        widget.somenteInternados || widget.mostrarInternadosInicialmente;
+  }
 
   @override
   void dispose() {
@@ -97,10 +110,14 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Clientes', style: TipografiaApp.heading2),
+          Text(
+            widget.somenteInternados ? 'Pacientes internados' : 'Clientes',
+            style: TipografiaApp.heading2,
+          ),
           const SizedBox(height: EspacamentosApp.xs),
           Text(
-            'Consulte os pets atendidos por ${widget.profissional}',
+            widget.descricao ??
+                'Consulte os pets atendidos por ${widget.profissional}',
             style: TipografiaApp.bodySmall,
           ),
           const SizedBox(height: EspacamentosApp.md),
@@ -112,24 +129,26 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
             textInputAction: TextInputAction.search,
           ),
           const SizedBox(height: EspacamentosApp.sm),
-          Wrap(
-            spacing: EspacamentosApp.sm,
-            children: [
-              ChoiceChip(
-                label: const Text('Todos'),
-                selected: !_mostrarInternados,
-                onSelected: (_) => setState(() => _mostrarInternados = false),
-                selectedColor: CoresApp.primary.withAlpha(28),
-              ),
-              ChoiceChip(
-                label: const Text('Internados'),
-                selected: _mostrarInternados,
-                onSelected: (_) => setState(() => _mostrarInternados = true),
-                selectedColor: CoresApp.primary.withAlpha(28),
-              ),
-            ],
-          ),
-          const SizedBox(height: EspacamentosApp.sm),
+          if (!widget.somenteInternados) ...[
+            Wrap(
+              spacing: EspacamentosApp.sm,
+              children: [
+                ChoiceChip(
+                  label: const Text('Todos'),
+                  selected: !_mostrarInternados,
+                  onSelected: (_) => setState(() => _mostrarInternados = false),
+                  selectedColor: CoresApp.primary.withAlpha(28),
+                ),
+                ChoiceChip(
+                  label: const Text('Internados'),
+                  selected: _mostrarInternados,
+                  onSelected: (_) => setState(() => _mostrarInternados = true),
+                  selectedColor: CoresApp.primary.withAlpha(28),
+                ),
+              ],
+            ),
+            const SizedBox(height: EspacamentosApp.sm),
+          ],
           Expanded(
             child: clientes.isEmpty
                 ? _vazio()
