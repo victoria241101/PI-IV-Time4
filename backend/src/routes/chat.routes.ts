@@ -4,7 +4,7 @@ import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { obterBanco } from "../database.js";
 import { montarUsuarioAutenticado } from "../chat/sessao.js";
-import { validarBusca } from "../chat/paginacao.js";
+import { validarBusca, validarLimite, lerCursor } from "../chat/paginacao.js";
 import { listarContatos, type Contato } from "../chat/contatos.js";
 import {
     abrirCaixaSecretaria,
@@ -16,7 +16,7 @@ import { ehObjectIdHex, validarTexto } from "../chat/validacao.js";
 import { normalizarTipoUsuario } from "../chat/papeis.js";
 import { temVinculo } from "../chat/vinculos.js";
 import { podeConversarDireta } from "../chat/permissoes.js";
-import { enviarMensagem } from "../chat/mensagens.js";
+import { enviarMensagem, listarMensagens } from "../chat/mensagens.js";
 import {
     PAPEL_TUTOR,
     PAPEL_VETERINARIO,
@@ -358,7 +358,75 @@ router.post("/conversas/:id/mensagens", async (req, res) => {
     }
 });
 
+/**
+ * 6.5 GET /chat/conversas/:id/mensagens
+ * Lista mensagens de uma conversa com paginação por cursor (query params: limite, depois, antes).
+ */
+router.get("/conversas/:id/mensagens", async (req, res) => {
+    const { id } = req.params;
+    if (!ehObjectIdHex(id)) {
+        return res.status(400).json({
+            mensagem: "ID de conversa inválido."
+        });
+    }
+
+    const validacaoLimite = validarLimite(req.query.limite);
+    if (!validacaoLimite.ok) {
+        return res.status(400).json({
+            mensagem: validacaoLimite.mensagem
+        });
+    }
+
+    const validacaoDepois = lerCursor(req.query.depois);
+    if (!validacaoDepois.ok) {
+        return res.status(400).json({
+            mensagem: validacaoDepois.mensagem
+        });
+    }
+
+    const validacaoAntes = lerCursor(req.query.antes);
+    if (!validacaoAntes.ok) {
+        return res.status(400).json({
+            mensagem: validacaoAntes.mensagem
+        });
+    }
+
+    const usuario = obterUsuario(res);
+    if (!usuario) {
+        return res.status(403).json({
+            mensagem: "Seu tipo de usuário não tem acesso ao chat."
+        });
+    }
+
+    try {
+        const db = obterBanco();
+        const conversa = await buscarConversaAcessivel(db, id, usuario);
+        if (!conversa) {
+            return res.status(404).json({
+                mensagem: "Conversa não encontrada ou acesso negado."
+            });
+        }
+
+        const mensagens = await listarMensagens(db, conversa, usuario, {
+            depois: validacaoDepois.valor,
+            antes: validacaoAntes.valor,
+            limite: validacaoLimite.valor
+        });
+
+        return res.status(200).json({
+            mensagem: "Mensagens listadas com sucesso!",
+            mensagens
+        });
+    } catch (erro) {
+        console.error("Erro ao listar mensagens:", erro);
+        return res.status(500).json({
+            mensagem: "Erro interno no servidor."
+        });
+    }
+});
+
 export default router;
+
 
 
 
