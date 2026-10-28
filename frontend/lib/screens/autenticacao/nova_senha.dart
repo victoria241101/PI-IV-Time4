@@ -1,8 +1,10 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
 
 class NovaSenhaScreen extends StatefulWidget {
   const NovaSenhaScreen({super.key});
@@ -20,8 +22,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
   bool _ocultarSenha = true;
   bool _ocultarConfirmacao = true;
 
-  bool get _temOitoCaracteres =>
-      _senhaController.text.length >= 8;
+  bool get _temOitoCaracteres => _senhaController.text.length >= 8;
 
   bool get _temMaiuscula =>
       RegExp(r'[A-Z]').hasMatch(_senhaController.text);
@@ -35,8 +36,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
 
   bool get _senhasIguais =>
       _senhaController.text.isNotEmpty &&
-          _senhaController.text ==
-              _confirmarSenhaController.text;
+          _senhaController.text == _confirmarSenhaController.text;
 
   bool get _senhaValida =>
       _temOitoCaracteres &&
@@ -81,9 +81,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
 
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(
-        content: Text(
-          'Senha alterada com sucesso!',
-        ),
+        content: Text('Senha alterada com sucesso!'),
         behavior: SnackBarBehavior.floating,
       ),
     );
@@ -233,6 +231,13 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: EspacamentosApp.md),
+
+                    const CabecalhoPetCare(
+                      centralizado: true,
+                      mostrarSaudacao: false,
+                    ),
+
                     const SizedBox(height: EspacamentosApp.xl),
 
                     Center(
@@ -373,8 +378,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                           const SizedBox(height: EspacamentosApp.sm),
 
                           TextFormField(
-                            controller:
-                            _confirmarSenhaController,
+                            controller: _confirmarSenhaController,
                             obscureText: _ocultarConfirmacao,
                             onChanged: (_) => setState(() {}),
                             decoration: _decoracaoCampo(
@@ -407,9 +411,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                             },
                           ),
 
-                          if (_confirmarSenhaController
-                              .text
-                              .isNotEmpty) ...[
+                          if (_confirmarSenhaController.text.isNotEmpty) ...[
                             const SizedBox(height: EspacamentosApp.xs),
                             Row(
                               children: [
@@ -427,8 +429,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                                   _senhasIguais
                                       ? 'As senhas coincidem'
                                       : 'As senhas não coincidem',
-                                  style:
-                                  TipografiaApp.bodySmall.copyWith(
+                                  style: TipografiaApp.bodySmall.copyWith(
                                     fontSize: 12,
                                   ),
                                 ),
@@ -442,24 +443,20 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: _senhaValida
-                                  ? _resetarSenha
-                                  : null,
+                              onPressed:
+                              _senhaValida ? _resetarSenha : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: CoresApp.darkBlue,
                                 disabledBackgroundColor:
-                                CoresApp.textSecondary
-                                    .withAlpha(35),
+                                CoresApp.textSecondary.withAlpha(35),
                                 foregroundColor: Colors.white,
                                 elevation: 0,
                                 shape: RoundedRectangleBorder(
-                                  borderRadius:
-                                  BorderRadius.circular(16),
+                                  borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
                               child: const Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
                                     'Redefinir senha e entrar',
@@ -487,8 +484,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 const Icon(
                                   Icons.shield_outlined,
@@ -499,8 +495,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                                 Expanded(
                                   child: Text(
                                     'Por segurança, a alteração da senha será registrada na sua conta.',
-                                    style:
-                                    TipografiaApp.bodySmall.copyWith(
+                                    style: TipografiaApp.bodySmall.copyWith(
                                       color: CoresApp.textSecondary,
                                       height: 1.4,
                                     ),
@@ -537,8 +532,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            mainAxisAlignment:
-            MainAxisAlignment.spaceBetween,
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Text(
                 'Segurança da senha',

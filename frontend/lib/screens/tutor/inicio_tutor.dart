@@ -88,7 +88,6 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           builder: (_) => const Doacao(),
         ),
       );
-
       return;
     }
 
@@ -98,11 +97,12 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           builder: (_) => const PerfilGeral(),
         ),
       );
-
       return;
     }
 
-    setState(() => _currentNavIndex = index);
+    setState(() {
+      _currentNavIndex = index;
+    });
   }
 
 

@@ -9,17 +9,22 @@ class CabecalhoPetCare extends StatelessWidget {
     super.key,
     this.nome,
     this.saudacao = 'Olá',
+    this.mostrarSaudacao = true,
+    this.centralizado = false,
     this.onNotificationTap,
     this.onLoginTap,
   });
 
   final String? nome;
   final String saudacao;
+  final bool mostrarSaudacao;
+  final bool centralizado;
   final VoidCallback? onNotificationTap;
   final VoidCallback? onLoginTap;
 
   String get _textoSaudacao {
     final nomeCompleto = nome?.trim() ?? '';
+
     final primeiroNome = nomeCompleto.isEmpty
         ? ''
         : nomeCompleto.split(RegExp(r'\s+')).first;
@@ -37,6 +42,50 @@ class CabecalhoPetCare extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final logo = Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Icon(
+          Icons.pets_rounded,
+          size: 32,
+          color: CoresApp.primary,
+        ),
+        const SizedBox(width: 8),
+        const Text(
+          'PetCare',
+          style: TextStyle(
+            fontSize: 27,
+            height: 1.1,
+            fontWeight: FontWeight.w900,
+            letterSpacing: -0.7,
+            color: CoresApp.darkBlue,
+          ),
+        ),
+      ],
+    );
+
+    final conteudo = Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: centralizado
+          ? CrossAxisAlignment.center
+          : CrossAxisAlignment.start,
+      children: [
+        logo,
+        if (mostrarSaudacao) ...[
+          const SizedBox(height: 4),
+          Text(
+            _textoSaudacao,
+            textAlign: centralizado ? TextAlign.center : TextAlign.left,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: CoresApp.textSecondary,
+            ),
+          ),
+        ],
+      ],
+    );
+
     return Padding(
       padding: const EdgeInsets.symmetric(
         horizontal: EspacamentosApp.pagePadding,
@@ -46,41 +95,11 @@ class CabecalhoPetCare extends StatelessWidget {
         child: Stack(
           alignment: Alignment.center,
           children: [
-            Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    const Icon(
-                      Icons.pets_rounded,
-                      size: 32,
-                      color: CoresApp.primary,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      'PetCare',
-                      style: TextStyle(
-                        fontSize: 27,
-                        height: 1.1,
-                        fontWeight: FontWeight.w900,
-                        letterSpacing: -0.7,
-                        color: CoresApp.darkBlue,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  _textoSaudacao,
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(
-                    fontSize: 14,
-                    fontWeight: FontWeight.w500,
-                    color: CoresApp.textSecondary,
-                  ),
-                ),
-              ],
+            Align(
+              alignment: centralizado
+                  ? Alignment.center
+                  : Alignment.centerLeft,
+              child: conteudo,
             ),
             if (onNotificationTap != null)
               Positioned(

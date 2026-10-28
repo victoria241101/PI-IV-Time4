@@ -1,8 +1,10 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
 
 import 'verificacao.dart';
 
@@ -148,6 +150,13 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                       ),
                     ),
 
+                    const SizedBox(height: EspacamentosApp.md),
+
+                    const CabecalhoPetCare(
+                      centralizado: true,
+                      mostrarSaudacao: false,
+                    ),
+
                     const SizedBox(height: EspacamentosApp.xl),
 
                     Center(
@@ -246,8 +255,7 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                               borderRadius: BorderRadius.circular(14),
                             ),
                             child: Row(
-                              crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                              crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
                                 Container(
                                   width: 34,
@@ -266,8 +274,7 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                                 Expanded(
                                   child: Text(
                                     'Enviaremos um código de verificação para este endereço.',
-                                    style:
-                                    TipografiaApp.bodySmall.copyWith(
+                                    style: TipografiaApp.bodySmall.copyWith(
                                       color: CoresApp.textSecondary,
                                       height: 1.4,
                                     ),
@@ -293,8 +300,7 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                                 ),
                               ),
                               child: const Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
                                     'Enviar código',
@@ -332,7 +338,7 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                       ),
                     ),
 
-                    const SizedBox(height: EspacamentosApp.md),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     Center(
                       child: Text(

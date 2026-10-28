@@ -1,9 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
 
 class CadastroScreen extends StatefulWidget {
   const CadastroScreen({super.key});
@@ -497,8 +499,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             const SizedBox(width: 12),
             Expanded(
               child: Column(
-                crossAxisAlignment:
-                CrossAxisAlignment.start,
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
                     titulo,
@@ -588,8 +589,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
               icon: Icons.person_outline_rounded,
             ),
             validator: (value) {
-              if (value == null ||
-                  value.trim().isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Digite seu nome.';
               }
 
@@ -686,8 +686,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
               suffixIcon: IconButton(
                 onPressed: () {
                   setState(() {
-                    _ocultarConfirmacao =
-                    !_ocultarConfirmacao;
+                    _ocultarConfirmacao = !_ocultarConfirmacao;
                   });
                 },
                 icon: Icon(
@@ -793,8 +792,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             validator: (value) {
               if (_temPet != true) return null;
 
-              if (value == null ||
-                  value.trim().isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Digite o nome do pet.';
               }
 
@@ -857,8 +855,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
             validator: (value) {
               if (_temPet != true) return null;
 
-              if (value == null ||
-                  value.trim().isEmpty) {
+              if (value == null || value.trim().isEmpty) {
                 return 'Digite a raça.';
               }
 
@@ -934,8 +931,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
               child: Form(
                 key: _formKey,
                 child: Column(
-                  crossAxisAlignment:
-                  CrossAxisAlignment.start,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     IconButton(
                       onPressed: () => Navigator.pop(context),
@@ -945,8 +941,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         height: 44,
                         decoration: BoxDecoration(
                           color: CoresApp.surface,
-                          borderRadius:
-                          BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14),
                           border: Border.all(
                             color: Colors.black.withAlpha(10),
                           ),
@@ -957,55 +952,25 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         ),
                       ),
                     ),
+
                     const SizedBox(height: EspacamentosApp.md),
-                    Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 70,
-                            height: 70,
-                            decoration: BoxDecoration(
-                              color: CoresApp.darkBlue,
-                              borderRadius:
-                              BorderRadius.circular(22),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: CoresApp.darkBlue
-                                      .withAlpha(35),
-                                  blurRadius: 24,
-                                  offset:
-                                  const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.pets_rounded,
-                              size: 37,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: EspacamentosApp.sm,
-                          ),
-                          Text(
-                            'PetCare',
-                            style:
-                            TipografiaApp.heading2.copyWith(
-                              color: CoresApp.darkBlue,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                        ],
-                      ),
+
+                    const CabecalhoPetCare(
+                      centralizado: true,
+                      mostrarSaudacao: false,
                     ),
+
                     const SizedBox(height: EspacamentosApp.xl),
+
                     Text(
                       'Crie sua conta',
                       style: TipografiaApp.heading1.copyWith(
                         fontWeight: FontWeight.w800,
                       ),
                     ),
+
                     const SizedBox(height: EspacamentosApp.xs),
+
                     Text(
                       'Cadastre-se para cuidar da saúde dos '
                           'seus pets com o PetCare.',
@@ -1014,16 +979,21 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         height: 1.5,
                       ),
                     ),
+
                     const SizedBox(height: EspacamentosApp.xl),
+
                     _buildEscolhaPet(),
+
                     if (_temPet != null) ...[
                       const SizedBox(height: EspacamentosApp.lg),
                       _buildCardUsuario(),
                     ],
+
                     if (_temPet == true) ...[
                       const SizedBox(height: EspacamentosApp.lg),
                       _buildCardPet(),
                     ],
+
                     if (_temPet != null) ...[
                       const SizedBox(height: EspacamentosApp.xl),
                       SizedBox(
@@ -1032,18 +1002,15 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         child: ElevatedButton(
                           onPressed: _cadastrar,
                           style: ElevatedButton.styleFrom(
-                            backgroundColor:
-                            CoresApp.darkBlue,
+                            backgroundColor: CoresApp.darkBlue,
                             foregroundColor: Colors.white,
                             elevation: 0,
                             shape: RoundedRectangleBorder(
-                              borderRadius:
-                              BorderRadius.circular(16),
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
                           child: const Row(
-                            mainAxisAlignment:
-                            MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.center,
                             children: [
                               Text(
                                 'Criar minha conta',
@@ -1061,7 +1028,9 @@ class _CadastroScreenState extends State<CadastroScreen> {
                           ),
                         ),
                       ),
+
                       const SizedBox(height: EspacamentosApp.lg),
+
                       Container(
                         width: double.infinity,
                         padding: const EdgeInsets.symmetric(
@@ -1070,8 +1039,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         ),
                         decoration: BoxDecoration(
                           color: CoresApp.primary.withAlpha(10),
-                          borderRadius:
-                          BorderRadius.circular(14),
+                          borderRadius: BorderRadius.circular(14),
                         ),
                         child: Row(
                           children: [
@@ -1087,10 +1055,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
                               child: Text(
                                 'Seus dados são tratados com segurança '
                                     'e privacidade.',
-                                style:
-                                TipografiaApp.bodySmall.copyWith(
-                                  color:
-                                  CoresApp.textSecondary,
+                                style: TipografiaApp.bodySmall.copyWith(
+                                  color: CoresApp.textSecondary,
                                   height: 1.35,
                                 ),
                               ),
@@ -1099,15 +1065,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         ),
                       ),
                     ],
+
                     const SizedBox(height: EspacamentosApp.xl),
+
                     Center(
                       child: Wrap(
                         alignment: WrapAlignment.center,
                         children: [
                           Text(
                             'Já possui uma conta? ',
-                            style:
-                            TipografiaApp.bodySmall.copyWith(
+                            style: TipografiaApp.bodySmall.copyWith(
                               color: CoresApp.textSecondary,
                             ),
                           ),
@@ -1115,8 +1082,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
                             onTap: () => Navigator.pop(context),
                             child: Text(
                               'Entrar',
-                              style:
-                              TipografiaApp.buttonSmall.copyWith(
+                              style: TipografiaApp.buttonSmall.copyWith(
                                 color: CoresApp.primary,
                                 fontWeight: FontWeight.w700,
                               ),
@@ -1125,13 +1091,14 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         ],
                       ),
                     ),
+
                     const SizedBox(height: EspacamentosApp.lg),
+
                     Center(
                       child: Text(
                         'Cuidar também é uma forma de amar.',
                         style: TipografiaApp.bodySmall.copyWith(
-                          color: CoresApp.textSecondary
-                              .withAlpha(180),
+                          color: CoresApp.textSecondary.withAlpha(180),
                           fontStyle: FontStyle.italic,
                         ),
                       ),
@@ -1153,8 +1120,7 @@ class CpfInputFormatter extends TextInputFormatter {
       TextEditingValue oldValue,
       TextEditingValue newValue,
       ) {
-    final numeros =
-    newValue.text.replaceAll(RegExp(r'\D'), '');
+    final numeros = newValue.text.replaceAll(RegExp(r'\D'), '');
 
     if (numeros.length > 11) {
       return oldValue;

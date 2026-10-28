@@ -1,9 +1,11 @@
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
 
 import 'nova_senha.dart';
 
@@ -16,8 +18,7 @@ class VerificacaoScreen extends StatefulWidget {
   final String email;
 
   @override
-  State<VerificacaoScreen> createState() =>
-      _VerificacaoScreenState();
+  State<VerificacaoScreen> createState() => _VerificacaoScreenState();
 }
 
 class _VerificacaoScreenState extends State<VerificacaoScreen> {
@@ -41,6 +42,10 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
 
     final usuario = partes[0];
     final dominio = partes[1];
+
+    if (usuario.isEmpty) {
+      return email;
+    }
 
     if (usuario.length <= 2) {
       return '${usuario[0]}••••@$dominio';
@@ -70,8 +75,7 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
     final limite = numeros.length > 6 ? 6 : numeros.length;
 
     for (int i = 0; i < 6; i++) {
-      _controllers[i].text =
-      i < limite ? numeros[i] : '';
+      _controllers[i].text = i < limite ? numeros[i] : '';
     }
 
     final proximo = limite >= 6 ? 5 : limite;
@@ -85,9 +89,7 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
     if (!_codigoCompleto) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Digite o código completo de 6 dígitos.',
-          ),
+          content: Text('Digite o código completo de 6 dígitos.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
@@ -153,6 +155,13 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
                         color: CoresApp.darkBlue,
                       ),
                     ),
+                  ),
+
+                  const SizedBox(height: EspacamentosApp.md),
+
+                  const CabecalhoPetCare(
+                    centralizado: true,
+                    mostrarSaudacao: false,
                   ),
 
                   const SizedBox(height: EspacamentosApp.xl),
@@ -258,8 +267,7 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
                         const SizedBox(height: EspacamentosApp.md),
 
                         Row(
-                          mainAxisAlignment:
-                          MainAxisAlignment.spaceBetween,
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
                           children: List.generate(
                             6,
                                 (index) => _buildCodigoField(index),
@@ -280,21 +288,16 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
                               ),
                               GestureDetector(
                                 onTap: () {
-                                  ScaffoldMessenger.of(context)
-                                      .showSnackBar(
+                                  ScaffoldMessenger.of(context).showSnackBar(
                                     const SnackBar(
-                                      content: Text(
-                                        'Novo código enviado.',
-                                      ),
-                                      behavior:
-                                      SnackBarBehavior.floating,
+                                      content: Text('Novo código enviado.'),
+                                      behavior: SnackBarBehavior.floating,
                                     ),
                                   );
                                 },
                                 child: Text(
                                   'Reenviar código',
-                                  style:
-                                  TipografiaApp.buttonSmall.copyWith(
+                                  style: TipografiaApp.buttonSmall.copyWith(
                                     color: CoresApp.primary,
                                     fontWeight: FontWeight.w700,
                                   ),
@@ -310,8 +313,7 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
                           width: double.infinity,
                           height: 56,
                           child: ElevatedButton(
-                            onPressed:
-                            _codigoCompleto
+                            onPressed: _codigoCompleto
                                 ? _verificarCodigo
                                 : null,
                             style: ElevatedButton.styleFrom(
@@ -321,13 +323,11 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
                               foregroundColor: Colors.white,
                               elevation: 0,
                               shape: RoundedRectangleBorder(
-                                borderRadius:
-                                BorderRadius.circular(16),
+                                borderRadius: BorderRadius.circular(16),
                               ),
                             ),
                             child: const Row(
-                              mainAxisAlignment:
-                              MainAxisAlignment.center,
+                              mainAxisAlignment: MainAxisAlignment.center,
                               children: [
                                 Text(
                                   'Verificar e continuar',
@@ -379,8 +379,7 @@ class _VerificacaoScreenState extends State<VerificacaoScreen> {
   }
 
   Widget _buildCodigoField(int index) {
-    final preenchido =
-        _controllers[index].text.isNotEmpty;
+    final preenchido = _controllers[index].text.isNotEmpty;
 
     return AnimatedContainer(
       duration: const Duration(milliseconds: 180),

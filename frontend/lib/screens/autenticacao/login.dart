@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -9,6 +10,8 @@ import 'package:pet_care/modelos/resumo_pet.dart';
 
 import 'package:pet_care/screens/tutor/inicio_tutor.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
+
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
 
 import 'esqueci_senha.dart';
 
@@ -273,43 +276,10 @@ class _LoginScreenState extends State<LoginScreen> {
                       height: EspacamentosApp.sm,
                     ),
 
-                    // LOGO
-                    Center(
-                      child: Column(
-                        children: [
-                          Container(
-                            width: 76,
-                            height: 76,
-                            decoration: BoxDecoration(
-                              color: CoresApp.darkBlue,
-                              borderRadius: BorderRadius.circular(24),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: CoresApp.darkBlue.withAlpha(35),
-                                  blurRadius: 24,
-                                  offset: const Offset(0, 10),
-                                ),
-                              ],
-                            ),
-                            child: const Icon(
-                              Icons.pets_rounded,
-                              size: 40,
-                              color: Colors.white,
-                            ),
-                          ),
-                          const SizedBox(
-                            height: EspacamentosApp.md,
-                          ),
-                          Text(
-                            'PetCare',
-                            style: TipografiaApp.heading1.copyWith(
-                              color: CoresApp.darkBlue,
-                              fontWeight: FontWeight.w800,
-                              letterSpacing: -0.5,
-                            ),
-                          ),
-                        ],
-                      ),
+                    // CABEÇALHO PETCARE CENTRALIZADO
+                    const CabecalhoPetCare(
+                      centralizado: true,
+                      mostrarSaudacao: false,
                     ),
 
                     const SizedBox(
@@ -474,8 +444,7 @@ class _LoginScreenState extends State<LoginScreen> {
                                 ),
                               ),
                               child: const Row(
-                                mainAxisAlignment:
-                                MainAxisAlignment.center,
+                                mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
                                     'Entrar',

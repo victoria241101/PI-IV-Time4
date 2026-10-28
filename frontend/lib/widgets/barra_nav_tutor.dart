@@ -34,7 +34,7 @@ class BarraNavTutor extends StatelessWidget {
         BottomNavigationBarItem(
           icon: Icon(Icons.volunteer_activism_outlined),
           activeIcon: Icon(Icons.volunteer_activism_rounded),
-          label: 'Doações',
+          label: 'Campanhas',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.person_outline_rounded),
