@@ -17,6 +17,7 @@ import 'package:pet_care/screens/gerais/perfil_geral.dart';
 import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 import 'package:pet_care/screens/tutor/consultas_tutor.dart';
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
+import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 
 import '../doacao/doacao.dart';
 
@@ -42,6 +43,8 @@ class InicioTutor extends StatefulWidget {
     this.onAgendarNovaConsulta,
     this.onNotificacoes,
     this.consultas = const [],
+    this.onAgendamentoConfirmado,
+    this.onReagendamentoConfirmado,
   });
 
   final String saudacao;
@@ -56,6 +59,8 @@ class InicioTutor extends StatefulWidget {
   final VoidCallback? onAgendarNovaConsulta;
   final VoidCallback? onNotificacoes;
   final List<ResumoConsulta> consultas;
+  final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
+  final ConfirmarReagendamento? onReagendamentoConfirmado;
 
   @override
   State<InicioTutor> createState() => _EstadoInicioTutor();
@@ -140,15 +145,11 @@ class _EstadoInicioTutor extends State<InicioTutor> {
               nomesPets: widget.pets
                   .map((pet) => pet.name)
                   .toList(),
-              onAgendarTap: (novaData) async {
-                if (widget.onReagendarConsulta == null) {
-                  return;
-                }
-
-                await widget.onReagendarConsulta!(
-                  _proximaConsulta.id,
-                );
-              },
+              consultaIdParaReagendar: _proximaConsulta.id,
+              onAgendamentoConfirmado:
+              widget.onAgendamentoConfirmado,
+              onReagendamentoConfirmado:
+              widget.onReagendamentoConfirmado,
             ),
           ),
         );
