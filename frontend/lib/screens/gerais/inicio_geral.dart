@@ -4,7 +4,7 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
 import 'package:pet_care/screens/doacao/doacao.dart';
-import 'package:pet_care/screens/sobre.dart';
+import 'package:pet_care/screens/publico/sobre.dart';
 import 'package:pet_care/screens/tutor/cadastro_pet.dart';
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';

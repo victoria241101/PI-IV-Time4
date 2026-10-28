@@ -3,13 +3,13 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
-import 'package:pet_care/screens/sobre.dart';
+import 'package:pet_care/screens/publico/sobre.dart';
 
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import 'package:pet_care/widgets/cartao_campanha.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
 import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
-
+import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
 import 'detalhes_doacao.dart';
 
 class Doacao extends StatefulWidget {
@@ -126,34 +126,10 @@ class _DoacaoState extends State<Doacao> {
               // =================================================
 
               if (widget.publica)
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: EspacamentosApp.pagePadding,
-                  ),
-                  child: Row(
-                    children: [
-                      IconButton(
-                        onPressed: () {
-                          Navigator.of(context).pop();
-                        },
-                        icon: const Icon(
-                          Icons.arrow_back_rounded,
-                          color: CoresApp.darkBlue,
-                        ),
-                      ),
-                      const SizedBox(
-                        width: EspacamentosApp.xs,
-                      ),
-                      const Text(
-                        'Campanhas',
-                        style: TextStyle(
-                          fontSize: 22,
-                          fontWeight: FontWeight.w800,
-                          color: CoresApp.darkBlue,
-                        ),
-                      ),
-                    ],
-                  ),
+                CabecalhoPublico(
+                  onBackTap: () {
+                    Navigator.of(context).pop();
+                  },
                 )
               else
                 const CabecalhoApp(
