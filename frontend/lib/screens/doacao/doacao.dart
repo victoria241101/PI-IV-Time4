@@ -9,6 +9,9 @@ import 'package:pet_care/widgets/cabecalho_app.dart';
 import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
 
+import 'package:pet_care/screens/gerais/perfil_geral.dart';
+import 'package:pet_care/screens/tutor/consultas_tutor.dart';
+
 import 'detalhes_doacao.dart';
 
 class Doacao extends StatefulWidget {
@@ -39,17 +42,42 @@ class _DoacaoState extends State<Doacao> {
   // NAVEGAÇÃO DO TUTOR
   // =====================================================
 
+
   void _onNavTapTutor(int index) {
     if (index == _currentNavIndex) return;
 
-    if (index == 0) {
-      Navigator.of(context).pop();
-      return;
-    }
+    switch (index) {
+      case 0:
+      // Retorna à tela anterior, que deve ser InicioTutor
+      // quando Campanhas foi aberta pela Home do tutor.
+        Navigator.of(context).pop();
+        break;
 
-    setState(() {
-      _currentNavIndex = index;
-    });
+      case 1:
+      // Abre Consultas.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const ConsultasTutor(
+              consultas: [],
+              nomesPets: [],
+            ),
+          ),
+        );
+        break;
+
+      case 2:
+      // Já está em Campanhas.
+        return;
+
+      case 3:
+      // Abre o Perfil.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const PerfilGeral(),
+          ),
+        );
+        break;
+    }
   }
 
   // =====================================================

@@ -6,6 +6,9 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 
+import 'package:pet_care/screens/doacao/doacao.dart';
+import 'package:pet_care/screens/publico/sobre.dart';
+
 class PerfilGeral extends StatefulWidget {
   const PerfilGeral({
     super.key,
@@ -18,32 +21,39 @@ class PerfilGeral extends StatefulWidget {
 class _PerfilGeralState extends State<PerfilGeral> {
   int _currentIndex = 3;
 
+
   void _onNavTap(int index) {
-    if (index == 3) {
-      return;
-    }
+    switch (index) {
+      case 0:
+      // Retorna à primeira tela da pilha.
+      // No fluxo do tutor, essa tela é InicioTutor.
+        Navigator.of(context).popUntil(
+              (route) => route.isFirst,
+        );
+        break;
 
-    if (index == 0) {
-      Navigator.popUntil(
-        context,
-            (route) => route.isFirst,
-      );
-      return;
-    }
+      case 1:
+      // Abre Campanhas usando a mesma estratégia
+      // de navegação utilizada nas outras telas.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const Doacao(),
+          ),
+        );
+        break;
 
-    if (index == 1) {
-      Navigator.pushReplacementNamed(
-        context,
-        '/campanhas',
-      );
-      return;
-    }
+      case 2:
+      // Abre Sobre sem depender de uma rota nomeada.
+        Navigator.of(context).pushReplacement(
+          MaterialPageRoute<void>(
+            builder: (_) => const Sobre(),
+          ),
+        );
+        break;
 
-    if (index == 2) {
-      Navigator.pushReplacementNamed(
-        context,
-        '/sobre',
-      );
+      case 3:
+      // O usuário já está no Perfil.
+        return;
     }
   }
 

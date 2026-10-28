@@ -81,22 +81,42 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   }
 
 
-  void _onNavTap(int index) {
+  Future<void> _onNavTap(int index) async {
+    if (index == _currentNavIndex) return;
+
     if (index == 2) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
+      final abaSelecionada = await Navigator.of(context).push<int>(
+        MaterialPageRoute<int>(
           builder: (_) => const Doacao(),
         ),
       );
+
+      if (!mounted) return;
+
+      if (abaSelecionada != null) {
+        setState(() {
+          _currentNavIndex = abaSelecionada;
+        });
+      }
+
       return;
     }
 
     if (index == 3) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
+      final abaSelecionada = await Navigator.of(context).push<int>(
+        MaterialPageRoute<int>(
           builder: (_) => const PerfilGeral(),
         ),
       );
+
+      if (!mounted) return;
+
+      if (abaSelecionada != null) {
+        setState(() {
+          _currentNavIndex = abaSelecionada;
+        });
+      }
+
       return;
     }
 
@@ -259,7 +279,10 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           ),
         )
             : ConsultasTutor(
-          consultas: widget.consultas, nomesPets: [],
+          consultas: widget.consultas,
+          nomesPets: widget.pets
+              .map((pet) => pet.name)
+              .toList(),
         ),
       ),
         bottomNavigationBar: BarraNavTutor(
