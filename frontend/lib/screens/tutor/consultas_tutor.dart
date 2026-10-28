@@ -7,6 +7,15 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 
+typedef ConfirmarNovoAgendamento = void Function(
+    DadosAgendamento dados,
+    );
+
+typedef ConfirmarReagendamento = void Function(
+    String consultaId,
+    DadosAgendamento novosDados,
+    );
+
 class ConsultasTutor extends StatefulWidget {
   const ConsultasTutor({
     super.key,
@@ -14,12 +23,18 @@ class ConsultasTutor extends StatefulWidget {
     required this.nomesPets,
     this.onConsultaTap,
     this.onAgendarTap,
+    this.consultaIdParaReagendar,
+    this.onAgendamentoConfirmado,
+    this.onReagendamentoConfirmado,
   });
 
   final List<ResumoConsulta> consultas;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
   final ValueChanged<DateTime>? onAgendarTap;
   final List<String> nomesPets;
+  final String? consultaIdParaReagendar;
+  final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
+  final ConfirmarReagendamento? onReagendamentoConfirmado;
 
   @override
   State<ConsultasTutor> createState() => _ConsultasTutorState();
@@ -110,11 +125,48 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     final data = _dataSelecionada;
     if (data == null) return;
 
-    Navigator.of(context).push(
+    Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => DetalhesAgendamentoTutor(
           dataSelecionada: data,
           nomesPets: widget.nomesPets,
+          onContinuar: (dados) {
+            final consultaId = widget.consultaIdParaReagendar;
+
+            if (consultaId != null) {
+              final callback = widget.onReagendamentoConfirmado;
+
+              if (callback == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'O reagendamento ainda não está conectado.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              callback(consultaId, dados);
+            } else {
+              final callback = widget.onAgendamentoConfirmado;
+
+              if (callback == null) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                      'O agendamento ainda não está conectado.',
+                    ),
+                  ),
+                );
+                return;
+              }
+
+              callback(dados);
+            }
+
+            Navigator.of(context).pop();
+          },
         ),
       ),
     );

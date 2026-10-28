@@ -130,18 +130,38 @@ class _EstadoInicioTutor extends State<InicioTutor> {
     ModalDetalhesConsulta.show(
       context,
       appointment: _proximaConsulta,
-      onReschedule: widget.onReagendarConsulta == null
-          ? null
-          : () async {
-              Navigator.of(context).pop();
-              await widget.onReagendarConsulta!(_proximaConsulta.id);
-            },
+      onReschedule: () {
+        Navigator.of(context).pop();
+
+        Navigator.of(context).push(
+          MaterialPageRoute<void>(
+            builder: (_) => ConsultasTutor(
+              consultas: widget.consultas,
+              nomesPets: widget.pets
+                  .map((pet) => pet.name)
+                  .toList(),
+              onAgendarTap: (novaData) async {
+                if (widget.onReagendarConsulta == null) {
+                  return;
+                }
+
+                await widget.onReagendarConsulta!(
+                  _proximaConsulta.id,
+                );
+              },
+            ),
+          ),
+        );
+      },
       onCancel: widget.onCancelarConsulta == null
           ? null
           : () async {
-              Navigator.of(context).pop();
-              await widget.onCancelarConsulta!(_proximaConsulta.id);
-            },
+        Navigator.of(context).pop();
+
+        await widget.onCancelarConsulta!(
+          _proximaConsulta.id,
+        );
+      },
     );
   }
 
