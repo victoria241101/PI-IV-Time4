@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -11,6 +12,7 @@ class CartaoCampanha extends StatelessWidget {
     required this.valorArrecadado,
     required this.meta,
     this.urgente = false,
+    this.imagemUrl,
     this.onTap,
   });
 
@@ -19,6 +21,11 @@ class CartaoCampanha extends StatelessWidget {
   final double valorArrecadado;
   final double meta;
   final bool urgente;
+
+  /// URL da imagem do animal.
+  /// Pode ser preenchida quando as imagens estiverem disponíveis.
+  final String? imagemUrl;
+
   final VoidCallback? onTap;
 
   double get progresso {
@@ -53,13 +60,13 @@ class CartaoCampanha extends StatelessWidget {
         children: [
           _ImagemCampanha(
             urgente: urgente,
+            imagemUrl: imagemUrl,
           ),
           Padding(
             padding: const EdgeInsets.all(EspacamentosApp.lg),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Nome do animal
                 Text(
                   nomeAnimal,
                   style: const TextStyle(
@@ -68,10 +75,7 @@ class CartaoCampanha extends StatelessWidget {
                     color: CoresApp.darkBlue,
                   ),
                 ),
-
                 const SizedBox(height: EspacamentosApp.xs),
-
-                // Título da campanha
                 Text(
                   titulo,
                   style: const TextStyle(
@@ -81,15 +85,11 @@ class CartaoCampanha extends StatelessWidget {
                     color: CoresApp.textPrimary,
                   ),
                 ),
-
                 const SizedBox(height: EspacamentosApp.lg),
-
-                // Valores
                 Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         '${_formatarValor(valorArrecadado)} arrecadados',
                         style: const TextStyle(
@@ -100,20 +100,20 @@ class CartaoCampanha extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(width: EspacamentosApp.sm),
-                    Text(
-                      'Meta: ${_formatarValor(meta)}',
-                      style: TextStyle(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.grey.shade600,
+                    Flexible(
+                      child: Text(
+                        'Meta: ${_formatarValor(meta)}',
+                        textAlign: TextAlign.end,
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.grey.shade600,
+                        ),
                       ),
                     ),
                   ],
                 ),
-
                 const SizedBox(height: EspacamentosApp.sm),
-
-                // Barra de progresso
                 ClipRRect(
                   borderRadius: BorderRadius.circular(10),
                   child: LinearProgressIndicator(
@@ -125,10 +125,7 @@ class CartaoCampanha extends StatelessWidget {
                     ),
                   ),
                 ),
-
                 const SizedBox(height: EspacamentosApp.xs),
-
-                // Porcentagem
                 Text(
                   '$porcentagem% da meta alcançada',
                   style: TextStyle(
@@ -137,10 +134,7 @@ class CartaoCampanha extends StatelessWidget {
                     color: Colors.grey.shade600,
                   ),
                 ),
-
                 const SizedBox(height: EspacamentosApp.lg),
-
-                // Botão
                 SizedBox(
                   width: double.infinity,
                   height: 48,
@@ -179,52 +173,34 @@ class CartaoCampanha extends StatelessWidget {
 class _ImagemCampanha extends StatelessWidget {
   const _ImagemCampanha({
     required this.urgente,
+    this.imagemUrl,
   });
 
   final bool urgente;
+  final String? imagemUrl;
 
   @override
   Widget build(BuildContext context) {
+    final possuiImagem = imagemUrl != null &&
+        imagemUrl!.trim().isNotEmpty;
+
     return SizedBox(
       width: double.infinity,
       height: 180,
       child: Stack(
+        fit: StackFit.expand,
         children: [
-          // Área da imagem
-          Container(
-            width: double.infinity,
-            height: double.infinity,
-            color: CoresApp.background,
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Container(
-                  width: 68,
-                  height: 68,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.8),
-                    shape: BoxShape.circle,
-                  ),
-                  child: const Icon(
-                    Icons.pets_rounded,
-                    size: 38,
-                    color: CoresApp.darkBlue,
-                  ),
-                ),
-                const SizedBox(height: EspacamentosApp.sm),
-                Text(
-                  'Foto do animal',
-                  style: TextStyle(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.grey.shade600,
-                  ),
-                ),
-              ],
-            ),
-          ),
+          if (possuiImagem)
+            Image.network(
+              imagemUrl!,
+              fit: BoxFit.cover,
+              errorBuilder: (context, error, stackTrace) {
+                return _placeholderImagem();
+              },
+            )
+          else
+            _placeholderImagem(),
 
-          // Badge de urgência
           if (urgente)
             Positioned(
               top: EspacamentosApp.md,
@@ -266,6 +242,39 @@ class _ImagemCampanha extends StatelessWidget {
                 ),
               ),
             ),
+        ],
+      ),
+    );
+  }
+
+  Widget _placeholderImagem() {
+    return Container(
+      color: CoresApp.background,
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Container(
+            width: 68,
+            height: 68,
+            decoration: BoxDecoration(
+              color: Colors.white.withValues(alpha: 0.8),
+              shape: BoxShape.circle,
+            ),
+            child: const Icon(
+              Icons.pets_rounded,
+              size: 38,
+              color: CoresApp.darkBlue,
+            ),
+          ),
+          const SizedBox(height: EspacamentosApp.sm),
+          Text(
+            'Foto do animal',
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: Colors.grey.shade600,
+            ),
+          ),
         ],
       ),
     );
