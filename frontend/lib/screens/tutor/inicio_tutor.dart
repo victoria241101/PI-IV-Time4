@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -21,13 +22,12 @@ import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 
 import '../doacao/doacao.dart';
 
-typedef ConfirmarConsulta = Future<ResumoConsulta> Function(String consultaId);
+typedef ConfirmarConsulta = Future<ResumoConsulta> Function(
+    String consultaId,
+    );
+
 typedef AcaoConsulta = Future<void> Function(String consultaId);
 
-/// Home do tutor.
-///
-/// Recebe dados prontos e ações por injeção. A tela não conhece mocks, APIs ou
-/// qualquer implementação de back-end.
 class InicioTutor extends StatefulWidget {
   const InicioTutor({
     super.key,
@@ -69,25 +69,67 @@ class InicioTutor extends StatefulWidget {
 class _EstadoInicioTutor extends State<InicioTutor> {
   int _currentNavIndex = 0;
   bool _confirmandoConsulta = false;
+
   late ResumoConsulta _proximaConsulta;
+  late List<ResumoConsulta> _consultas;
 
   @override
   void initState() {
     super.initState();
+
     _proximaConsulta = widget.proximaConsulta;
+    _consultas = List<ResumoConsulta>.from(widget.consultas);
+
+    _sincronizarProximaConsulta();
   }
 
   @override
   void didUpdateWidget(covariant InicioTutor oldWidget) {
     super.didUpdateWidget(oldWidget);
+
     if (oldWidget.proximaConsulta != widget.proximaConsulta) {
       _proximaConsulta = widget.proximaConsulta;
     }
+
+    if (oldWidget.consultas != widget.consultas) {
+      _consultas = List<ResumoConsulta>.from(widget.consultas);
+      _sincronizarProximaConsulta();
+    }
   }
 
+  void _sincronizarProximaConsulta() {
+    final indice = _consultas.indexWhere(
+          (consulta) => consulta.id == _proximaConsulta.id,
+    );
+
+    if (indice >= 0) {
+      _consultas[indice] = _proximaConsulta;
+    } else {
+      _consultas.insert(0, _proximaConsulta);
+    }
+  }
+
+  String _formatarData(DateTime data) {
+    return '${data.day.toString().padLeft(2, '0')}/'
+        '${data.month.toString().padLeft(2, '0')}/'
+        '${data.year}';
+  }
+
+  void _abrirAbaConsultas() {
+    setState(() {
+      _currentNavIndex = 1;
+    });
+  }
 
   Future<void> _onNavTap(int index) async {
     if (index == _currentNavIndex) return;
+
+    if (index == 1) {
+      setState(() {
+        _currentNavIndex = 1;
+      });
+      return;
+    }
 
     if (index == 2) {
       final abaSelecionada = await Navigator.of(context).push<int>(
@@ -130,6 +172,108 @@ class _EstadoInicioTutor extends State<InicioTutor> {
     });
   }
 
+  void _onAgendamentoConfirmado(DadosAgendamento dados) {
+    final consulta = ResumoConsulta(
+      id: 'consulta-${DateTime.now().microsecondsSinceEpoch}',
+      type: dados.tipoAtendimento,
+      date: _formatarData(dados.data),
+      time: dados.horario,
+      vetName: dados.veterinario,
+      petName: dados.nomePet,
+      status: 'Agendada',
+      instructions: dados.urgente
+          ? 'Atendimento marcado como urgente.'
+          : 'Consulte as orientações da clínica antes do atendimento.',
+      clinicAddress: 'Endereço a confirmar',
+    );
+
+    setState(() {
+      _consultas = [..._consultas, consulta];
+    });
+
+    widget.onAgendamentoConfirmado?.call(dados);
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Agendamento adicionado à lista de consultas.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _onReagendamentoConfirmado(
+      String consultaId,
+      DadosAgendamento novosDados,
+      ) {
+    final indice = _consultas.indexWhere(
+          (consulta) => consulta.id == consultaId,
+    );
+
+    if (indice < 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Não foi possível localizar essa consulta.'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+      return;
+    }
+
+    final consultaAnterior = _consultas[indice];
+
+    final consultaAtualizada = ResumoConsulta(
+      id: consultaAnterior.id,
+      type: novosDados.tipoAtendimento,
+      date: _formatarData(novosDados.data),
+      time: novosDados.horario,
+      vetName: novosDados.veterinario,
+      petName: novosDados.nomePet,
+      status: 'Reagendada',
+      instructions: novosDados.urgente
+          ? 'Atendimento marcado como urgente.'
+          : consultaAnterior.instructions,
+      clinicAddress: consultaAnterior.clinicAddress,
+    );
+
+    setState(() {
+      _consultas = List<ResumoConsulta>.from(_consultas);
+      _consultas[indice] = consultaAtualizada;
+
+      if (_proximaConsulta.id == consultaId) {
+        _proximaConsulta = consultaAtualizada;
+      }
+    });
+
+    widget.onReagendamentoConfirmado?.call(
+      consultaId,
+      novosDados,
+    );
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        const SnackBar(
+          content: Text('Consulta reagendada com sucesso!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  void _abrirFluxoReagendamento() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => ConsultasTutor(
+          consultas: _consultas,
+          nomesPets: widget.pets.map((pet) => pet.name).toList(),
+          consultaIdParaReagendar: _proximaConsulta.id,
+          onAgendamentoConfirmado: _onAgendamentoConfirmado,
+          onReagendamentoConfirmado: _onReagendamentoConfirmado,
+        ),
+      ),
+    );
+  }
 
   void _onAppointmentDetails() {
     ModalDetalhesConsulta.show(
@@ -137,22 +281,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       appointment: _proximaConsulta,
       onReschedule: () {
         Navigator.of(context).pop();
-
-        Navigator.of(context).push(
-          MaterialPageRoute<void>(
-            builder: (_) => ConsultasTutor(
-              consultas: widget.consultas,
-              nomesPets: widget.pets
-                  .map((pet) => pet.name)
-                  .toList(),
-              consultaIdParaReagendar: _proximaConsulta.id,
-              onAgendamentoConfirmado:
-              widget.onAgendamentoConfirmado,
-              onReagendamentoConfirmado:
-              widget.onReagendamentoConfirmado,
-            ),
-          ),
-        );
+        _abrirFluxoReagendamento();
       },
       onCancel: widget.onCancelarConsulta == null
           ? null
@@ -161,6 +290,15 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
         await widget.onCancelarConsulta!(
           _proximaConsulta.id,
+        );
+
+        if (!mounted) return;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Solicitação de cancelamento enviada.'),
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       },
     );
@@ -180,51 +318,50 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   Future<void> _onConfirmAppointment() async {
     if (_confirmandoConsulta) return;
 
-    setState(() => _confirmandoConsulta = true);
+    setState(() {
+      _confirmandoConsulta = true;
+    });
 
     try {
       final consultaAtualizada = await widget.onConfirmarConsulta(
         _proximaConsulta.id,
       );
+
       if (!mounted) return;
 
       setState(() {
         _proximaConsulta = consultaAtualizada;
         _confirmandoConsulta = false;
+
+        final indice = _consultas.indexWhere(
+              (consulta) => consulta.id == consultaAtualizada.id,
+        );
+
+        if (indice >= 0) {
+          _consultas[indice] = consultaAtualizada;
+        } else {
+          _consultas.insert(0, consultaAtualizada);
+        }
       });
 
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
           SnackBar(
-            content: Row(
-              children: [
-                const Icon(Icons.check_circle_rounded, color: Colors.white),
-                const SizedBox(width: EspacamentosApp.sm),
-                Expanded(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Consulta confirmada!',
-                        style: TextStyle(fontWeight: FontWeight.w700),
-                      ),
-                      Text(
-                        'Nos vemos em ${consultaAtualizada.date} às '
-                        '${consultaAtualizada.time}.',
-                      ),
-                    ],
-                  ),
-                ),
-              ],
+            content: Text(
+              'Consulta confirmada para ${consultaAtualizada.date} '
+                  'às ${consultaAtualizada.time}.',
             ),
             behavior: SnackBarBehavior.floating,
           ),
         );
     } catch (_) {
       if (!mounted) return;
-      setState(() => _confirmandoConsulta = false);
+
+      setState(() {
+        _confirmandoConsulta = false;
+      });
+
       ScaffoldMessenger.of(context)
         ..hideCurrentSnackBar()
         ..showSnackBar(
@@ -238,78 +375,92 @@ class _EstadoInicioTutor extends State<InicioTutor> {
     }
   }
 
+  Widget _construirInicio() {
+    return SingleChildScrollView(
+      padding: const EdgeInsets.only(
+        top: EspacamentosApp.lg,
+        bottom: EspacamentosApp.xxl,
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          CabecalhoApp(
+            greeting: widget.saudacao,
+            name: widget.nomeTutor,
+            onNotificationTap: () {
+              if (widget.onNotificacoes != null) {
+                widget.onNotificacoes!();
+              } else {
+                ModalNotificacoesTutor.show(context);
+              }
+            },
+          ),
+          const SizedBox(height: EspacamentosApp.xl),
+          const TituloSecao(title: 'Meus pets'),
+          const SizedBox(height: EspacamentosApp.md),
+          ListaHorizontalPets(
+            pets: widget.pets,
+            onPetTap: _abrirDetalhesPet,
+          ),
+          const SizedBox(height: EspacamentosApp.xl),
+          const TituloSecao(title: 'Próxima consulta'),
+          const SizedBox(height: EspacamentosApp.md),
+          CartaoProximaConsulta(
+            appointment: _proximaConsulta,
+            onDetailsTap: _onAppointmentDetails,
+            onConfirmTap: _onConfirmAppointment,
+            isConfirming: _confirmandoConsulta,
+          ),
+          const SizedBox(height: EspacamentosApp.xl),
+          Padding(
+            padding: const EdgeInsets.symmetric(
+              horizontal: EspacamentosApp.pagePadding,
+            ),
+            child: BotaoAcaoComIcone(
+              icon: Icons.calendar_month_outlined,
+              label: 'Agendar nova consulta',
+              onPressed: _abrirAbaConsultas,
+              semanticLabel: 'Agendar nova consulta',
+            ),
+          ),
+          const SizedBox(height: EspacamentosApp.xl),
+          const TituloSecao(title: 'Novidades'),
+          const SizedBox(height: EspacamentosApp.md),
+          CarrosselBanners(banners: widget.banners),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    Widget telaAtual;
+
+    switch (_currentNavIndex) {
+      case 0:
+        telaAtual = _construirInicio();
+        break;
+      case 1:
+        telaAtual = ConsultasTutor(
+          consultas: _consultas,
+          nomesPets: widget.pets.map((pet) => pet.name).toList(),
+          onAgendamentoConfirmado: _onAgendamentoConfirmado,
+          onReagendamentoConfirmado: _onReagendamentoConfirmado,
+        );
+        break;
+      default:
+        telaAtual = _construirInicio();
+    }
+
     return Scaffold(
       backgroundColor: CoresApp.background,
-
       body: SafeArea(
-        child: _currentNavIndex == 0
-            ? SingleChildScrollView(
-          padding: const EdgeInsets.only(
-            top: EspacamentosApp.lg,
-            bottom: EspacamentosApp.xxl,
-          ),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              CabecalhoApp(
-                greeting: widget.saudacao,
-                name: widget.nomeTutor,
-                onNotificationTap: () {
-                  if (widget.onNotificacoes != null) {
-                    widget.onNotificacoes!();
-                  } else {
-                    ModalNotificacoesTutor.show(context);
-                  }
-                },
-              ),
-              const SizedBox(height: EspacamentosApp.xl),
-              const TituloSecao(title: 'Meus pets'),
-              const SizedBox(height: EspacamentosApp.md),
-              ListaHorizontalPets(
-                pets: widget.pets,
-                onPetTap: _abrirDetalhesPet,
-              ),
-              const SizedBox(height: EspacamentosApp.xl),
-              const TituloSecao(title: 'Próxima consulta'),
-              const SizedBox(height: EspacamentosApp.md),
-              CartaoProximaConsulta(
-                appointment: _proximaConsulta,
-                onDetailsTap: _onAppointmentDetails,
-                onConfirmTap: _onConfirmAppointment,
-                isConfirming: _confirmandoConsulta,
-              ),
-              const SizedBox(height: EspacamentosApp.xl),
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: EspacamentosApp.pagePadding,
-                ),
-                child: BotaoAcaoComIcone(
-                  icon: Icons.calendar_month_outlined,
-                  label: 'Agendar nova consulta',
-                  onPressed: widget.onAgendarNovaConsulta,
-                  semanticLabel: 'Agendar nova consulta',
-                ),
-              ),
-              const SizedBox(height: EspacamentosApp.xl),
-              const TituloSecao(title: 'Novidades'),
-              const SizedBox(height: EspacamentosApp.md),
-              CarrosselBanners(banners: widget.banners),
-            ],
-          ),
-        )
-            : ConsultasTutor(
-          consultas: widget.consultas,
-          nomesPets: widget.pets
-              .map((pet) => pet.name)
-              .toList(),
-        ),
+        child: telaAtual,
       ),
-        bottomNavigationBar: BarraNavTutor(
-          currentIndex: _currentNavIndex,
-          onTap: _onNavTap,
-        ),
+      bottomNavigationBar: BarraNavTutor(
+        currentIndex: _currentNavIndex,
+        onTap: _onNavTap,
+      ),
     );
   }
 }

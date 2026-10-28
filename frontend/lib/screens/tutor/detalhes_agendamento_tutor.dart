@@ -1,11 +1,21 @@
 
 import 'package:flutter/material.dart';
 
-import 'package:pet_care/core/tema/cores_app.dart';
-import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/core/tema/tipografia_app.dart';
+import 'package:pet_care/screens/tutor/checkout_agendamento_tutor.dart';
+
+const Color _turquesa = Color(0xFF27B8B0);
+const Color _azulEscuro = Color(0xFF172A46);
+const Color _fundo = Color(0xFFF5F7FA);
+const Color _textoSecundario = Color(0xFF718096);
 
 class DadosAgendamento {
+  final DateTime data;
+  final String nomePet;
+  final String tipoAtendimento;
+  final String veterinario;
+  final String horario;
+  final bool urgente;
+
   const DadosAgendamento({
     required this.data,
     required this.nomePet,
@@ -14,26 +24,21 @@ class DadosAgendamento {
     required this.horario,
     required this.urgente,
   });
-
-  final DateTime data;
-  final String nomePet;
-  final String tipoAtendimento;
-  final String veterinario;
-  final String horario;
-  final bool urgente;
 }
 
 class DetalhesAgendamentoTutor extends StatefulWidget {
+  final DateTime dataSelecionada;
+  final List<String> nomesPets;
+  final String? veterinarioInicial;
+  final ValueChanged<DadosAgendamento>? onContinuar;
+
   const DetalhesAgendamentoTutor({
     super.key,
     required this.dataSelecionada,
     this.nomesPets = const ['Luna', 'Max', 'Mel'],
+    this.veterinarioInicial,
     this.onContinuar,
   });
-
-  final DateTime dataSelecionada;
-  final List<String> nomesPets;
-  final ValueChanged<DadosAgendamento>? onContinuar;
 
   @override
   State<DetalhesAgendamentoTutor> createState() =>
@@ -42,9 +47,10 @@ class DetalhesAgendamentoTutor extends StatefulWidget {
 
 class _DetalhesAgendamentoTutorState
     extends State<DetalhesAgendamentoTutor> {
-  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final _formKey = GlobalKey<FormState>();
 
-  String? _nomePet;
+  late DateTime _data;
+  String? _pet;
   String? _tipoAtendimento;
   String? _veterinario;
   String? _horario;
@@ -52,11 +58,10 @@ class _DetalhesAgendamentoTutorState
 
   final List<String> _tiposAtendimento = const [
     'Consulta geral',
-    'Vacinação',
     'Dermatologia',
     'Odontologia',
+    'Vacinação',
     'Retorno',
-    'Exames',
   ];
 
   final List<String> _veterinarios = const [
@@ -77,492 +82,440 @@ class _DetalhesAgendamentoTutorState
     '16:00',
   ];
 
-  String get _dataFormatada {
-    final data = widget.dataSelecionada;
-
-    return '${data.day.toString().padLeft(2, '0')}/'
-        '${data.month.toString().padLeft(2, '0')}/'
-        '${data.year}';
-  }
-
   @override
   void initState() {
     super.initState();
+    _data = widget.dataSelecionada;
+    _pet = widget.nomesPets.isNotEmpty ? widget.nomesPets.first : null;
 
-    if (widget.nomesPets.length == 1) {
-      _nomePet = widget.nomesPets.first;
+    _veterinario = widget.veterinarioInicial != null &&
+        _veterinarios.contains(widget.veterinarioInicial)
+        ? widget.veterinarioInicial
+        : 'Qualquer veterinário';
+
+    _tipoAtendimento = _tiposAtendimento.first;
+  }
+
+  String get _dataFormatada =>
+      '${_data.day.toString().padLeft(2, '0')}/'
+          '${_data.month.toString().padLeft(2, '0')}/${_data.year}';
+
+  Future<void> _selecionarData() async {
+    final agora = DateTime.now();
+    final inicial = _data.isBefore(DateTime(agora.year, agora.month, agora.day))
+        ? DateTime(agora.year, agora.month, agora.day)
+        : _data;
+
+    final data = await showDatePicker(
+      context: context,
+      initialDate: inicial,
+      firstDate: DateTime(agora.year, agora.month, agora.day),
+      lastDate: DateTime(agora.year + 1),
+      locale: const Locale('pt', 'BR'),
+      builder: (context, child) => Theme(
+        data: Theme.of(context).copyWith(
+          colorScheme: const ColorScheme.light(
+            primary: _turquesa,
+            onPrimary: Colors.white,
+            onSurface: _azulEscuro,
+          ),
+        ),
+        child: child!,
+      ),
+    );
+
+    if (data != null) {
+      setState(() {
+        _data = data;
+        _horario = null;
+      });
     }
   }
 
   void _continuar() {
-    final formularioValido = _formKey.currentState?.validate() ?? false;
+    if (!_formKey.currentState!.validate()) return;
 
-    if (!formularioValido) return;
+    if (_horario == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um horário para continuar.')),
+      );
+      return;
+    }
 
     final dados = DadosAgendamento(
-      data: widget.dataSelecionada,
-      nomePet: _nomePet!,
+      data: _data,
+      nomePet: _pet!,
       tipoAtendimento: _tipoAtendimento!,
       veterinario: _veterinario!,
       horario: _horario!,
       urgente: _urgente,
     );
 
-    if (widget.onContinuar != null) {
-      widget.onContinuar!(dados);
-      return;
-    }
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Seleção validada. A próxima etapa será implementada.',
-          ),
-          behavior: SnackBarBehavior.floating,
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => CheckoutAgendamentoTutor(
+          dados: dados,
+          onConfirmar: (dadosConfirmados) {
+            widget.onContinuar?.call(dadosConfirmados);
+          },
         ),
-      );
+      ),
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: CoresApp.background,
+      backgroundColor: _fundo,
       appBar: AppBar(
-        backgroundColor: CoresApp.background,
-        foregroundColor: CoresApp.textPrimary,
+        backgroundColor: _fundo,
+        foregroundColor: _azulEscuro,
         elevation: 0,
-        title: Text(
-          'Detalhes do agendamento',
-          style: TipografiaApp.heading3,
+        title: const Text(
+          'Agendar consulta',
+          style: TextStyle(fontWeight: FontWeight.bold),
         ),
       ),
       body: SafeArea(
         child: Form(
           key: _formKey,
-          child: SingleChildScrollView(
-            padding: const EdgeInsets.all(
-              EspacamentosApp.pagePadding,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                _indicadorEtapa(),
-                const SizedBox(height: EspacamentosApp.xl),
-                _resumoData(),
-                const SizedBox(height: EspacamentosApp.xl),
-
-                Text(
-                  'Vamos organizar a consulta',
-                  style: TipografiaApp.heading3,
+          child: ListView(
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            children: [
+              _progresso(),
+              const SizedBox(height: 24),
+              const Text(
+                'Detalhes do atendimento',
+                style: TextStyle(
+                  color: _azulEscuro,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
                 ),
-                const SizedBox(height: EspacamentosApp.sm),
-                Text(
-                  'Escolha os detalhes do atendimento do seu pet.',
-                  style: TipografiaApp.bodySmall.copyWith(
-                    color: CoresApp.textSecondary,
-                  ),
-                ),
-
-                const SizedBox(height: EspacamentosApp.xl),
-
-                _tituloCampo('Qual pet será atendido?'),
-                const SizedBox(height: EspacamentosApp.sm),
-                _seletor(
-                  valor: _nomePet,
-                  dica: 'Selecione seu pet',
-                  icone: Icons.pets_outlined,
-                  opcoes: widget.nomesPets,
-                  aoMudar: (valor) {
-                    setState(() => _nomePet = valor);
-                  },
-                ),
-
-                const SizedBox(height: EspacamentosApp.lg),
-
-                _tituloCampo('Tipo de atendimento'),
-                const SizedBox(height: EspacamentosApp.sm),
-                _seletor(
-                  valor: _tipoAtendimento,
-                  dica: 'Selecione o atendimento',
-                  icone: Icons.medical_services_outlined,
-                  opcoes: _tiposAtendimento,
-                  aoMudar: (valor) {
-                    setState(() => _tipoAtendimento = valor);
-                  },
-                ),
-
-                const SizedBox(height: EspacamentosApp.lg),
-
-                _tituloCampo('Veterinário'),
-                const SizedBox(height: EspacamentosApp.sm),
-                _seletor(
-                  valor: _veterinario,
-                  dica: 'Escolha um profissional',
-                  icone: Icons.person_search_outlined,
-                  opcoes: _veterinarios,
-                  aoMudar: (valor) {
-                    setState(() => _veterinario = valor);
-                  },
-                ),
-
-                const SizedBox(height: EspacamentosApp.lg),
-
-                _tituloCampo('Horário disponível'),
-                const SizedBox(height: EspacamentosApp.sm),
-                _gradeHorarios(),
-
-                const SizedBox(height: EspacamentosApp.lg),
-                _cartaoUrgencia(),
-
-                const SizedBox(height: EspacamentosApp.xl),
-
-                SizedBox(
-                  width: double.infinity,
-                  child: FilledButton.icon(
-                    onPressed: _continuar,
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: const Text('Continuar'),
-                    style: FilledButton.styleFrom(
-                      backgroundColor: CoresApp.primary,
-                      foregroundColor: Colors.white,
-                      padding: const EdgeInsets.symmetric(
-                        vertical: 16,
-                      ),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(
-                          EspacamentosApp.radiusLg,
+              ),
+              const SizedBox(height: 8),
+              const Text(
+                'Confira as informações e escolha o melhor horário para seu pet.',
+                style: TextStyle(color: _textoSecundario, height: 1.5),
+              ),
+              const SizedBox(height: 22),
+              _cartao(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const _RotuloCampo('Data da consulta'),
+                    const SizedBox(height: 8),
+                    InkWell(
+                      onTap: _selecionarData,
+                      borderRadius: BorderRadius.circular(14),
+                      child: Container(
+                        padding: const EdgeInsets.all(15),
+                        decoration: BoxDecoration(
+                          color: _fundo,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE1E7EE)),
+                        ),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.calendar_month_outlined,
+                                color: _turquesa),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                _dataFormatada,
+                                style: const TextStyle(
+                                  color: _azulEscuro,
+                                  fontWeight: FontWeight.w600,
+                                ),
+                              ),
+                            ),
+                            const Icon(Icons.edit_calendar_outlined,
+                                color: _textoSecundario),
+                          ],
                         ),
                       ),
                     ),
-                  ),
+                    const SizedBox(height: 20),
+                    const _RotuloCampo('Qual pet será atendido?'),
+                    const SizedBox(height: 8),
+                    _dropdown<String>(
+                      value: _pet,
+                      items: widget.nomesPets,
+                      hint: 'Selecione seu pet',
+                      onChanged: (value) => setState(() => _pet = value),
+                    ),
+                    const SizedBox(height: 20),
+                    const _RotuloCampo('Tipo de atendimento'),
+                    const SizedBox(height: 8),
+                    _dropdown<String>(
+                      value: _tipoAtendimento,
+                      items: _tiposAtendimento,
+                      hint: 'Selecione o atendimento',
+                      onChanged: (value) =>
+                          setState(() => _tipoAtendimento = value),
+                    ),
+                    const SizedBox(height: 20),
+                    const _RotuloCampo('Profissional'),
+                    const SizedBox(height: 8),
+                    _dropdown<String>(
+                      value: _veterinario,
+                      items: _veterinarios,
+                      hint: 'Selecione o profissional',
+                      onChanged: (value) =>
+                          setState(() => _veterinario = value),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text(
+                      'O profissional selecionado será mantido nas próximas etapas.',
+                      style: TextStyle(
+                        color: _textoSecundario,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                  ],
                 ),
-
-                const SizedBox(height: EspacamentosApp.md),
-
-                Center(
-                  child: Text(
-                    'Você poderá revisar os dados antes de confirmar.',
-                    textAlign: TextAlign.center,
-                    style: TipografiaApp.bodySmall.copyWith(
-                      color: CoresApp.textSecondary,
+              ),
+              const SizedBox(height: 18),
+              _cartao(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text(
+                      'Escolha um horário',
+                      style: TextStyle(
+                        color: _azulEscuro,
+                        fontSize: 17,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 6),
+                    const Text(
+                      'Horários ilustrativos — a disponibilidade ainda não está conectada ao backend.',
+                      style: TextStyle(
+                        color: _textoSecundario,
+                        fontSize: 12,
+                        height: 1.4,
+                      ),
+                    ),
+                    const SizedBox(height: 16),
+                    Wrap(
+                      spacing: 10,
+                      runSpacing: 10,
+                      children: _horarios.map((horario) {
+                        final selecionado = _horario == horario;
+                        return InkWell(
+                          onTap: () => setState(() => _horario = horario),
+                          borderRadius: BorderRadius.circular(12),
+                          child: Container(
+                            width: 76,
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            decoration: BoxDecoration(
+                              color: selecionado
+                                  ? _turquesa
+                                  : const Color(0xFFF5F7FA),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: selecionado
+                                    ? _turquesa
+                                    : const Color(0xFFE1E7EE),
+                              ),
+                            ),
+                            alignment: Alignment.center,
+                            child: Text(
+                              horario,
+                              style: TextStyle(
+                                color: selecionado
+                                    ? Colors.white
+                                    : _azulEscuro,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ),
+                        );
+                      }).toList(),
+                    ),
+                    const SizedBox(height: 18),
+                    Container(
+                      decoration: BoxDecoration(
+                        color: _fundo,
+                        borderRadius: BorderRadius.circular(14),
+                      ),
+                      child: SwitchListTile(
+                        contentPadding:
+                        const EdgeInsets.symmetric(horizontal: 12),
+                        activeColor: _turquesa,
+                        title: const Text(
+                          'Atendimento urgente',
+                          style: TextStyle(
+                            color: _azulEscuro,
+                            fontWeight: FontWeight.w600,
+                          ),
+                        ),
+                        subtitle: const Text(
+                          'Indique se seu pet precisa de atenção prioritária.',
+                          style: TextStyle(fontSize: 12, height: 1.4),
+                        ),
+                        value: _urgente,
+                        onChanged: (value) =>
+                            setState(() => _urgente = value),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 24),
+              SizedBox(
+                height: 54,
+                child: ElevatedButton(
+                  onPressed: _continuar,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: _turquesa,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
                     ),
                   ),
+                  child: const Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        'Continuar para checkout',
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 15,
+                        ),
+                      ),
+                      SizedBox(width: 8),
+                      Icon(Icons.arrow_forward_rounded),
+                    ],
+                  ),
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
       ),
     );
   }
 
-  Widget _indicadorEtapa() {
+  Widget _progresso() {
+    const etapas = ['Data', 'Detalhes', 'Revisão'];
     return Row(
-      children: [
-        _etapa('1', 'Data', concluida: true),
-        Expanded(
-          child: Container(
-            height: 2,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: CoresApp.primary,
-          ),
-        ),
-        _etapa('2', 'Detalhes', atual: true),
-        Expanded(
-          child: Container(
-            height: 2,
-            margin: const EdgeInsets.symmetric(horizontal: 8),
-            color: CoresApp.textSecondary.withAlpha(45),
-          ),
-        ),
-        _etapa('3', 'Revisão'),
-      ],
-    );
-  }
-
-  Widget _etapa(
-      String numero,
-      String texto, {
-        bool concluida = false,
-        bool atual = false,
-      }) {
-    final destacada = concluida || atual;
-
-    return Column(
-      children: [
-        CircleAvatar(
-          radius: 15,
-          backgroundColor:
-          destacada ? CoresApp.primary : CoresApp.surface,
-          child: concluida
-              ? const Icon(
-            Icons.check,
-            color: Colors.white,
-            size: 17,
-          )
-              : Text(
-            numero,
-            style: TipografiaApp.bodySmall.copyWith(
-              color: destacada
-                  ? Colors.white
-                  : CoresApp.textSecondary,
-            ),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Text(
-          texto,
-          style: TipografiaApp.bodySmall.copyWith(
-            color: destacada
-                ? CoresApp.primary
-                : CoresApp.textSecondary,
-            fontWeight:
-            atual ? FontWeight.bold : FontWeight.normal,
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget _resumoData() {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      decoration: BoxDecoration(
-        color: CoresApp.primary.withAlpha(18),
-        borderRadius: BorderRadius.circular(
-          EspacamentosApp.radiusLg,
-        ),
-        border: Border.all(
-          color: CoresApp.primary.withAlpha(50),
-        ),
-      ),
-      child: Row(
-        children: [
-          Icon(
-            Icons.calendar_month_outlined,
-            color: CoresApp.primary,
-            size: 30,
-          ),
-          const SizedBox(width: EspacamentosApp.md),
-          Expanded(
+      children: List.generate(etapas.length, (index) {
+        final atual = index == 1;
+        final concluida = index < 1;
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(right: index == 2 ? 0 : 10),
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  'Data selecionada',
-                  style: TipografiaApp.bodySmall.copyWith(
-                    color: CoresApp.textSecondary,
+                Container(
+                  height: 5,
+                  decoration: BoxDecoration(
+                    color: concluida || atual
+                        ? _turquesa
+                        : const Color(0xFFE1E7EE),
+                    borderRadius: BorderRadius.circular(10),
                   ),
                 ),
-                const SizedBox(height: EspacamentosApp.xs),
+                const SizedBox(height: 8),
                 Text(
-                  _dataFormatada,
-                  style: TipografiaApp.bodyMedium.copyWith(
-                    fontWeight: FontWeight.bold,
+                  etapas[index],
+                  style: TextStyle(
+                    color: atual || concluida
+                        ? _azulEscuro
+                        : _textoSecundario,
+                    fontSize: 12,
+                    fontWeight:
+                    atual ? FontWeight.bold : FontWeight.normal,
                   ),
                 ),
               ],
             ),
           ),
-          Icon(
-            Icons.check_circle_rounded,
-            color: CoresApp.primary,
+        );
+      }),
+    );
+  }
+
+  Widget _cartao({required Widget child}) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: const Color(0xFFE8EDF2)),
+        boxShadow: [
+          BoxShadow(
+            color: _azulEscuro.withValues(alpha: 0.035),
+            blurRadius: 16,
+            offset: const Offset(0, 5),
           ),
         ],
       ),
+      child: child,
     );
   }
 
-  Widget _tituloCampo(String titulo) {
-    return Text(
-      titulo,
-      style: TipografiaApp.bodyMedium.copyWith(
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  Widget _seletor({
-    required String? valor,
-    required String dica,
-    required IconData icone,
-    required List<String> opcoes,
-    required ValueChanged<String?> aoMudar,
+  Widget _dropdown<T>({
+    required T? value,
+    required List<T> items,
+    required String hint,
+    required ValueChanged<T?> onChanged,
   }) {
-    return DropdownButtonFormField<String>(
-      value: valor,
+    final valorValido = items.contains(value) ? value : null;
+
+    return DropdownButtonFormField<T>(
+      initialValue: valorValido,
       isExpanded: true,
-      validator: (valorSelecionado) {
-        if (valorSelecionado == null) {
-          return 'Selecione uma opção.';
-        }
-        return null;
-      },
       decoration: InputDecoration(
-        prefixIcon: Icon(icone),
         filled: true,
-        fillColor: CoresApp.surface,
-        hintText: dica,
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: EspacamentosApp.md,
-          vertical: EspacamentosApp.md,
-        ),
+        fillColor: _fundo,
+        hintText: hint,
+        contentPadding:
+        const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            EspacamentosApp.radiusLg,
-          ),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE1E7EE)),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(
-            EspacamentosApp.radiusLg,
-          ),
-          borderSide: BorderSide(
-            color: CoresApp.textSecondary.withAlpha(60),
-          ),
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: Color(0xFFE1E7EE)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(14),
+          borderSide: const BorderSide(color: _turquesa, width: 1.5),
         ),
       ),
-      items: opcoes.map((opcao) {
-        return DropdownMenuItem<String>(
-          value: opcao,
-          child: Text(
-            opcao,
-            overflow: TextOverflow.ellipsis,
-          ),
-        );
-      }).toList(),
-      onChanged: aoMudar,
+      items: items
+          .map((item) => DropdownMenuItem<T>(
+        value: item,
+        child: Text(
+          item.toString(),
+          overflow: TextOverflow.ellipsis,
+        ),
+      ))
+          .toList(),
+      validator: (value) => value == null ? 'Selecione uma opção' : null,
+      onChanged: onChanged,
     );
   }
+}
 
-  Widget _gradeHorarios() {
-    return FormField<String>(
-      validator: (_) {
-        if (_horario == null) {
-          return 'Selecione um horário.';
-        }
-        return null;
-      },
-      builder: (estado) {
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: _horarios.length,
-              gridDelegate:
-              const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 4,
-                mainAxisSpacing: 8,
-                crossAxisSpacing: 8,
-                childAspectRatio: 1.7,
-              ),
-              itemBuilder: (context, index) {
-                final horario = _horarios[index];
-                final selecionado = _horario == horario;
+class _RotuloCampo extends StatelessWidget {
+  final String texto;
 
-                return OutlinedButton(
-                  onPressed: () {
-                    setState(() => _horario = horario);
-                    estado.didChange(horario);
-                  },
-                  style: OutlinedButton.styleFrom(
-                    padding: EdgeInsets.zero,
-                    backgroundColor: selecionado
-                        ? CoresApp.primary
-                        : CoresApp.surface,
-                    foregroundColor: selecionado
-                        ? Colors.white
-                        : CoresApp.textPrimary,
-                    side: BorderSide(
-                      color: selecionado
-                          ? CoresApp.primary
-                          : CoresApp.textSecondary.withAlpha(60),
-                    ),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(horario),
-                );
-              },
-            ),
-            if (estado.hasError)
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  estado.errorText!,
-                  style: TextStyle(
-                    color: Theme.of(context).colorScheme.error,
-                    fontSize: 12,
-                  ),
-                ),
-              ),
-          ],
-        );
-      },
-    );
-  }
+  const _RotuloCampo(this.texto);
 
-  Widget _cartaoUrgencia() {
-    return Container(
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      decoration: BoxDecoration(
-        color: CoresApp.surface,
-        borderRadius: BorderRadius.circular(
-          EspacamentosApp.radiusLg,
-        ),
-        border: Border.all(
-          color: _urgente
-              ? Colors.orange.withAlpha(150)
-              : CoresApp.textSecondary.withAlpha(45),
-        ),
-      ),
-      child: Row(
-        children: [
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: Colors.orange.withAlpha(25),
-              borderRadius: BorderRadius.circular(12),
-            ),
-            child: const Icon(
-              Icons.warning_amber_rounded,
-              color: Colors.deepOrange,
-            ),
-          ),
-          const SizedBox(width: EspacamentosApp.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Precisa de atendimento urgente?',
-                  style: TipografiaApp.bodyMedium.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Informe se o caso precisa de atenção prioritária.',
-                  style: TipografiaApp.bodySmall.copyWith(
-                    color: CoresApp.textSecondary,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Switch(
-            value: _urgente,
-            activeTrackColor: CoresApp.primary,
-            onChanged: (valor) {
-              setState(() => _urgente = valor);
-            },
-          ),
-        ],
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      texto,
+      style: const TextStyle(
+        color: _azulEscuro,
+        fontWeight: FontWeight.w600,
+        fontSize: 14,
       ),
     );
   }

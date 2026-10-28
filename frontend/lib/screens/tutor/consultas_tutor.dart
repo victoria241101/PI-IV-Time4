@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 
@@ -15,6 +14,14 @@ typedef ConfirmarReagendamento = void Function(
     String consultaId,
     DadosAgendamento novosDados,
     );
+
+const Color _turquesaConsultas = Color(0xFF27B8B0);
+
+const List<String> profissionaisDisponiveis = [
+  'Dra. Ana Silva',
+  'Dr. Bruno Costa',
+  'Dra. Mariana Oliveira',
+];
 
 class ConsultasTutor extends StatefulWidget {
   const ConsultasTutor({
@@ -29,9 +36,9 @@ class ConsultasTutor extends StatefulWidget {
   });
 
   final List<ResumoConsulta> consultas;
+  final List<String> nomesPets;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
   final ValueChanged<DateTime>? onAgendarTap;
-  final List<String> nomesPets;
   final String? consultaIdParaReagendar;
   final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
   final ConfirmarReagendamento? onReagendamentoConfirmado;
@@ -43,25 +50,17 @@ class ConsultasTutor extends StatefulWidget {
 class _ConsultasTutorState extends State<ConsultasTutor> {
   late DateTime _mesAtual;
   DateTime? _dataSelecionada;
+
   String _filtro = 'Todos os profissionais';
 
-  final List<String> _filtros = const [
+  static const List<String> _filtros = [
     'Todos os profissionais',
-    'Dra. Ana Silva',
-    'Dr. Bruno Costa',
+    ...profissionaisDisponiveis,
     'Clínica geral',
     'Dermatologia',
     'Odontologia',
     'Vacinação',
   ];
-
-  @override
-  void initState() {
-    super.initState();
-
-    final hoje = DateTime.now();
-    _mesAtual = DateTime(hoje.year, hoje.month);
-  }
 
   static const List<String> _meses = [
     'Janeiro',
@@ -78,12 +77,20 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     'Dezembro',
   ];
 
+  @override
+  void initState() {
+    super.initState();
+
+    final hoje = DateTime.now();
+    _mesAtual = DateTime(hoje.year, hoje.month);
+  }
+
   bool _ehDataPassada(DateTime data) {
     final hoje = DateTime.now();
-    final dataSemHora = DateTime(data.year, data.month, data.day);
-    final hojeSemHora = DateTime(hoje.year, hoje.month, hoje.day);
 
-    return dataSemHora.isBefore(hojeSemHora);
+    return DateTime(data.year, data.month, data.day).isBefore(
+      DateTime(hoje.year, hoje.month, hoje.day),
+    );
   }
 
   bool _temDisponibilidade(DateTime data) {
@@ -91,10 +98,10 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
       return false;
     }
 
-    // Disponibilidade fictícia para testes de interface.
-    // Será substituída pela disponibilidade real futuramente.
-    final indiceFiltro = _filtros.indexOf(_filtro);
-    return (data.day + indiceFiltro) % 3 != 0;
+    // Disponibilidade simulada para testes da interface.
+    // Substituir pela disponibilidade real quando integrada ao backend.
+    final indice = _filtros.indexOf(_filtro);
+    return (data.day + indice) % 3 != 0;
   }
 
   void _mudarMes(int quantidade) {
@@ -110,9 +117,8 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
   void _selecionarData(DateTime data) {
     if (!_temDisponibilidade(data)) return;
 
-    setState(() {
-      _dataSelecionada = data;
-    });
+    setState(() => _dataSelecionada = data);
+    widget.onAgendarTap?.call(data);
   }
 
   String _formatarData(DateTime data) {
@@ -125,11 +131,15 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     final data = _dataSelecionada;
     if (data == null) return;
 
+    final profissionalInicial =
+    profissionaisDisponiveis.contains(_filtro) ? _filtro : null;
+
     Navigator.of(context).push<void>(
       MaterialPageRoute<void>(
         builder: (_) => DetalhesAgendamentoTutor(
           dataSelecionada: data,
           nomesPets: widget.nomesPets,
+          veterinarioInicial: profissionalInicial,
           onContinuar: (dados) {
             final consultaId = widget.consultaIdParaReagendar;
 
@@ -179,58 +189,77 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
       appBar: AppBar(
         automaticallyImplyLeading: false,
         backgroundColor: CoresApp.background,
-        foregroundColor: CoresApp.textPrimary,
+        foregroundColor: CoresApp.darkBlue,
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Consultas',
-          style: TipografiaApp.heading3,
+          style: TextStyle(
+            fontSize: 25,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.5,
+            color: CoresApp.darkBlue,
+          ),
         ),
       ),
       body: SafeArea(
         top: false,
         child: SingleChildScrollView(
-          padding: const EdgeInsets.all(EspacamentosApp.pagePadding),
+          padding: const EdgeInsets.fromLTRB(
+            EspacamentosApp.pagePadding,
+            EspacamentosApp.sm,
+            EspacamentosApp.pagePadding,
+            EspacamentosApp.xxl,
+          ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Encontre um horário para seu pet.',
-                style: TipografiaApp.bodySmall.copyWith(
-                  color: CoresApp.textSecondary,
-                ),
-              ),
+              _cabecalhoDestaque(),
               const SizedBox(height: EspacamentosApp.xl),
-
               _tituloSecao(
-                'Calendário',
-                'Selecione uma data disponível',
+                'Escolha uma data',
+                'Encontre o melhor horário para seu pet.',
               ),
               const SizedBox(height: EspacamentosApp.md),
-
               _cartaoCalendario(),
-
               const SizedBox(height: EspacamentosApp.xl),
-
               _tituloSecao(
                 'Profissional',
-                'Filtre por veterinário ou especialidade',
+                'Filtre por veterinário ou especialidade.',
               ),
               const SizedBox(height: EspacamentosApp.md),
-
               _campoFiltro(),
-
-              const SizedBox(height: EspacamentosApp.xl),
-
-              if (_dataSelecionada != null)
+              const SizedBox(height: EspacamentosApp.lg),
+              if (_dataSelecionada != null) ...[
                 _resumoDataSelecionada(),
-
-              const SizedBox(height: EspacamentosApp.md),
-
+                const SizedBox(height: EspacamentosApp.md),
+              ],
               SizedBox(
                 width: double.infinity,
-                child: FilledButton.icon(
+                child: ElevatedButton.icon(
+                  onPressed: _dataSelecionada == null
+                      ? null
+                      : _continuarAgendamento,
+                  icon: const Icon(Icons.arrow_forward_rounded),
+                  label: const Text('Continuar agendamento'),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: CoresApp.darkBlue,
+                    foregroundColor: Colors.white,
+                    disabledBackgroundColor:
+                    CoresApp.darkBlue.withAlpha(70),
+                    padding: const EdgeInsets.symmetric(vertical: 17),
+                    elevation: 0,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(17),
+                    ),
+                  ),
+                ),
+              ),
+              const SizedBox(height: EspacamentosApp.md),
+              SizedBox(
+                width: double.infinity,
+                child: OutlinedButton.icon(
                   onPressed: () {
-                    Navigator.of(context).push(
+                    Navigator.of(context).push<void>(
                       MaterialPageRoute<void>(
                         builder: (_) => _MinhasConsultasTutor(
                           consultas: widget.consultas,
@@ -241,33 +270,112 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
                   },
                   icon: const Icon(Icons.calendar_month_outlined),
                   label: const Text('Minhas consultas'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: CoresApp.primary,
-                    foregroundColor: Colors.white,
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: CoresApp.darkBlue,
+                    side: BorderSide(
+                      color: CoresApp.darkBlue.withAlpha(50),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(
-                        EspacamentosApp.radiusLg,
-                      ),
+                      borderRadius: BorderRadius.circular(17),
                     ),
                   ),
                 ),
               ),
-
-              const SizedBox(height: EspacamentosApp.md),
-
-              SizedBox(
-                width: double.infinity,
-                child: OutlinedButton(
-                  onPressed: _dataSelecionada == null
-                      ? null
-                      : _continuarAgendamento,
-                  child: const Text('Continuar agendamento'),
-                ),
-              ),
+              const SizedBox(height: EspacamentosApp.lg),
+              _avisoInformativo(),
             ],
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _cabecalhoDestaque() {
+    return Container(
+      width: double.infinity,
+      padding: const EdgeInsets.all(EspacamentosApp.lg),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [
+            CoresApp.darkBlue,
+            Color(0xFF174C60),
+          ],
+        ),
+        borderRadius: BorderRadius.circular(24),
+        boxShadow: [
+          BoxShadow(
+            color: CoresApp.darkBlue.withAlpha(25),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 10,
+                    vertical: 6,
+                  ),
+                  decoration: BoxDecoration(
+                    color: _turquesaConsultas.withAlpha(35),
+                    borderRadius: BorderRadius.circular(30),
+                  ),
+                  child: const Text(
+                    'CUIDADO E BEM-ESTAR',
+                    style: TextStyle(
+                      color: Color(0xFF8CE5DD),
+                      fontSize: 10,
+                      fontWeight: FontWeight.w800,
+                      letterSpacing: 1,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: EspacamentosApp.md),
+                const Text(
+                  'A saúde do seu pet em boas mãos.',
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 23,
+                    height: 1.2,
+                    fontWeight: FontWeight.w800,
+                    letterSpacing: -0.4,
+                  ),
+                ),
+                const SizedBox(height: EspacamentosApp.sm),
+                const Text(
+                  'Agende uma consulta de forma simples e organizada.',
+                  style: TextStyle(
+                    color: Colors.white70,
+                    fontSize: 13,
+                    height: 1.5,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(width: EspacamentosApp.sm),
+          Container(
+            width: 62,
+            height: 62,
+            decoration: BoxDecoration(
+              color: _turquesaConsultas.withAlpha(30),
+              borderRadius: BorderRadius.circular(20),
+            ),
+            child: const Icon(
+              Icons.pets_rounded,
+              color: Color(0xFF8CE5DD),
+              size: 34,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -276,11 +384,21 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(titulo, style: TipografiaApp.heading3),
+        Text(
+          titulo,
+          style: const TextStyle(
+            fontSize: 21,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.4,
+            color: CoresApp.darkBlue,
+          ),
+        ),
         const SizedBox(height: EspacamentosApp.xs),
         Text(
           subtitulo,
-          style: TipografiaApp.bodySmall.copyWith(
+          style: const TextStyle(
+            fontSize: 13,
+            height: 1.5,
             color: CoresApp.textSecondary,
           ),
         ),
@@ -301,177 +419,189 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
       0,
     ).day;
 
-    // Converte domingo = 7 para segunda-feira = 0.
     final deslocamentoInicial = primeiroDia.weekday - 1;
-    final totalCelulas = ((deslocamentoInicial + quantidadeDias + 6) ~/ 7) * 7;
+    final totalCelulas =
+        ((deslocamentoInicial + quantidadeDias + 6) ~/ 7) * 7;
 
-    return Card(
-      color: CoresApp.surface,
-      elevation: 0,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
-        side: BorderSide(
-          color: CoresApp.textSecondary.withAlpha(35),
+    return Container(
+      padding: const EdgeInsets.all(EspacamentosApp.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(22),
+        border: Border.all(
+          color: CoresApp.darkBlue.withAlpha(12),
         ),
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(EspacamentosApp.md),
-        child: Column(
-          children: [
-            Row(
-              children: [
-                IconButton(
-                  tooltip: 'Mês anterior',
-                  onPressed: () => _mudarMes(-1),
-                  icon: const Icon(Icons.chevron_left_rounded),
-                ),
-                Expanded(
-                  child: Text(
-                    '${_meses[_mesAtual.month - 1]} ${_mesAtual.year}',
-                    textAlign: TextAlign.center,
-                    style: TipografiaApp.bodyMedium.copyWith(
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                ),
-                IconButton(
-                  tooltip: 'Próximo mês',
-                  onPressed: () => _mudarMes(1),
-                  icon: const Icon(Icons.chevron_right_rounded),
-                ),
-              ],
-            ),
-            const SizedBox(height: EspacamentosApp.sm),
-
-            const Row(
-              children: [
-                _DiaSemana('SEG'),
-                _DiaSemana('TER'),
-                _DiaSemana('QUA'),
-                _DiaSemana('QUI'),
-                _DiaSemana('SEX'),
-                _DiaSemana('SÁB'),
-                _DiaSemana('DOM'),
-              ],
-            ),
-
-            const SizedBox(height: EspacamentosApp.sm),
-
-            GridView.builder(
-              shrinkWrap: true,
-              physics: const NeverScrollableScrollPhysics(),
-              itemCount: totalCelulas,
-              gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                crossAxisCount: 7,
-                mainAxisSpacing: 5,
-                crossAxisSpacing: 5,
-                childAspectRatio: 0.9,
+      child: Column(
+        children: [
+          Row(
+            children: [
+              IconButton(
+                tooltip: 'Mês anterior',
+                onPressed: () => _mudarMes(-1),
+                icon: const Icon(Icons.chevron_left_rounded),
               ),
-              itemBuilder: (context, index) {
-                final dia = index - deslocamentoInicial + 1;
-
-                if (dia < 1 || dia > quantidadeDias) {
-                  return const SizedBox.shrink();
-                }
-
-                final data = DateTime(
-                  _mesAtual.year,
-                  _mesAtual.month,
-                  dia,
-                );
-
-                final disponivel = _temDisponibilidade(data);
-                final selecionado = _dataSelecionada != null &&
-                    _dataSelecionada!.year == data.year &&
-                    _dataSelecionada!.month == data.month &&
-                    _dataSelecionada!.day == data.day;
-
-                return Material(
-                  color: selecionado
-                      ? CoresApp.primary
-                      : disponivel
-                      ? CoresApp.primary.withAlpha(22)
-                      : Colors.transparent,
-                  borderRadius: BorderRadius.circular(10),
-                  child: InkWell(
-                    borderRadius: BorderRadius.circular(10),
-                    onTap: disponivel ? () => _selecionarData(data) : null,
-                    child: Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Text(
-                          '$dia',
-                          style: TipografiaApp.bodySmall.copyWith(
-                            color: selecionado
-                                ? Colors.white
-                                : disponivel
-                                ? CoresApp.primary
-                                : CoresApp.textSecondary.withAlpha(110),
-                            fontWeight: selecionado || disponivel
-                                ? FontWeight.bold
-                                : FontWeight.normal,
-                          ),
-                        ),
-                        const SizedBox(height: 3),
-                        Container(
-                          width: 5,
-                          height: 5,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: selecionado
-                                ? Colors.white
-                                : disponivel
-                                ? CoresApp.primary
-                                : Colors.transparent,
-                          ),
-                        ),
-                      ],
-                    ),
+              Expanded(
+                child: Text(
+                  '${_meses[_mesAtual.month - 1]} ${_mesAtual.year}',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w800,
+                    color: CoresApp.darkBlue,
                   ),
-                );
-              },
-            ),
-
-            const SizedBox(height: EspacamentosApp.md),
-            const Divider(),
-            const SizedBox(height: EspacamentosApp.sm),
-
-            const Wrap(
-              spacing: 16,
-              runSpacing: 8,
-              children: [
-                _LegendaCalendario(
-                  cor: CoresApp.primary,
-                  texto: 'Disponível',
                 ),
-                _LegendaCalendario(
-                  cor: Colors.grey,
-                  texto: 'Indisponível',
-                ),
-              ],
+              ),
+              IconButton(
+                tooltip: 'Próximo mês',
+                onPressed: () => _mudarMes(1),
+                icon: const Icon(Icons.chevron_right_rounded),
+              ),
+            ],
+          ),
+          const SizedBox(height: EspacamentosApp.sm),
+          const Row(
+            children: [
+              _DiaSemana('SEG'),
+              _DiaSemana('TER'),
+              _DiaSemana('QUA'),
+              _DiaSemana('QUI'),
+              _DiaSemana('SEX'),
+              _DiaSemana('SÁB'),
+              _DiaSemana('DOM'),
+            ],
+          ),
+          const SizedBox(height: EspacamentosApp.sm),
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: totalCelulas,
+            gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: 7,
+              mainAxisSpacing: 5,
+              crossAxisSpacing: 5,
+              childAspectRatio: 0.9,
             ),
-          ],
-        ),
+            itemBuilder: (context, index) {
+              final dia = index - deslocamentoInicial + 1;
+
+              if (dia < 1 || dia > quantidadeDias) {
+                return const SizedBox.shrink();
+              }
+
+              final data = DateTime(
+                _mesAtual.year,
+                _mesAtual.month,
+                dia,
+              );
+
+              final disponivel = _temDisponibilidade(data);
+              final selecionado = _dataSelecionada != null &&
+                  _dataSelecionada!.year == data.year &&
+                  _dataSelecionada!.month == data.month &&
+                  _dataSelecionada!.day == data.day;
+
+              return Material(
+                color: selecionado
+                    ? _turquesaConsultas
+                    : disponivel
+                    ? _turquesaConsultas.withAlpha(22)
+                    : Colors.transparent,
+                borderRadius: BorderRadius.circular(11),
+                child: InkWell(
+                  borderRadius: BorderRadius.circular(11),
+                  onTap: disponivel ? () => _selecionarData(data) : null,
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Text(
+                        '$dia',
+                        style: TextStyle(
+                          fontSize: 13,
+                          color: selecionado
+                              ? Colors.white
+                              : disponivel
+                              ? CoresApp.darkBlue
+                              : CoresApp.textSecondary.withAlpha(100),
+                          fontWeight: selecionado || disponivel
+                              ? FontWeight.w700
+                              : FontWeight.normal,
+                        ),
+                      ),
+                      const SizedBox(height: 3),
+                      Container(
+                        width: 5,
+                        height: 5,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          color: selecionado
+                              ? Colors.white
+                              : disponivel
+                              ? _turquesaConsultas
+                              : Colors.transparent,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
+          const SizedBox(height: EspacamentosApp.md),
+          const Divider(),
+          const SizedBox(height: EspacamentosApp.sm),
+          const Wrap(
+            spacing: 16,
+            runSpacing: 8,
+            children: [
+              _LegendaCalendario(
+                cor: _turquesaConsultas,
+                texto: 'Disponível',
+              ),
+              _LegendaCalendario(
+                cor: Colors.grey,
+                texto: 'Indisponível',
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 
   Widget _campoFiltro() {
     return DropdownButtonFormField<String>(
-      value: _filtro,
+      initialValue: _filtro,
       isExpanded: true,
       decoration: InputDecoration(
-        prefixIcon: const Icon(Icons.search_rounded),
+        prefixIcon: const Icon(
+          Icons.medical_services_outlined,
+          color: _turquesaConsultas,
+        ),
         filled: true,
-        fillColor: CoresApp.surface,
+        fillColor: Colors.white,
         hintText: 'Veterinário ou especialidade',
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: EspacamentosApp.md,
+          vertical: EspacamentosApp.md,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
+          borderRadius: BorderRadius.circular(17),
+          borderSide: BorderSide(
+            color: CoresApp.darkBlue.withAlpha(20),
+          ),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
+          borderRadius: BorderRadius.circular(17),
           borderSide: BorderSide(
-            color: CoresApp.textSecondary.withAlpha(60),
+            color: CoresApp.darkBlue.withAlpha(20),
+          ),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(17),
+          borderSide: const BorderSide(
+            color: _turquesaConsultas,
+            width: 1.5,
           ),
         ),
       ),
@@ -504,43 +634,105 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
       width: double.infinity,
       padding: const EdgeInsets.all(EspacamentosApp.md),
       decoration: BoxDecoration(
-        color: CoresApp.primary.withAlpha(18),
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
+        color: _turquesaConsultas.withAlpha(18),
+        borderRadius: BorderRadius.circular(18),
         border: Border.all(
-          color: CoresApp.primary.withAlpha(55),
+          color: _turquesaConsultas.withAlpha(65),
         ),
       ),
       child: Row(
         children: [
-          Icon(
+          const Icon(
             Icons.event_available_rounded,
-            color: CoresApp.primary,
-            size: 26,
+            color: _turquesaConsultas,
+            size: 28,
           ),
           const SizedBox(width: EspacamentosApp.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
+                const Text(
                   'Data selecionada',
-                  style: TipografiaApp.bodySmall.copyWith(
+                  style: TextStyle(
                     color: CoresApp.textSecondary,
+                    fontSize: 12,
                   ),
                 ),
                 const SizedBox(height: EspacamentosApp.xs),
                 Text(
                   _formatarData(_dataSelecionada!),
-                  style: TipografiaApp.bodyMedium.copyWith(
-                    fontWeight: FontWeight.bold,
+                  style: const TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontSize: 16,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                if (profissionaisDisponiveis.contains(_filtro)) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    _filtro,
+                    style: const TextStyle(
+                      color: CoresApp.darkBlue,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const Icon(
+            Icons.check_circle_rounded,
+            color: _turquesaConsultas,
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _avisoInformativo() {
+    return Container(
+      padding: const EdgeInsets.all(EspacamentosApp.md),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(
+          color: CoresApp.darkBlue.withAlpha(12),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: _turquesaConsultas,
+            size: 23,
+          ),
+          SizedBox(width: EspacamentosApp.md),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Antes de confirmar',
+                  style: TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'Você poderá revisar os dados do pet, do atendimento, '
+                      'do profissional e do horário antes de concluir.',
+                  style: TextStyle(
+                    color: CoresApp.textSecondary,
+                    fontSize: 12,
+                    height: 1.5,
                   ),
                 ),
               ],
             ),
-          ),
-          Icon(
-            Icons.check_circle_rounded,
-            color: CoresApp.primary,
           ),
         ],
       ),
@@ -561,10 +753,10 @@ class _DiaSemana extends StatelessWidget {
           padding: const EdgeInsets.symmetric(vertical: 6),
           child: Text(
             texto,
-            style: TipografiaApp.bodySmall.copyWith(
+            style: const TextStyle(
               color: CoresApp.textSecondary,
               fontSize: 10,
-              fontWeight: FontWeight.bold,
+              fontWeight: FontWeight.w800,
             ),
           ),
         ),
@@ -591,15 +783,16 @@ class _LegendaCalendario extends StatelessWidget {
           width: 9,
           height: 9,
           decoration: BoxDecoration(
-            color: cor.withAlpha(150),
+            color: cor,
             shape: BoxShape.circle,
           ),
         ),
         const SizedBox(width: 6),
         Text(
           texto,
-          style: TipografiaApp.bodySmall.copyWith(
+          style: const TextStyle(
             color: CoresApp.textSecondary,
+            fontSize: 11,
           ),
         ),
       ],
@@ -607,7 +800,6 @@ class _LegendaCalendario extends StatelessWidget {
   }
 }
 
-// Página separada para acompanhar consultas futuras e histórico.
 class _MinhasConsultasTutor extends StatefulWidget {
   const _MinhasConsultasTutor({
     required this.consultas,
@@ -661,17 +853,20 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
       backgroundColor: CoresApp.background,
       appBar: AppBar(
         backgroundColor: CoresApp.background,
-        foregroundColor: CoresApp.textPrimary,
+        foregroundColor: CoresApp.darkBlue,
         elevation: 0,
-        title: Text(
+        title: const Text(
           'Minhas consultas',
-          style: TipografiaApp.heading3,
+          style: TextStyle(
+            color: CoresApp.darkBlue,
+            fontWeight: FontWeight.w800,
+          ),
         ),
         bottom: TabBar(
           controller: _tabController,
-          labelColor: CoresApp.primary,
+          labelColor: _turquesaConsultas,
           unselectedLabelColor: CoresApp.textSecondary,
-          indicatorColor: CoresApp.primary,
+          indicatorColor: _turquesaConsultas,
           tabs: const [
             Tab(text: 'Próximas'),
             Tab(text: 'Histórico'),
@@ -717,17 +912,18 @@ class _ListaConsultas extends StatelessWidget {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(
+              const Icon(
                 Icons.calendar_month_outlined,
                 size: 48,
-                color: CoresApp.textSecondary,
+                color: _turquesaConsultas,
               ),
               const SizedBox(height: EspacamentosApp.md),
               Text(
                 mensagemVazia,
                 textAlign: TextAlign.center,
-                style: TipografiaApp.bodySmall.copyWith(
+                style: const TextStyle(
                   color: CoresApp.textSecondary,
+                  fontSize: 13,
                 ),
               ),
             ],
@@ -739,7 +935,7 @@ class _ListaConsultas extends StatelessWidget {
     return ListView.separated(
       padding: const EdgeInsets.all(EspacamentosApp.pagePadding),
       itemCount: consultas.length,
-      separatorBuilder: (_, __) =>
+      separatorBuilder: (_, _) =>
       const SizedBox(height: EspacamentosApp.md),
       itemBuilder: (context, index) {
         final consulta = consultas[index];
@@ -767,9 +963,7 @@ class _CartaoConsulta extends StatelessWidget {
   Color _corStatus() {
     final status = consulta.status.toLowerCase();
 
-    if (status.contains('cancelada')) {
-      return Colors.red.shade700;
-    }
+    if (status.contains('cancelada')) return Colors.red.shade700;
 
     if (status.contains('realizada') ||
         status.contains('concluída') ||
@@ -777,11 +971,9 @@ class _CartaoConsulta extends StatelessWidget {
       return Colors.green.shade700;
     }
 
-    if (status.contains('pendente')) {
-      return Colors.orange.shade800;
-    }
+    if (status.contains('pendente')) return Colors.orange.shade800;
 
-    return CoresApp.primary;
+    return _turquesaConsultas;
   }
 
   @override
@@ -789,17 +981,17 @@ class _CartaoConsulta extends StatelessWidget {
     final corStatus = _corStatus();
 
     return Card(
-      color: CoresApp.surface,
+      color: Colors.white,
       elevation: 0,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
+        borderRadius: BorderRadius.circular(20),
         side: BorderSide(
-          color: CoresApp.textSecondary.withAlpha(35),
+          color: CoresApp.darkBlue.withAlpha(12),
         ),
       ),
       child: InkWell(
         onTap: onTap,
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
+        borderRadius: BorderRadius.circular(20),
         child: Padding(
           padding: const EdgeInsets.all(EspacamentosApp.md),
           child: Column(
@@ -810,14 +1002,14 @@ class _CartaoConsulta extends StatelessWidget {
                 children: [
                   CircleAvatar(
                     radius: 24,
-                    backgroundColor: CoresApp.primary.withAlpha(25),
+                    backgroundColor: _turquesaConsultas.withAlpha(25),
                     backgroundImage: consulta.petPhotoUrl != null
                         ? NetworkImage(consulta.petPhotoUrl!)
                         : null,
                     child: consulta.petPhotoUrl == null
-                        ? Icon(
-                      Icons.pets,
-                      color: CoresApp.primary,
+                        ? const Icon(
+                      Icons.pets_rounded,
+                      color: _turquesaConsultas,
                     )
                         : null,
                   ),
@@ -828,15 +1020,18 @@ class _CartaoConsulta extends StatelessWidget {
                       children: [
                         Text(
                           consulta.type,
-                          style: TipografiaApp.bodyMedium.copyWith(
-                            fontWeight: FontWeight.bold,
+                          style: const TextStyle(
+                            color: CoresApp.darkBlue,
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
                           ),
                         ),
                         const SizedBox(height: EspacamentosApp.xs),
                         Text(
                           consulta.petName,
-                          style: TipografiaApp.bodySmall.copyWith(
+                          style: const TextStyle(
                             color: CoresApp.textSecondary,
+                            fontSize: 12,
                           ),
                         ),
                       ],
@@ -853,9 +1048,10 @@ class _CartaoConsulta extends StatelessWidget {
                     ),
                     child: Text(
                       consulta.status,
-                      style: TipografiaApp.bodySmall.copyWith(
+                      style: TextStyle(
                         color: corStatus,
-                        fontWeight: FontWeight.w600,
+                        fontSize: 11,
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ),
@@ -864,48 +1060,62 @@ class _CartaoConsulta extends StatelessWidget {
               const SizedBox(height: EspacamentosApp.md),
               const Divider(height: 1),
               const SizedBox(height: EspacamentosApp.md),
-              Row(
-                children: [
-                  Icon(
-                    Icons.calendar_today_outlined,
-                    size: 17,
-                    color: CoresApp.textSecondary,
-                  ),
-                  const SizedBox(width: EspacamentosApp.sm),
-                  Expanded(
-                    child: Text(
-                      '${consulta.date} • ${consulta.time}',
-                      style: TipografiaApp.bodySmall,
-                    ),
-                  ),
-                ],
+              _LinhaInformacao(
+                icone: Icons.calendar_today_outlined,
+                texto: '${consulta.date} • ${consulta.time}',
               ),
               const SizedBox(height: EspacamentosApp.sm),
-              Row(
-                children: [
-                  Icon(
-                    Icons.medical_services_outlined,
-                    size: 17,
-                    color: CoresApp.textSecondary,
-                  ),
-                  const SizedBox(width: EspacamentosApp.sm),
-                  Expanded(
-                    child: Text(
-                      consulta.vetName,
-                      style: TipografiaApp.bodySmall,
-                    ),
-                  ),
-                  if (onTap != null)
-                    Icon(
-                      Icons.chevron_right_rounded,
-                      color: CoresApp.textSecondary,
-                    ),
-                ],
+              _LinhaInformacao(
+                icone: Icons.medical_services_outlined,
+                texto: consulta.vetName,
               ),
+              if (onTap != null) ...[
+                const SizedBox(height: EspacamentosApp.sm),
+                const Align(
+                  alignment: Alignment.centerRight,
+                  child: Icon(
+                    Icons.chevron_right_rounded,
+                    color: _turquesaConsultas,
+                  ),
+                ),
+              ],
             ],
           ),
         ),
       ),
+    );
+  }
+}
+
+class _LinhaInformacao extends StatelessWidget {
+  const _LinhaInformacao({
+    required this.icone,
+    required this.texto,
+  });
+
+  final IconData icone;
+  final String texto;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(
+          icone,
+          size: 17,
+          color: _turquesaConsultas,
+        ),
+        const SizedBox(width: EspacamentosApp.sm),
+        Expanded(
+          child: Text(
+            texto,
+            style: const TextStyle(
+              color: CoresApp.textSecondary,
+              fontSize: 12,
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
