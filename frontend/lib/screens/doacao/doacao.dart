@@ -60,22 +60,20 @@ class _DoacaoState extends State<Doacao> {
   // =====================================================
 
   void _onNavTapPublica(int index) {
-    if (index == 1) {
-      return;
-    }
+    switch (index) {
+      case 0:
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        break;
 
-    if (index == 0) {
-      Navigator.of(context).pop();
-      return;
-    }
+      case 1:
+        return;
 
-    if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const Sobre(),
-        ),
-      );
+      case 2:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/sobre',
+              (route) => route.isFirst,
+        );
+        break;
     }
   }
 

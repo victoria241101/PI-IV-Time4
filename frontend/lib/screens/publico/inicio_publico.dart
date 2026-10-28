@@ -21,30 +21,24 @@ class _InicioPublicoState extends State<InicioPublico> {
   int _currentIndex = 0;
 
   void _onNavTap(int index) {
-    if (index == 0) {
-      setState(() {
-        _currentIndex = 0;
-      });
-      return;
-    }
+    switch (index) {
+      case 0:
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        break;
 
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const Doacao(publica: true),
-        ),
-      );
-      return;
-    }
+      case 1:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/campanhas',
+              (route) => route.isFirst,
+        );
+        break;
 
-    if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const Sobre(),
-        ),
-      );
+      case 2:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/sobre',
+              (route) => route.isFirst,
+        );
+        break;
     }
   }
 
@@ -62,11 +56,9 @@ class _InicioPublicoState extends State<InicioPublico> {
   }
 
   void _abrirCampanhas() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => const Doacao(publica: true),
-      ),
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/campanhas',
+          (route) => route.isFirst,
     );
   }
 

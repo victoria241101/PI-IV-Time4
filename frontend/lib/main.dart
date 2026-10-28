@@ -4,6 +4,8 @@ import 'package:pet_care/core/tema/tema_app.dart';
 import 'package:pet_care/screens/autenticacao/cadastro.dart';import 'package:pet_care/screens/gerais/splash_screen.dart';
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/publico/inicio_publico.dart';
+import 'package:pet_care/screens/doacao/doacao.dart';
+import 'package:pet_care/screens/publico/sobre.dart';
 
 void main() {
   runApp(
@@ -33,6 +35,8 @@ class AplicativoVeterinaria extends StatelessWidget {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
         '/inicio-publico': (context) => const InicioPublico(),
+        '/campanhas': (context) => const Doacao(publica: true),
+        '/sobre': (context) => const Sobre(),
       },
     );
   }

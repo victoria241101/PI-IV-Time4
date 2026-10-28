@@ -13,22 +13,20 @@ class Sobre extends StatelessWidget {
   });
 
   void _onNavTap(BuildContext context, int index) {
-    if (index == 2) {
-      return;
-    }
+    switch (index) {
+      case 0:
+        Navigator.of(context).popUntil((route) => route.isFirst);
+        break;
 
-    if (index == 0) {
-      Navigator.of(context).pop();
-      return;
-    }
+      case 1:
+        Navigator.of(context).pushNamedAndRemoveUntil(
+          '/campanhas',
+              (route) => route.isFirst,
+        );
+        break;
 
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const Doacao(publica: true),
-        ),
-      );
+      case 2:
+        return;
     }
   }
 
