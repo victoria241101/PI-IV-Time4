@@ -1,12 +1,7 @@
-
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/screens/tutor/checkout_agendamento_tutor.dart';
-
-const Color _turquesa = Color(0xFF27B8B0);
-const Color _azulEscuro = Color(0xFF172A46);
-const Color _fundo = Color(0xFFF5F7FA);
-const Color _textoSecundario = Color(0xFF718096);
 
 class DadosAgendamento {
   final DateTime data;
@@ -85,6 +80,7 @@ class _DetalhesAgendamentoTutorState
   @override
   void initState() {
     super.initState();
+
     _data = widget.dataSelecionada;
     _pet = widget.nomesPets.isNotEmpty ? widget.nomesPets.first : null;
 
@@ -102,26 +98,30 @@ class _DetalhesAgendamentoTutorState
 
   Future<void> _selecionarData() async {
     final agora = DateTime.now();
-    final inicial = _data.isBefore(DateTime(agora.year, agora.month, agora.day))
-        ? DateTime(agora.year, agora.month, agora.day)
-        : _data;
+    final hoje = DateTime(agora.year, agora.month, agora.day);
+    final inicial = _data.isBefore(hoje) ? hoje : _data;
 
     final data = await showDatePicker(
       context: context,
       initialDate: inicial,
-      firstDate: DateTime(agora.year, agora.month, agora.day),
+      firstDate: hoje,
       lastDate: DateTime(agora.year + 1),
       locale: const Locale('pt', 'BR'),
-      builder: (context, child) => Theme(
-        data: Theme.of(context).copyWith(
-          colorScheme: const ColorScheme.light(
-            primary: _turquesa,
-            onPrimary: Colors.white,
-            onSurface: _azulEscuro,
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: CoresApp.primary,
+              onPrimary: CoresApp.surface,
+              secondary: CoresApp.accentOrange,
+              onSecondary: CoresApp.darkBlue,
+              surface: CoresApp.surface,
+              onSurface: CoresApp.darkBlue,
+            ),
           ),
-        ),
-        child: child!,
-      ),
+          child: child!,
+        );
+      },
     );
 
     if (data != null) {
@@ -137,7 +137,16 @@ class _DetalhesAgendamentoTutorState
 
     if (_horario == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Selecione um horário para continuar.')),
+        SnackBar(
+          content: const Text(
+            'Selecione um horário para continuar.',
+          ),
+          backgroundColor: CoresApp.darkBlue,
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(14),
+          ),
+        ),
       );
       return;
     }
@@ -166,111 +175,179 @@ class _DetalhesAgendamentoTutorState
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _fundo,
+      backgroundColor: CoresApp.background,
       appBar: AppBar(
-        backgroundColor: _fundo,
-        foregroundColor: _azulEscuro,
+        backgroundColor: CoresApp.background,
+        foregroundColor: CoresApp.darkBlue,
         elevation: 0,
+        scrolledUnderElevation: 0,
+        centerTitle: false,
         title: const Text(
           'Agendar consulta',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: CoresApp.darkBlue,
+            fontSize: 19,
+            fontWeight: FontWeight.w800,
+          ),
         ),
       ),
       body: SafeArea(
         child: Form(
           key: _formKey,
           child: ListView(
-            padding: const EdgeInsets.fromLTRB(20, 8, 20, 28),
+            padding: const EdgeInsets.fromLTRB(20, 8, 20, 32),
             children: [
               _progresso(),
-              const SizedBox(height: 24),
+              const SizedBox(height: 28),
               const Text(
-                'Detalhes do atendimento',
+                'Vamos cuidar do seu pet!',
                 style: TextStyle(
-                  color: _azulEscuro,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
+                  color: CoresApp.darkBlue,
+                  fontSize: 25,
+                  height: 1.2,
+                  fontWeight: FontWeight.w800,
                 ),
               ),
-              const SizedBox(height: 8),
+              const SizedBox(height: 9),
               const Text(
-                'Confira as informações e escolha o melhor horário para seu pet.',
-                style: TextStyle(color: _textoSecundario, height: 1.5),
+                'Preencha os detalhes do atendimento e escolha o horário ideal.',
+                style: TextStyle(
+                  color: CoresApp.textSecondary,
+                  fontSize: 14,
+                  height: 1.6,
+                ),
               ),
               const SizedBox(height: 22),
               _cartao(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
+                    const _TituloSecao(
+                      icone: Icons.calendar_month_rounded,
+                      titulo: 'Informações da consulta',
+                      subtitulo: 'Defina quem será atendido e por quem.',
+                    ),
+                    const SizedBox(height: 23),
                     const _RotuloCampo('Data da consulta'),
-                    const SizedBox(height: 8),
-                    InkWell(
-                      onTap: _selecionarData,
-                      borderRadius: BorderRadius.circular(14),
-                      child: Container(
-                        padding: const EdgeInsets.all(15),
-                        decoration: BoxDecoration(
-                          color: _fundo,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE1E7EE)),
-                        ),
-                        child: Row(
-                          children: [
-                            const Icon(Icons.calendar_month_outlined,
-                                color: _turquesa),
-                            const SizedBox(width: 12),
-                            Expanded(
-                              child: Text(
-                                _dataFormatada,
-                                style: const TextStyle(
-                                  color: _azulEscuro,
-                                  fontWeight: FontWeight.w600,
+                    const SizedBox(height: 9),
+                    Material(
+                      color: Colors.transparent,
+                      child: InkWell(
+                        onTap: _selecionarData,
+                        borderRadius: BorderRadius.circular(15),
+                        child: Container(
+                          padding: const EdgeInsets.symmetric(
+                            horizontal: 15,
+                            vertical: 16,
+                          ),
+                          decoration: BoxDecoration(
+                            color: CoresApp.background,
+                            borderRadius: BorderRadius.circular(15),
+                            border: Border.all(color: CoresApp.divider),
+                          ),
+                          child: Row(
+                            children: [
+                              Container(
+                                width: 43,
+                                height: 43,
+                                decoration: BoxDecoration(
+                                  color: CoresApp.primary.withAlpha(20),
+                                  borderRadius: BorderRadius.circular(13),
+                                ),
+                                child: const Icon(
+                                  Icons.calendar_month_rounded,
+                                  color: CoresApp.primary,
+                                  size: 23,
                                 ),
                               ),
-                            ),
-                            const Icon(Icons.edit_calendar_outlined,
-                                color: _textoSecundario),
-                          ],
+                              const SizedBox(width: 13),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      'Data selecionada',
+                                      style: TextStyle(
+                                        color: CoresApp.textSecondary,
+                                        fontSize: 12,
+                                      ),
+                                    ),
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _dataFormatada,
+                                      style: const TextStyle(
+                                        color: CoresApp.darkBlue,
+                                        fontSize: 15,
+                                        fontWeight: FontWeight.w800,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              const Icon(
+                                Icons.edit_calendar_rounded,
+                                color: CoresApp.primary,
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     const _RotuloCampo('Qual pet será atendido?'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
                     _dropdown<String>(
                       value: _pet,
                       items: widget.nomesPets,
                       hint: 'Selecione seu pet',
+                      icone: Icons.pets_rounded,
                       onChanged: (value) => setState(() => _pet = value),
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     const _RotuloCampo('Tipo de atendimento'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
                     _dropdown<String>(
                       value: _tipoAtendimento,
                       items: _tiposAtendimento,
                       hint: 'Selecione o atendimento',
-                      onChanged: (value) =>
-                          setState(() => _tipoAtendimento = value),
+                      icone: Icons.medical_services_rounded,
+                      onChanged: (value) {
+                        setState(() => _tipoAtendimento = value);
+                      },
                     ),
-                    const SizedBox(height: 20),
+                    const SizedBox(height: 22),
                     const _RotuloCampo('Profissional'),
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 9),
                     _dropdown<String>(
                       value: _veterinario,
                       items: _veterinarios,
                       hint: 'Selecione o profissional',
-                      onChanged: (value) =>
-                          setState(() => _veterinario = value),
+                      icone: Icons.person_rounded,
+                      onChanged: (value) {
+                        setState(() => _veterinario = value);
+                      },
                     ),
-                    const SizedBox(height: 8),
-                    const Text(
-                      'O profissional selecionado será mantido nas próximas etapas.',
-                      style: TextStyle(
-                        color: _textoSecundario,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
+                    const SizedBox(height: 10),
+                    const Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(
+                          Icons.info_outline_rounded,
+                          size: 15,
+                          color: CoresApp.textSecondary,
+                        ),
+                        SizedBox(width: 6),
+                        Expanded(
+                          child: Text(
+                            'O profissional selecionado será mantido nas próximas etapas.',
+                            style: TextStyle(
+                              color: CoresApp.textSecondary,
+                              fontSize: 12,
+                              height: 1.5,
+                            ),
+                          ),
+                        ),
+                      ],
                     ),
                   ],
                 ),
@@ -280,117 +357,158 @@ class _DetalhesAgendamentoTutorState
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text(
-                      'Escolha um horário',
-                      style: TextStyle(
-                        color: _azulEscuro,
-                        fontSize: 17,
-                        fontWeight: FontWeight.bold,
-                      ),
+                    const _TituloSecao(
+                      icone: Icons.schedule_rounded,
+                      titulo: 'Escolha um horário',
+                      subtitulo: 'Selecione uma das opções disponíveis.',
                     ),
-                    const SizedBox(height: 6),
-                    const Text(
-                      'Horários ilustrativos — a disponibilidade ainda não está conectada ao backend.',
-                      style: TextStyle(
-                        color: _textoSecundario,
-                        fontSize: 12,
-                        height: 1.4,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 18),
                     Wrap(
                       spacing: 10,
                       runSpacing: 10,
                       children: _horarios.map((horario) {
                         final selecionado = _horario == horario;
-                        return InkWell(
-                          onTap: () => setState(() => _horario = horario),
-                          borderRadius: BorderRadius.circular(12),
-                          child: Container(
-                            width: 76,
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            decoration: BoxDecoration(
-                              color: selecionado
-                                  ? _turquesa
-                                  : const Color(0xFFF5F7FA),
-                              borderRadius: BorderRadius.circular(12),
-                              border: Border.all(
-                                color: selecionado
-                                    ? _turquesa
-                                    : const Color(0xFFE1E7EE),
-                              ),
-                            ),
-                            alignment: Alignment.center,
-                            child: Text(
-                              horario,
-                              style: TextStyle(
-                                color: selecionado
-                                    ? Colors.white
-                                    : _azulEscuro,
-                                fontWeight: FontWeight.w600,
-                              ),
-                            ),
-                          ),
+
+                        return _OpcaoHorario(
+                          horario: horario,
+                          selecionado: selecionado,
+                          onTap: () {
+                            setState(() => _horario = horario);
+                          },
                         );
                       }).toList(),
                     ),
-                    const SizedBox(height: 18),
+                    const SizedBox(height: 15),
                     Container(
+                      padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
-                        color: _fundo,
-                        borderRadius: BorderRadius.circular(14),
+                        color: CoresApp.surfaceSoft,
+                        borderRadius: BorderRadius.circular(13),
+                        border: Border.all(
+                          color: CoresApp.accentOrange.withAlpha(75),
+                        ),
                       ),
-                      child: SwitchListTile(
-                        contentPadding:
-                        const EdgeInsets.symmetric(horizontal: 12),
-                        activeColor: _turquesa,
-                        title: const Text(
-                          'Atendimento urgente',
-                          style: TextStyle(
-                            color: _azulEscuro,
-                            fontWeight: FontWeight.w600,
+                      child: const Row(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Icon(
+                            Icons.info_outline_rounded,
+                            color: CoresApp.accentOrangeDark,
+                            size: 18,
                           ),
-                        ),
-                        subtitle: const Text(
-                          'Indique se seu pet precisa de atenção prioritária.',
-                          style: TextStyle(fontSize: 12, height: 1.4),
-                        ),
-                        value: _urgente,
-                        onChanged: (value) =>
-                            setState(() => _urgente = value),
+                          SizedBox(width: 9),
+                          Expanded(
+                            child: Text(
+                              'Os horários são ilustrativos. A disponibilidade ainda não está conectada ao backend.',
+                              style: TextStyle(
+                                color: CoresApp.textSecondary,
+                                fontSize: 12,
+                                height: 1.5,
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ),
                   ],
                 ),
               ),
-              const SizedBox(height: 24),
+              const SizedBox(height: 18),
+              _cartao(
+                child: SwitchListTile(
+                  contentPadding: EdgeInsets.zero,
+                  activeTrackColor: CoresApp.primary,
+                  activeThumbColor: CoresApp.surface,
+                  inactiveTrackColor: CoresApp.divider,
+                  title: const Text(
+                    'Atendimento urgente',
+                    style: TextStyle(
+                      color: CoresApp.darkBlue,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                  subtitle: const Padding(
+                    padding: EdgeInsets.only(top: 5),
+                    child: Text(
+                      'Indique se seu pet precisa de atenção prioritária.',
+                      style: TextStyle(
+                        color: CoresApp.textSecondary,
+                        fontSize: 12,
+                        height: 1.5,
+                      ),
+                    ),
+                  ),
+                  secondary: Container(
+                    width: 44,
+                    height: 44,
+                    decoration: BoxDecoration(
+                      color: _urgente
+                          ? CoresApp.surfaceSoft
+                          : CoresApp.background,
+                      borderRadius: BorderRadius.circular(13),
+                    ),
+                    child: Icon(
+                      Icons.priority_high_rounded,
+                      color: _urgente
+                          ? CoresApp.accentOrange
+                          : CoresApp.textSecondary,
+                      size: 25,
+                    ),
+                  ),
+                  value: _urgente,
+                  onChanged: (value) {
+                    setState(() => _urgente = value);
+                  },
+                ),
+              ),
+              const SizedBox(height: 25),
               SizedBox(
-                height: 54,
+                height: 56,
                 child: ElevatedButton(
                   onPressed: _continuar,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _turquesa,
-                    foregroundColor: Colors.white,
+                    backgroundColor: CoresApp.primary,
+                    foregroundColor: CoresApp.surface,
                     elevation: 0,
                     shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(16),
+                      borderRadius: BorderRadius.circular(17),
                     ),
                   ),
                   child: const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       Text(
-                        'Continuar para checkout',
+                        'Continuar para revisão',
                         style: TextStyle(
-                          fontWeight: FontWeight.bold,
                           fontSize: 15,
+                          fontWeight: FontWeight.w800,
                         ),
                       ),
-                      SizedBox(width: 8),
-                      Icon(Icons.arrow_forward_rounded),
+                      SizedBox(width: 10),
+                      Icon(Icons.arrow_forward_rounded, size: 21),
                     ],
                   ),
                 ),
+              ),
+              const SizedBox(height: 12),
+              const Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(
+                    Icons.lock_outline_rounded,
+                    color: CoresApp.textSecondary,
+                    size: 14,
+                  ),
+                  SizedBox(width: 6),
+                  Text(
+                    'Confira os dados antes de confirmar.',
+                    style: TextStyle(
+                      color: CoresApp.textSecondary,
+                      fontSize: 11,
+                    ),
+                  ),
+                ],
               ),
             ],
           ),
@@ -401,41 +519,94 @@ class _DetalhesAgendamentoTutorState
 
   Widget _progresso() {
     const etapas = ['Data', 'Detalhes', 'Revisão'];
-    return Row(
-      children: List.generate(etapas.length, (index) {
-        final atual = index == 1;
-        final concluida = index < 1;
-        return Expanded(
-          child: Padding(
-            padding: EdgeInsets.only(right: index == 2 ? 0 : 10),
-            child: Column(
-              children: [
-                Container(
-                  height: 5,
-                  decoration: BoxDecoration(
-                    color: concluida || atual
-                        ? _turquesa
-                        : const Color(0xFFE1E7EE),
-                    borderRadius: BorderRadius.circular(10),
+
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 17, 16, 14),
+      decoration: BoxDecoration(
+        color: CoresApp.surface,
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: CoresApp.divider),
+      ),
+      child: Row(
+        children: List.generate(etapas.length, (index) {
+          final atual = index == 1;
+          final concluida = index < 1;
+
+          final cor = atual
+              ? CoresApp.accentOrange
+              : concluida
+              ? CoresApp.primary
+              : CoresApp.divider;
+
+          return Expanded(
+            child: Padding(
+              padding: EdgeInsets.only(
+                right: index == etapas.length - 1 ? 0 : 10,
+              ),
+              child: Column(
+                children: [
+                  AnimatedContainer(
+                    duration: const Duration(milliseconds: 200),
+                    height: atual ? 7 : 5,
+                    decoration: BoxDecoration(
+                      color: cor,
+                      borderRadius: BorderRadius.circular(10),
+                      boxShadow: atual
+                          ? [
+                        BoxShadow(
+                          color: CoresApp.accentOrange.withAlpha(65),
+                          blurRadius: 7,
+                          offset: const Offset(0, 2),
+                        ),
+                      ]
+                          : null,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  etapas[index],
-                  style: TextStyle(
-                    color: atual || concluida
-                        ? _azulEscuro
-                        : _textoSecundario,
-                    fontSize: 12,
-                    fontWeight:
-                    atual ? FontWeight.bold : FontWeight.normal,
+                  const SizedBox(height: 10),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      if (concluida) ...[
+                        const Icon(
+                          Icons.check_circle_rounded,
+                          color: CoresApp.primary,
+                          size: 14,
+                        ),
+                        const SizedBox(width: 4),
+                      ],
+                      if (atual) ...[
+                        const Icon(
+                          Icons.circle,
+                          color: CoresApp.accentOrange,
+                          size: 9,
+                        ),
+                        const SizedBox(width: 5),
+                      ],
+                      Flexible(
+                        child: Text(
+                          etapas[index],
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            color: atual
+                                ? CoresApp.accentOrangeDark
+                                : concluida
+                                ? CoresApp.darkBlue
+                                : CoresApp.textSecondary,
+                            fontSize: 12,
+                            fontWeight: atual || concluida
+                                ? FontWeight.w800
+                                : FontWeight.w500,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        );
-      }),
+          );
+        }),
+      ),
     );
   }
 
@@ -443,13 +614,13 @@ class _DetalhesAgendamentoTutorState
     return Container(
       padding: const EdgeInsets.all(18),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: const Color(0xFFE8EDF2)),
+        color: CoresApp.surface,
+        borderRadius: BorderRadius.circular(21),
+        border: Border.all(color: CoresApp.divider),
         boxShadow: [
           BoxShadow(
-            color: _azulEscuro.withValues(alpha: 0.035),
-            blurRadius: 16,
+            color: CoresApp.darkBlue.withAlpha(9),
+            blurRadius: 17,
             offset: const Offset(0, 5),
           ),
         ],
@@ -462,6 +633,7 @@ class _DetalhesAgendamentoTutorState
     required T? value,
     required List<T> items,
     required String hint,
+    required IconData icone,
     required ValueChanged<T?> onChanged,
   }) {
     final valorValido = items.contains(value) ? value : null;
@@ -469,35 +641,71 @@ class _DetalhesAgendamentoTutorState
     return DropdownButtonFormField<T>(
       initialValue: valorValido,
       isExpanded: true,
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: CoresApp.textSecondary,
+      ),
       decoration: InputDecoration(
         filled: true,
-        fillColor: _fundo,
+        fillColor: CoresApp.background,
+        prefixIcon: Icon(
+          icone,
+          color: CoresApp.primary,
+          size: 21,
+        ),
         hintText: hint,
-        contentPadding:
-        const EdgeInsets.symmetric(horizontal: 14, vertical: 14),
+        hintStyle: const TextStyle(
+          color: CoresApp.textSecondary,
+          fontSize: 13,
+        ),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 14,
+          vertical: 15,
+        ),
         border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE1E7EE)),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: CoresApp.divider),
         ),
         enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: Color(0xFFE1E7EE)),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: CoresApp.divider),
         ),
         focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(14),
-          borderSide: const BorderSide(color: _turquesa, width: 1.5),
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(
+            color: CoresApp.primary,
+            width: 1.5,
+          ),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(color: Colors.redAccent),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(15),
+          borderSide: const BorderSide(
+            color: Colors.redAccent,
+            width: 1.5,
+          ),
         ),
       ),
       items: items
-          .map((item) => DropdownMenuItem<T>(
-        value: item,
-        child: Text(
-          item.toString(),
-          overflow: TextOverflow.ellipsis,
+          .map(
+            (item) => DropdownMenuItem<T>(
+          value: item,
+          child: Text(
+            item.toString(),
+            overflow: TextOverflow.ellipsis,
+            style: const TextStyle(
+              color: CoresApp.darkBlue,
+              fontSize: 14,
+            ),
+          ),
         ),
-      ))
+      )
           .toList(),
-      validator: (value) => value == null ? 'Selecione uma opção' : null,
+      validator: (value) =>
+      value == null ? 'Selecione uma opção' : null,
       onChanged: onChanged,
     );
   }
@@ -513,9 +721,128 @@ class _RotuloCampo extends StatelessWidget {
     return Text(
       texto,
       style: const TextStyle(
-        color: _azulEscuro,
-        fontWeight: FontWeight.w600,
+        color: CoresApp.darkBlue,
+        fontWeight: FontWeight.w800,
         fontSize: 14,
+      ),
+    );
+  }
+}
+
+class _TituloSecao extends StatelessWidget {
+  const _TituloSecao({
+    required this.icone,
+    required this.titulo,
+    required this.subtitulo,
+  });
+
+  final IconData icone;
+  final String titulo;
+  final String subtitulo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Container(
+          width: 44,
+          height: 44,
+          decoration: BoxDecoration(
+            color: CoresApp.primary.withAlpha(20),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: Icon(
+            icone,
+            color: CoresApp.primary,
+            size: 23,
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                titulo,
+                style: const TextStyle(
+                  color: CoresApp.darkBlue,
+                  fontSize: 16,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              const SizedBox(height: 5),
+              Text(
+                subtitulo,
+                style: const TextStyle(
+                  color: CoresApp.textSecondary,
+                  fontSize: 12,
+                  height: 1.5,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+class _OpcaoHorario extends StatelessWidget {
+  const _OpcaoHorario({
+    required this.horario,
+    required this.selecionado,
+    required this.onTap,
+  });
+
+  final String horario;
+  final bool selecionado;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(13),
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          width: 76,
+          padding: const EdgeInsets.symmetric(vertical: 13),
+          decoration: BoxDecoration(
+            color: selecionado
+                ? CoresApp.primary
+                : CoresApp.background,
+            borderRadius: BorderRadius.circular(13),
+            border: Border.all(
+              color: selecionado
+                  ? CoresApp.primary
+                  : CoresApp.divider,
+              width: selecionado ? 1.5 : 1,
+            ),
+            boxShadow: selecionado
+                ? [
+              BoxShadow(
+                color: CoresApp.primary.withAlpha(35),
+                blurRadius: 8,
+                offset: const Offset(0, 3),
+              ),
+            ]
+                : null,
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            horario,
+            style: TextStyle(
+              color: selecionado
+                  ? CoresApp.surface
+                  : CoresApp.darkBlue,
+              fontWeight: FontWeight.w800,
+              fontSize: 13,
+            ),
+          ),
+        ),
       ),
     );
   }

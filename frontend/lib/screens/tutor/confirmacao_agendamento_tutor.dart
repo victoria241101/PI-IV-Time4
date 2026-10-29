@@ -1,22 +1,17 @@
-
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 
-const Color _turquesaConfirmacao = Color(0xFF27B8B0);
-const Color _azulConfirmacao = Color(0xFF172A46);
-const Color _fundoConfirmacao = Color(0xFFF5F7FA);
-const Color _cinzaConfirmacao = Color(0xFF718096);
-
 class ConfirmacaoAgendamentoTutor extends StatefulWidget {
-  final DadosAgendamento dados;
-  final ValueChanged<DadosAgendamento>? onConfirmar;
-
   const ConfirmacaoAgendamentoTutor({
     super.key,
     required this.dados,
     this.onConfirmar,
   });
+
+  final DadosAgendamento dados;
+  final ValueChanged<DadosAgendamento>? onConfirmar;
 
   @override
   State<ConfirmacaoAgendamentoTutor> createState() =>
@@ -26,6 +21,7 @@ class ConfirmacaoAgendamentoTutor extends StatefulWidget {
 class _ConfirmacaoAgendamentoTutorState
     extends State<ConfirmacaoAgendamentoTutor> {
   bool _confirmado = false;
+  bool _finalizando = false;
 
   String get _dataFormatada =>
       '${widget.dados.data.day.toString().padLeft(2, '0')}/'
@@ -33,59 +29,93 @@ class _ConfirmacaoAgendamentoTutorState
           '${widget.dados.data.year}';
 
   void _finalizar() {
-    if (_confirmado) return;
+    if (_finalizando || _confirmado) return;
 
-    if (widget.onConfirmar == null) {
+    final callback = widget.onConfirmar;
+
+    if (callback == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text(
-            'Não foi possível concluir: o fluxo de consultas não recebeu '
-                'a ação de confirmação.',
+            'Não foi possível concluir: a confirmação do agendamento '
+                'ainda não está conectada.',
           ),
         ),
       );
       return;
     }
 
-    widget.onConfirmar!(widget.dados);
+    setState(() => _finalizando = true);
 
-    setState(() => _confirmado = true);
+    try {
+      callback(widget.dados);
 
-    // Volta à tela de consultas, removendo confirmação e detalhes.
-    // O callback do chamador não deve executar Navigator.pop().
-    Navigator.of(context).pop();
-    Navigator.of(context).pop();
+      if (!mounted) return;
+
+      setState(() {
+        _confirmado = true;
+        _finalizando = false;
+      });
+
+      // Retorna pelas telas de confirmação e detalhes até a tela
+      // de consultas, preservando o fluxo de navegação existente.
+      Navigator.of(context)
+        ..pop()
+        ..pop();
+    } catch (_) {
+      if (!mounted) return;
+
+      setState(() => _finalizando = false);
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(
+            'Não foi possível concluir o agendamento. Tente novamente.',
+          ),
+        ),
+      );
+    }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _fundoConfirmacao,
+      backgroundColor: CoresApp.background,
       appBar: AppBar(
-        backgroundColor: _fundoConfirmacao,
-        foregroundColor: _azulConfirmacao,
+        backgroundColor: CoresApp.background,
+        foregroundColor: CoresApp.darkBlue,
         elevation: 0,
+        scrolledUnderElevation: 0,
         automaticallyImplyLeading: false,
         title: const Text(
           'Confirmação',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            color: CoresApp.darkBlue,
+            fontSize: 20,
+            fontWeight: FontWeight.w800,
+            letterSpacing: -0.3,
+          ),
         ),
       ),
       body: SafeArea(
         child: ListView(
-          padding: const EdgeInsets.fromLTRB(24, 20, 24, 28),
+          padding: const EdgeInsets.fromLTRB(24, 8, 24, 28),
           children: [
-            Container(
-              width: 100,
-              height: 100,
-              decoration: const BoxDecoration(
-                color: Color(0xFFE2F7F3),
-                shape: BoxShape.circle,
-              ),
-              child: const Icon(
-                Icons.check_circle_rounded,
-                color: _turquesaConfirmacao,
-                size: 66,
+            const _EtapasConfirmacao(),
+            const SizedBox(height: 30),
+            Center(
+              child: Container(
+                width: 100,
+                height: 100,
+                decoration: BoxDecoration(
+                  color: CoresApp.primary.withAlpha(25),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.check_circle_rounded,
+                  color: CoresApp.primary,
+                  size: 66,
+                ),
               ),
             ),
             const SizedBox(height: 24),
@@ -93,142 +123,99 @@ class _ConfirmacaoAgendamentoTutorState
               'Tudo pronto!',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: _azulConfirmacao,
-                fontSize: 28,
-                fontWeight: FontWeight.bold,
+                color: CoresApp.darkBlue,
+                fontSize: 29,
+                height: 1.15,
+                fontWeight: FontWeight.w800,
+                letterSpacing: -0.7,
               ),
             ),
             const SizedBox(height: 10),
             const Text(
-              'Revise os dados abaixo e finalize para registrar o agendamento.',
+              'Confira o resumo e finalize para registrar '
+                  'o agendamento do seu pet.',
               textAlign: TextAlign.center,
               style: TextStyle(
-                color: _cinzaConfirmacao,
-                height: 1.5,
+                color: CoresApp.textSecondary,
+                fontSize: 14,
+                height: 1.6,
               ),
             ),
             const SizedBox(height: 28),
-            Container(
-              padding: const EdgeInsets.all(20),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.circular(22),
-                border: Border.all(color: const Color(0xFFE8EDF2)),
-              ),
-              child: Column(
-                children: [
-                  const Row(
-                    children: [
-                      Icon(
-                        Icons.event_available_outlined,
-                        color: _turquesaConfirmacao,
-                      ),
-                      SizedBox(width: 10),
-                      Text(
-                        'Resumo do agendamento',
-                        style: TextStyle(
-                          color: _azulConfirmacao,
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  _ItemConfirmacao(
-                    rotulo: 'Pet',
-                    valor: widget.dados.nomePet,
-                  ),
-                  _ItemConfirmacao(
-                    rotulo: 'Tipo de atendimento',
-                    valor: widget.dados.tipoAtendimento,
-                  ),
-                  _ItemConfirmacao(
-                    rotulo: 'Profissional',
-                    valor: widget.dados.veterinario,
-                  ),
-                  _ItemConfirmacao(
-                    rotulo: 'Data',
-                    valor: _dataFormatada,
-                  ),
-                  _ItemConfirmacao(
-                    rotulo: 'Horário',
-                    valor: widget.dados.horario,
-                  ),
-                  _ItemConfirmacao(
-                    rotulo: 'Prioridade',
-                    valor: widget.dados.urgente ? 'Urgente' : 'Normal',
-                    ultimo: true,
-                  ),
-                ],
-              ),
+            _CartaoConfirmacao(
+              dados: widget.dados,
+              dataFormatada: _dataFormatada,
             ),
             const SizedBox(height: 18),
-            Container(
-              padding: const EdgeInsets.all(14),
-              decoration: BoxDecoration(
-                color: const Color(0xFFE9F8F6),
-                borderRadius: BorderRadius.circular(14),
-              ),
-              child: const Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Icon(Icons.info_outline, color: _turquesaConfirmacao),
-                  SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      'A confirmação registra os dados no fluxo atual do aplicativo. '
-                          'A persistência no banco e a confirmação de disponibilidade '
-                          'dependem da integração com o backend.',
-                      style: TextStyle(
-                        color: _azulConfirmacao,
-                        fontSize: 12,
-                        height: 1.5,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(height: 24),
+            const _AvisoConfirmacao(),
+            const SizedBox(height: 28),
             SizedBox(
-              height: 54,
+              height: 56,
               child: ElevatedButton(
-                onPressed: _confirmado ? null : _finalizar,
+                onPressed: _finalizando || _confirmado
+                    ? null
+                    : _finalizar,
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: _turquesaConfirmacao,
-                  foregroundColor: Colors.white,
-                  disabledBackgroundColor: _turquesaConfirmacao,
-                  disabledForegroundColor: Colors.white,
+                  backgroundColor: CoresApp.primary,
+                  foregroundColor: CoresApp.surface,
+                  disabledBackgroundColor:
+                  CoresApp.primary.withAlpha(150),
+                  disabledForegroundColor: CoresApp.surface,
                   elevation: 0,
                   shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(16),
+                    borderRadius: BorderRadius.circular(17),
                   ),
                 ),
-                child: const Row(
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
-                    Icon(Icons.check_rounded),
-                    SizedBox(width: 8),
+                    if (_finalizando)
+                      const SizedBox(
+                        width: 19,
+                        height: 19,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: CoresApp.surface,
+                        ),
+                      )
+                    else
+                      const Icon(Icons.check_rounded),
+                    const SizedBox(width: 9),
                     Text(
-                      'Concluir agendamento',
-                      style: TextStyle(
+                      _finalizando
+                          ? 'Finalizando...'
+                          : 'Concluir agendamento',
+                      style: const TextStyle(
                         fontSize: 15,
-                        fontWeight: FontWeight.bold,
+                        fontWeight: FontWeight.w800,
                       ),
                     ),
                   ],
                 ),
               ),
             ),
-            const SizedBox(height: 10),
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Voltar ao checkout',
-                style: TextStyle(
-                  color: _azulConfirmacao,
-                  fontWeight: FontWeight.w600,
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 50,
+              child: OutlinedButton(
+                onPressed: _finalizando || _confirmado
+                    ? null
+                    : () => Navigator.of(context).pop(),
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: CoresApp.darkBlue,
+                  side: BorderSide(
+                    color: CoresApp.darkBlue.withAlpha(35),
+                  ),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(17),
+                  ),
+                ),
+                child: const Text(
+                  'Voltar ao checkout',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
             ),
@@ -239,43 +226,365 @@ class _ConfirmacaoAgendamentoTutorState
   }
 }
 
-class _ItemConfirmacao extends StatelessWidget {
-  final String rotulo;
-  final String valor;
-  final bool ultimo;
+class _EtapasConfirmacao extends StatelessWidget {
+  const _EtapasConfirmacao();
 
+  @override
+  Widget build(BuildContext context) {
+    const etapas = ['Data', 'Detalhes', 'Revisão'];
+
+    return Row(
+      children: List.generate(etapas.length, (index) {
+        final atual = index == 2;
+
+        return Expanded(
+          child: Padding(
+            padding: EdgeInsets.only(
+              right: index == etapas.length - 1 ? 0 : 10,
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Container(
+                  height: 6,
+                  decoration: BoxDecoration(
+                    color: atual
+                        ? CoresApp.accentOrange
+                        : CoresApp.primary,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                ),
+                const SizedBox(height: 9),
+                Row(
+                  children: [
+                    if (atual) ...[
+                      Container(
+                        width: 7,
+                        height: 7,
+                        decoration: const BoxDecoration(
+                          color: CoresApp.accentOrange,
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 5),
+                    ] else ...[
+                      const Icon(
+                        Icons.check_circle_rounded,
+                        size: 13,
+                        color: CoresApp.primary,
+                      ),
+                      const SizedBox(width: 4),
+                    ],
+                    Flexible(
+                      child: Text(
+                        etapas[index],
+                        overflow: TextOverflow.ellipsis,
+                        style: TextStyle(
+                          color: atual
+                              ? CoresApp.accentOrangeDark
+                              : CoresApp.darkBlue,
+                          fontSize: 12,
+                          fontWeight: FontWeight.w800,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        );
+      }),
+    );
+  }
+}
+
+class _CartaoConfirmacao extends StatelessWidget {
+  const _CartaoConfirmacao({
+    required this.dados,
+    required this.dataFormatada,
+  });
+
+  final DadosAgendamento dados;
+  final String dataFormatada;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(20),
+      decoration: BoxDecoration(
+        color: CoresApp.surface,
+        borderRadius: BorderRadius.circular(23),
+        border: Border.all(color: CoresApp.divider),
+        boxShadow: [
+          BoxShadow(
+            color: CoresApp.darkBlue.withAlpha(8),
+            blurRadius: 18,
+            offset: const Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 44,
+                height: 44,
+                decoration: BoxDecoration(
+                  color: CoresApp.primary.withAlpha(20),
+                  borderRadius: BorderRadius.circular(14),
+                ),
+                child: const Icon(
+                  Icons.event_available_outlined,
+                  color: CoresApp.primary,
+                  size: 24,
+                ),
+              ),
+              const SizedBox(width: 12),
+              const Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Resumo do agendamento',
+                      style: TextStyle(
+                        color: CoresApp.darkBlue,
+                        fontSize: 17,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                    SizedBox(height: 3),
+                    Text(
+                      'Revise os dados antes de concluir',
+                      style: TextStyle(
+                        color: CoresApp.textSecondary,
+                        fontSize: 11,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 22),
+          const Divider(
+            height: 1,
+            color: CoresApp.divider,
+          ),
+          const SizedBox(height: 20),
+          _ItemConfirmacao(
+            icone: Icons.pets_outlined,
+            rotulo: 'Pet',
+            valor: dados.nomePet,
+          ),
+          _ItemConfirmacao(
+            icone: Icons.medical_services_outlined,
+            rotulo: 'Tipo de atendimento',
+            valor: dados.tipoAtendimento,
+          ),
+          _ItemConfirmacao(
+            icone: Icons.person_outline_rounded,
+            rotulo: 'Profissional',
+            valor: dados.veterinario,
+          ),
+          _ItemConfirmacao(
+            icone: Icons.calendar_month_outlined,
+            rotulo: 'Data',
+            valor: dataFormatada,
+          ),
+          _ItemConfirmacao(
+            icone: Icons.schedule_rounded,
+            rotulo: 'Horário',
+            valor: dados.horario,
+            ultimo: !dados.urgente,
+          ),
+          if (dados.urgente) ...[
+            const SizedBox(height: 4),
+            Container(
+              width: double.infinity,
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: CoresApp.surfaceSoft,
+                borderRadius: BorderRadius.circular(13),
+                border: Border.all(
+                  color: CoresApp.accentOrange.withAlpha(80),
+                ),
+              ),
+              child: const Row(
+                children: [
+                  Icon(
+                    Icons.priority_high_rounded,
+                    color: CoresApp.accentOrangeDark,
+                    size: 21,
+                  ),
+                  SizedBox(width: 9),
+                  Expanded(
+                    child: Text(
+                      'Atendimento marcado como urgente',
+                      style: TextStyle(
+                        color: CoresApp.accentOrangeDark,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+          const SizedBox(height: 18),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(13),
+            decoration: BoxDecoration(
+              color: CoresApp.surfaceSoft,
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(
+                  Icons.verified_outlined,
+                  color: CoresApp.accentOrangeDark,
+                  size: 21,
+                ),
+                SizedBox(width: 9),
+                Expanded(
+                  child: Text(
+                    'Confira se todas as informações estão corretas '
+                        'antes de concluir.',
+                    style: TextStyle(
+                      color: CoresApp.textSecondary,
+                      fontSize: 12,
+                      height: 1.5,
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ItemConfirmacao extends StatelessWidget {
   const _ItemConfirmacao({
+    required this.icone,
     required this.rotulo,
     required this.valor,
     this.ultimo = false,
   });
 
+  final IconData icone;
+  final String rotulo;
+  final String valor;
+  final bool ultimo;
+
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(bottom: ultimo ? 0 : 16),
+      padding: EdgeInsets.only(
+        bottom: ultimo ? 0 : 19,
+      ),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Expanded(
-            child: Text(
-              rotulo,
-              style: const TextStyle(
-                color: _cinzaConfirmacao,
-                fontSize: 13,
-              ),
+          Container(
+            width: 36,
+            height: 36,
+            decoration: BoxDecoration(
+              color: CoresApp.primary.withAlpha(20),
+              borderRadius: BorderRadius.circular(11),
+            ),
+            child: Icon(
+              icone,
+              color: CoresApp.primary,
+              size: 19,
             ),
           ),
           const SizedBox(width: 12),
-          Flexible(
-            child: Text(
-              valor,
-              textAlign: TextAlign.right,
-              style: const TextStyle(
-                color: _azulConfirmacao,
-                fontSize: 13,
-                fontWeight: FontWeight.w600,
-              ),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  rotulo,
+                  style: const TextStyle(
+                    color: CoresApp.textSecondary,
+                    fontSize: 12,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  valor,
+                  style: const TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontSize: 14,
+                    height: 1.35,
+                    fontWeight: FontWeight.w700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _AvisoConfirmacao extends StatelessWidget {
+  const _AvisoConfirmacao();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: CoresApp.surfaceSoft,
+        borderRadius: BorderRadius.circular(17),
+        border: Border.all(
+          color: CoresApp.primary.withAlpha(35),
+        ),
+      ),
+      child: const Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(
+            Icons.info_outline_rounded,
+            color: CoresApp.primary,
+            size: 22,
+          ),
+          SizedBox(width: 11),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Importante',
+                  style: TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontSize: 13,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                SizedBox(height: 5),
+                Text(
+                  'A confirmação registra os dados no fluxo atual '
+                      'do aplicativo. A persistência no banco e a '
+                      'confirmação de disponibilidade dependem da '
+                      'integração com o backend.',
+                  style: TextStyle(
+                    color: CoresApp.textSecondary,
+                    fontSize: 12,
+                    height: 1.55,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
