@@ -1,30 +1,384 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/barra_nav_tutor.dart';
 
-class PerfilTutor extends StatelessWidget {
+class PerfilTutor extends StatefulWidget {
   const PerfilTutor({super.key});
 
-  void _voltarParaAba(BuildContext context, int index) {
-    if (index == 4) return;
+  @override
+  State<PerfilTutor> createState() => _PerfilTutorState();
+}
 
-    Navigator.of(context).pop(index);
-  }
+class _PerfilTutorState extends State<PerfilTutor> {
+  final _formKey = GlobalKey<FormState>();
 
-  void _mostrarAviso(BuildContext context, String mensagem) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(mensagem),
-        behavior: SnackBarBehavior.floating,
-      ),
+  late final TextEditingController _nomeController;
+  late final TextEditingController _emailController;
+
+  bool _salvandoPerfil = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _nomeController = TextEditingController(
+      text: SessaoUsuario.instancia.nomeUsuario ?? '',
+    );
+
+    _emailController = TextEditingController(
+      text: SessaoUsuario.instancia.emailUsuario ?? '',
     );
   }
 
-  Future<void> _sair(BuildContext context) async {
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _emailController.dispose();
+    super.dispose();
+  }
+
+  void _mostrarMensagem(String mensagem) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(mensagem),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  // ============================================================
+  // EDITAR PERFIL
+  // ============================================================
+
+  Future<void> _editarPerfil() async {
+    _nomeController.text =
+        SessaoUsuario.instancia.nomeUsuario ?? '';
+
+    _emailController.text =
+        SessaoUsuario.instancia.emailUsuario ?? '';
+
+    await showDialog<void>(
+      context: context,
+      builder: (dialogContext) {
+        bool salvando = false;
+
+        return StatefulBuilder(
+          builder: (contextDialogo, atualizarDialogo) {
+            return AlertDialog(
+              backgroundColor: CoresApp.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(24),
+              ),
+              title: const Text(
+                'Editar perfil',
+                style: TextStyle(
+                  color: CoresApp.darkBlue,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              content: Form(
+                key: _formKey,
+                child: SingleChildScrollView(
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      TextFormField(
+                        controller: _nomeController,
+                        textCapitalization:
+                        TextCapitalization.words,
+                        decoration: const InputDecoration(
+                          labelText: 'Nome completo',
+                          prefixIcon: Icon(Icons.person_outline),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (valor) {
+                          if (valor == null ||
+                              valor.trim().isEmpty) {
+                            return 'Informe seu nome.';
+                          }
+
+                          if (valor.trim().length < 2) {
+                            return 'Digite um nome válido.';
+                          }
+
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType:
+                        TextInputType.emailAddress,
+                        decoration: const InputDecoration(
+                          labelText: 'E-mail',
+                          prefixIcon: Icon(Icons.email_outlined),
+                          border: OutlineInputBorder(),
+                        ),
+                        validator: (valor) {
+                          final email = valor?.trim() ?? '';
+
+                          if (email.isEmpty) {
+                            return 'Informe seu e-mail.';
+                          }
+
+                          final formatoValido = RegExp(
+                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                          ).hasMatch(email);
+
+                          if (!formatoValido) {
+                            return 'Informe um e-mail válido.';
+                          }
+
+                          return null;
+                        },
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: salvando
+                      ? null
+                      : () => Navigator.of(dialogContext).pop(),
+                  child: const Text('Cancelar'),
+                ),
+                FilledButton(
+                  onPressed: salvando
+                      ? null
+                      : () {
+                    if (!_formKey.currentState!
+                        .validate()) {
+                      return;
+                    }
+
+                    atualizarDialogo(() {
+                      salvando = true;
+                    });
+
+                    // A sessão atual expõe os dados para leitura,
+                    // mas não temos aqui um método confirmado
+                    // para persistir as alterações no backend.
+                    atualizarDialogo(() {
+                      salvando = false;
+                    });
+
+                    Navigator.of(dialogContext).pop();
+
+                    _mostrarMensagem(
+                      'O formulário foi validado. '
+                          'A gravação permanente depende da '
+                          'integração de atualização do usuário.',
+                    );
+                  },
+                  child: salvando
+                      ? const SizedBox(
+                    width: 18,
+                    height: 18,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                    ),
+                  )
+                      : const Text('Salvar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // ============================================================
+  // ALTERAR SENHA
+  // ============================================================
+
+  Future<void> _alterarSenha() async {
+    final formKeySenha = GlobalKey<FormState>();
+
+    final senhaAtualController = TextEditingController();
+    final novaSenhaController = TextEditingController();
+    final confirmarSenhaController = TextEditingController();
+
+    bool mostrarSenhaAtual = false;
+    bool mostrarNovaSenha = false;
+    bool mostrarConfirmacao = false;
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          return StatefulBuilder(
+            builder: (contextDialogo, atualizarDialogo) {
+              return AlertDialog(
+                backgroundColor: CoresApp.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                title: const Text(
+                  'Alterar senha',
+                  style: TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                content: Form(
+                  key: formKeySenha,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: senhaAtualController,
+                          obscureText: !mostrarSenhaAtual,
+                          decoration: InputDecoration(
+                            labelText: 'Senha atual',
+                            prefixIcon:
+                            const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(() {
+                                  mostrarSenhaAtual =
+                                  !mostrarSenhaAtual;
+                                });
+                              },
+                              icon: Icon(
+                                mostrarSenhaAtual
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
+                              return 'Informe sua senha atual.';
+                            }
+
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: novaSenhaController,
+                          obscureText: !mostrarNovaSenha,
+                          decoration: InputDecoration(
+                            labelText: 'Nova senha',
+                            prefixIcon:
+                            const Icon(Icons.lock_reset),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(() {
+                                  mostrarNovaSenha =
+                                  !mostrarNovaSenha;
+                                });
+                              },
+                              icon: Icon(
+                                mostrarNovaSenha
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
+                              return 'Informe a nova senha.';
+                            }
+
+                            if (valor.length < 8) {
+                              return 'Use pelo menos 8 caracteres.';
+                            }
+
+                            if (valor == senhaAtualController.text) {
+                              return 'Escolha uma senha diferente.';
+                            }
+
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: confirmarSenhaController,
+                          obscureText: !mostrarConfirmacao,
+                          decoration: InputDecoration(
+                            labelText: 'Confirmar nova senha',
+                            prefixIcon:
+                            const Icon(Icons.verified_user_outlined),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(() {
+                                  mostrarConfirmacao =
+                                  !mostrarConfirmacao;
+                                });
+                              },
+                              icon: Icon(
+                                mostrarConfirmacao
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor != novaSenhaController.text) {
+                              return 'As senhas não coincidem.';
+                            }
+
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: () {
+                      Navigator.of(dialogContext).pop();
+                    },
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: () {
+                      if (!formKeySenha.currentState!.validate()) {
+                        return;
+                      }
+
+                      Navigator.of(dialogContext).pop();
+
+                      _mostrarMensagem(
+                        'Os dados foram validados. '
+                            'A alteração efetiva da senha precisa '
+                            'ser conectada ao serviço de autenticação.',
+                      );
+                    },
+                    child: const Text('Alterar senha'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      senhaAtualController.dispose();
+      novaSenhaController.dispose();
+      confirmarSenhaController.dispose();
+    }
+  }
+
+  // ============================================================
+  // SAIR DA CONTA
+  // ============================================================
+
+  Future<void> _sair() async {
     final confirmar = await showDialog<bool>(
       context: context,
       builder: (dialogContext) {
@@ -49,13 +403,15 @@ class PerfilTutor extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, false),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(false);
+              },
               child: const Text('Cancelar'),
             ),
             TextButton(
-              onPressed: () =>
-                  Navigator.pop(dialogContext, true),
+              onPressed: () {
+                Navigator.of(dialogContext).pop(true);
+              },
               child: const Text(
                 'Sair',
                 style: TextStyle(
@@ -69,18 +425,21 @@ class PerfilTutor extends StatelessWidget {
       },
     );
 
-    if (confirmar != true) return;
+    if (confirmar != true || !mounted) return;
 
     await SessaoUsuario.instancia.sair();
 
-    if (!context.mounted) return;
+    if (!mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
+    Navigator.of(context).pushNamedAndRemoveUntil(
       '/login',
           (route) => false,
     );
   }
+
+  // ============================================================
+  // BUILD
+  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -92,17 +451,13 @@ class PerfilTutor extends StatelessWidget {
           builder: (context, child) {
             final nome = SessaoUsuario
                 .instancia.nomeUsuario
-                ?.trim()
-                .isNotEmpty == true
-                ? SessaoUsuario.instancia.nomeUsuario!.trim()
-                : 'Usuário';
+                ?.trim() ??
+                '';
 
             final email = SessaoUsuario
                 .instancia.emailUsuario
-                ?.trim()
-                .isNotEmpty == true
-                ? SessaoUsuario.instancia.emailUsuario!.trim()
-                : 'E-mail não informado';
+                ?.trim() ??
+                '';
 
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
@@ -114,165 +469,55 @@ class PerfilTutor extends StatelessWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Row(
-                    children: [
-                      Container(
-                        width: 46,
-                        height: 46,
-                        decoration: BoxDecoration(
-                          color: CoresApp.primary.withAlpha(20),
-                          borderRadius: BorderRadius.circular(15),
-                        ),
-                        child: const Icon(
-                          Icons.person_rounded,
-                          color: CoresApp.primary,
-                          size: 27,
-                        ),
-                      ),
-                      const SizedBox(
-                        width: EspacamentosApp.md,
-                      ),
-                      const Expanded(
-                        child: Column(
-                          crossAxisAlignment:
-                          CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              'PetCare',
-                              style: TextStyle(
-                                fontSize: 13,
-                                fontWeight: FontWeight.w700,
-                                color: CoresApp.textSecondary,
-                              ),
-                            ),
-                            Text(
-                              'Meu perfil',
-                              style: TextStyle(
-                                fontSize: 23,
-                                fontWeight: FontWeight.w800,
-                                color: CoresApp.darkBlue,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: EspacamentosApp.sm),
                   const Text(
-                    'Gerencie suas informações e configurações da conta.',
+                    'Meu perfil',
+                    style: TextStyle(
+                      fontSize: 28,
+                      fontWeight: FontWeight.w800,
+                      color: CoresApp.darkBlue,
+                    ),
+                  ),
+                  const SizedBox(
+                    height: EspacamentosApp.sm,
+                  ),
+                  const Text(
+                    'Gerencie suas informações e configurações '
+                        'da conta.',
                     style: TextStyle(
                       fontSize: 14,
                       height: 1.45,
                       color: CoresApp.textSecondary,
                     ),
                   ),
-                  const SizedBox(height: EspacamentosApp.lg),
-
-                  // Dados do tutor
-                  Container(
-                    width: double.infinity,
-                    padding: const EdgeInsets.all(
-                      EspacamentosApp.lg,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(28),
-                      border: Border.all(
-                        color: Colors.black.withAlpha(10),
-                      ),
-                      boxShadow: [
-                        BoxShadow(
-                          color: CoresApp.darkBlue.withAlpha(18),
-                          blurRadius: 22,
-                          offset: const Offset(0, 10),
-                        ),
-                      ],
-                    ),
-                    child: Column(
-                      children: [
-                        Container(
-                          width: 92,
-                          height: 92,
-                          decoration: BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: CoresApp.primary.withAlpha(20),
-                            border: Border.all(
-                              color: CoresApp.primary,
-                              width: 2,
-                            ),
-                          ),
-                          child: const Icon(
-                            Icons.person_rounded,
-                            color: CoresApp.primary,
-                            size: 48,
-                          ),
-                        ),
-                        const SizedBox(height: EspacamentosApp.md),
-                        Text(
-                          nome,
-                          textAlign: TextAlign.center,
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: CoresApp.darkBlue,
-                          ),
-                        ),
-                        const SizedBox(height: EspacamentosApp.lg),
-                        _InformacaoPerfilTutor(
-                          icone: Icons.email_outlined,
-                          titulo: 'E-mail',
-                          valor: email,
-                        ),
-                        const SizedBox(height: EspacamentosApp.sm),
-                        const _InformacaoPerfilTutor(
-                          icone: Icons.phone_outlined,
-                          titulo: 'Telefone',
-                          valor: 'Não informado',
-                        ),
-                        const SizedBox(height: EspacamentosApp.sm),
-                        const _InformacaoPerfilTutor(
-                          icone: Icons.badge_outlined,
-                          titulo: 'CPF',
-                          valor: 'Não informado',
-                        ),
-                        const SizedBox(height: EspacamentosApp.lg),
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton.icon(
-                            onPressed: () => _mostrarAviso(
-                              context,
-                              'A edição do perfil será implementada em seguida.',
-                            ),
-                            icon: const Icon(
-                              Icons.edit_rounded,
-                              size: 19,
-                            ),
-                            label: const Text(
-                              'Editar perfil',
-                              style: TextStyle(
-                                fontWeight: FontWeight.w800,
-                              ),
-                            ),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: CoresApp.darkBlue,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              padding: const EdgeInsets.symmetric(
-                                vertical: 15,
-                              ),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
+                  const SizedBox(
+                    height: EspacamentosApp.xl,
                   ),
-
-                  const SizedBox(height: EspacamentosApp.lg),
-
+                  _CardPerfilTutor(
+                    nome: nome.isEmpty ? 'Tutor' : nome,
+                    email: email.isEmpty
+                        ? 'E-mail não informado'
+                        : email,
+                    onEditar: _editarPerfil,
+                  ),
+                  const SizedBox(
+                    height: EspacamentosApp.xl,
+                  ),
+                  _SecaoPerfilTutor(
+                    titulo: 'Minha conta',
+                    icone: Icons.person_outline_rounded,
+                    children: [
+                      _ItemPerfilTutor(
+                        icone: Icons.edit_outlined,
+                        titulo: 'Editar perfil',
+                        descricao:
+                        'Atualize suas informações pessoais.',
+                        onTap: _editarPerfil,
+                      ),
+                    ],
+                  ),
+                  const SizedBox(
+                    height: EspacamentosApp.lg,
+                  ),
                   _SecaoPerfilTutor(
                     titulo: 'Segurança',
                     icone: Icons.shield_outlined,
@@ -281,13 +526,12 @@ class PerfilTutor extends StatelessWidget {
                         icone: Icons.lock_reset_rounded,
                         titulo: 'Alterar senha',
                         descricao:
-                        'Atualize a senha usada para acessar sua conta.',
-                        onTap: () => _mostrarAviso(
-                          context,
-                          'A alteração de senha será implementada em seguida.',
-                        ),
+                        'Defina uma nova senha para sua conta.',
+                        onTap: _alterarSenha,
                       ),
-                      const SizedBox(height: EspacamentosApp.sm),
+                      const SizedBox(
+                        height: EspacamentosApp.sm,
+                      ),
                       const _ItemPerfilTutor(
                         icone: Icons.verified_user_outlined,
                         titulo: 'Conta autenticada',
@@ -297,26 +541,26 @@ class PerfilTutor extends StatelessWidget {
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: EspacamentosApp.lg),
-
+                  const SizedBox(
+                    height: EspacamentosApp.lg,
+                  ),
                   _SecaoPerfilTutor(
                     titulo: 'Conta',
-                    icone: Icons.person_outline_rounded,
+                    icone: Icons.settings_outlined,
                     children: [
                       _ItemPerfilTutor(
                         icone: Icons.logout_rounded,
                         titulo: 'Sair da conta',
                         descricao:
                         'Encerrar sua sessão neste dispositivo.',
+                        onTap: _sair,
                         corIcone: CoresApp.primary,
-                        onTap: () => _sair(context),
                       ),
                     ],
                   ),
-
-                  const SizedBox(height: EspacamentosApp.xl),
-
+                  const SizedBox(
+                    height: EspacamentosApp.xl,
+                  ),
                   const Center(
                     child: Text(
                       'PetCare • Cuidar também é uma forma de amar.',
@@ -334,65 +578,109 @@ class PerfilTutor extends StatelessWidget {
           },
         ),
       ),
-      bottomNavigationBar: BarraNavTutor(
-        currentIndex: 4,
-        onTap: (index) => _voltarParaAba(context, index),
-      ),
     );
   }
 }
 
-class _InformacaoPerfilTutor extends StatelessWidget {
-  const _InformacaoPerfilTutor({
-    required this.icone,
-    required this.titulo,
-    required this.valor,
+// ============================================================
+// CARTÃO DO PERFIL
+// ============================================================
+
+class _CardPerfilTutor extends StatelessWidget {
+  const _CardPerfilTutor({
+    required this.nome,
+    required this.email,
+    required this.onEditar,
   });
 
-  final IconData icone;
-  final String titulo;
-  final String valor;
+  final String nome;
+  final String email;
+  final VoidCallback onEditar;
 
   @override
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      decoration: BoxDecoration(
-        color: CoresApp.background,
-        borderRadius: BorderRadius.circular(16),
+      padding: const EdgeInsets.all(
+        EspacamentosApp.lg,
       ),
-      child: Row(
-        children: [
-          Icon(
-            icone,
-            color: CoresApp.primary,
-            size: 20,
+      decoration: BoxDecoration(
+        color: CoresApp.surface,
+        borderRadius: BorderRadius.circular(28),
+        border: Border.all(
+          color: CoresApp.darkBlue.withAlpha(10),
+        ),
+        boxShadow: [
+          BoxShadow(
+            color: CoresApp.darkBlue.withAlpha(18),
+            blurRadius: 22,
+            offset: const Offset(0, 10),
           ),
-          const SizedBox(width: EspacamentosApp.md),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  titulo,
-                  style: const TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w700,
-                    color: CoresApp.textSecondary,
-                  ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Container(
+            width: 92,
+            height: 92,
+            decoration: BoxDecoration(
+              shape: BoxShape.circle,
+              color: CoresApp.primary.withAlpha(20),
+              border: Border.all(
+                color: CoresApp.primary,
+                width: 2,
+              ),
+            ),
+            child: const Icon(
+              Icons.person_rounded,
+              color: CoresApp.primary,
+              size: 48,
+            ),
+          ),
+          const SizedBox(
+            height: EspacamentosApp.md,
+          ),
+          Text(
+            nome,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 22,
+              fontWeight: FontWeight.w800,
+              color: CoresApp.darkBlue,
+            ),
+          ),
+          const SizedBox(
+            height: EspacamentosApp.sm,
+          ),
+          Text(
+            email,
+            textAlign: TextAlign.center,
+            style: const TextStyle(
+              fontSize: 13,
+              color: CoresApp.textSecondary,
+            ),
+          ),
+          const SizedBox(
+            height: EspacamentosApp.lg,
+          ),
+          SizedBox(
+            width: double.infinity,
+            child: OutlinedButton.icon(
+              onPressed: onEditar,
+              icon: const Icon(Icons.edit_outlined),
+              label: const Text('Editar informações'),
+              style: OutlinedButton.styleFrom(
+                foregroundColor: CoresApp.primary,
+                side: const BorderSide(
+                  color: CoresApp.primary,
                 ),
-                const SizedBox(height: 2),
-                Text(
-                  valor,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: CoresApp.darkBlue,
-                  ),
+                padding: const EdgeInsets.symmetric(
+                  vertical: EspacamentosApp.md,
                 ),
-              ],
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(14),
+                ),
+              ),
             ),
           ),
         ],
@@ -400,6 +688,10 @@ class _InformacaoPerfilTutor extends StatelessWidget {
     );
   }
 }
+
+// ============================================================
+// SEÇÕES DO PERFIL
+// ============================================================
 
 class _SecaoPerfilTutor extends StatelessWidget {
   const _SecaoPerfilTutor({
@@ -414,44 +706,41 @@ class _SecaoPerfilTutor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(22),
-        border: Border.all(
-          color: Colors.black.withAlpha(10),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Icon(
+              icone,
+              color: CoresApp.primary,
+              size: 22,
+            ),
+            const SizedBox(
+              width: EspacamentosApp.sm,
+            ),
+            Text(
+              titulo,
+              style: const TextStyle(
+                fontSize: 16,
+                fontWeight: FontWeight.w800,
+                color: CoresApp.darkBlue,
+              ),
+            ),
+          ],
         ),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(
-                icone,
-                color: CoresApp.primary,
-                size: 20,
-              ),
-              const SizedBox(width: EspacamentosApp.sm),
-              Text(
-                titulo,
-                style: const TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w800,
-                  color: CoresApp.darkBlue,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: EspacamentosApp.md),
-          ...children,
-        ],
-      ),
+        const SizedBox(
+          height: EspacamentosApp.md,
+        ),
+        ...children,
+      ],
     );
   }
 }
+
+// ============================================================
+// ITENS CLICÁVEIS
+// ============================================================
 
 class _ItemPerfilTutor extends StatelessWidget {
   const _ItemPerfilTutor({
@@ -473,9 +762,11 @@ class _ItemPerfilTutor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final conteudo = Container(
-      padding: const EdgeInsets.all(EspacamentosApp.md),
+      padding: const EdgeInsets.all(
+        EspacamentosApp.md,
+      ),
       decoration: BoxDecoration(
-        color: CoresApp.background,
+        color: CoresApp.surface,
         borderRadius: BorderRadius.circular(16),
       ),
       child: Row(
@@ -483,9 +774,11 @@ class _ItemPerfilTutor extends StatelessWidget {
           Icon(
             icone,
             color: corIcone ?? CoresApp.primary,
-            size: 21,
+            size: 22,
           ),
-          const SizedBox(width: EspacamentosApp.md),
+          const SizedBox(
+            width: EspacamentosApp.md,
+          ),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -498,12 +791,12 @@ class _ItemPerfilTutor extends StatelessWidget {
                     color: CoresApp.darkBlue,
                   ),
                 ),
-                const SizedBox(height: 3),
+                const SizedBox(height: 4),
                 Text(
                   descricao,
                   style: const TextStyle(
                     fontSize: 11,
-                    height: 1.35,
+                    height: 1.4,
                     color: CoresApp.textSecondary,
                   ),
                 ),
@@ -520,7 +813,9 @@ class _ItemPerfilTutor extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) return conteudo;
+    if (onTap == null) {
+      return conteudo;
+    }
 
     return Material(
       color: Colors.transparent,
