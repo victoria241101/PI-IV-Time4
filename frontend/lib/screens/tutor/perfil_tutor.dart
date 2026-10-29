@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -12,34 +13,9 @@ class PerfilTutor extends StatefulWidget {
 }
 
 class _PerfilTutorState extends State<PerfilTutor> {
-  final _formKey = GlobalKey<FormState>();
-
-  late final TextEditingController _nomeController;
-  late final TextEditingController _emailController;
-
   bool _salvandoPerfil = false;
 
-  @override
-  void initState() {
-    super.initState();
-
-    _nomeController = TextEditingController(
-      text: SessaoUsuario.instancia.nomeUsuario ?? '',
-    );
-
-    _emailController = TextEditingController(
-      text: SessaoUsuario.instancia.emailUsuario ?? '',
-    );
-  }
-
-  @override
-  void dispose() {
-    _nomeController.dispose();
-    _emailController.dispose();
-    super.dispose();
-  }
-
-  void _mostrarMensagem(String mensagem) {
+  void _mensagem(String mensagem) {
     if (!mounted) return;
 
     ScaffoldMessenger.of(context)
@@ -57,142 +33,165 @@ class _PerfilTutorState extends State<PerfilTutor> {
   // ============================================================
 
   Future<void> _editarPerfil() async {
-    _nomeController.text =
-        SessaoUsuario.instancia.nomeUsuario ?? '';
+    final formKey = GlobalKey<FormState>();
 
-    _emailController.text =
-        SessaoUsuario.instancia.emailUsuario ?? '';
+    final nomeController = TextEditingController(
+      text: SessaoUsuario.instancia.nomeUsuario ?? '',
+    );
 
-    await showDialog<void>(
-      context: context,
-      builder: (dialogContext) {
-        bool salvando = false;
+    final emailController = TextEditingController(
+      text: SessaoUsuario.instancia.emailUsuario ?? '',
+    );
 
-        return StatefulBuilder(
-          builder: (contextDialogo, atualizarDialogo) {
-            return AlertDialog(
-              backgroundColor: CoresApp.surface,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(24),
-              ),
-              title: const Text(
-                'Editar perfil',
-                style: TextStyle(
-                  color: CoresApp.darkBlue,
-                  fontWeight: FontWeight.w800,
+    try {
+      final resultado = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          bool salvando = false;
+
+          return StatefulBuilder(
+            builder: (contextDialogo, atualizarDialogo) {
+              return AlertDialog(
+                backgroundColor: CoresApp.surface,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
                 ),
-              ),
-              content: Form(
-                key: _formKey,
-                child: SingleChildScrollView(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      TextFormField(
-                        controller: _nomeController,
-                        textCapitalization:
-                        TextCapitalization.words,
-                        decoration: const InputDecoration(
-                          labelText: 'Nome completo',
-                          prefixIcon: Icon(Icons.person_outline),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (valor) {
-                          if (valor == null ||
-                              valor.trim().isEmpty) {
-                            return 'Informe seu nome.';
-                          }
-
-                          if (valor.trim().length < 2) {
-                            return 'Digite um nome válido.';
-                          }
-
-                          return null;
-                        },
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: _emailController,
-                        keyboardType:
-                        TextInputType.emailAddress,
-                        decoration: const InputDecoration(
-                          labelText: 'E-mail',
-                          prefixIcon: Icon(Icons.email_outlined),
-                          border: OutlineInputBorder(),
-                        ),
-                        validator: (valor) {
-                          final email = valor?.trim() ?? '';
-
-                          if (email.isEmpty) {
-                            return 'Informe seu e-mail.';
-                          }
-
-                          final formatoValido = RegExp(
-                            r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
-                          ).hasMatch(email);
-
-                          if (!formatoValido) {
-                            return 'Informe um e-mail válido.';
-                          }
-
-                          return null;
-                        },
-                      ),
-                    ],
+                title: const Text(
+                  'Editar perfil',
+                  style: TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontWeight: FontWeight.w800,
                   ),
                 ),
-              ),
-              actions: [
-                TextButton(
-                  onPressed: salvando
-                      ? null
-                      : () => Navigator.of(dialogContext).pop(),
-                  child: const Text('Cancelar'),
-                ),
-                FilledButton(
-                  onPressed: salvando
-                      ? null
-                      : () {
-                    if (!_formKey.currentState!
-                        .validate()) {
-                      return;
-                    }
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: nomeController,
+                          enabled: !salvando,
+                          textCapitalization:
+                          TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome completo',
+                            prefixIcon: Icon(
+                              Icons.person_outline,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null ||
+                                valor.trim().length < 2) {
+                              return 'Informe seu nome completo.';
+                            }
 
-                    atualizarDialogo(() {
-                      salvando = true;
-                    });
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: emailController,
+                          enabled: !salvando,
+                          keyboardType:
+                          TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail',
+                            prefixIcon: Icon(
+                              Icons.email_outlined,
+                            ),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            final email = valor?.trim() ?? '';
 
-                    // A sessão atual expõe os dados para leitura,
-                    // mas não temos aqui um método confirmado
-                    // para persistir as alterações no backend.
-                    atualizarDialogo(() {
-                      salvando = false;
-                    });
+                            if (!RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(email)) {
+                              return 'Informe um e-mail válido.';
+                            }
 
-                    Navigator.of(dialogContext).pop();
-
-                    _mostrarMensagem(
-                      'O formulário foi validado. '
-                          'A gravação permanente depende da '
-                          'integração de atualização do usuário.',
-                    );
-                  },
-                  child: salvando
-                      ? const SizedBox(
-                    width: 18,
-                    height: 18,
-                    child: CircularProgressIndicator(
-                      strokeWidth: 2,
+                            return null;
+                          },
+                        ),
+                      ],
                     ),
-                  )
-                      : const Text('Salvar'),
+                  ),
                 ),
-              ],
-            );
-          },
-        );
-      },
-    );
+                actions: [
+                  TextButton(
+                    onPressed: salvando
+                        ? null
+                        : () {
+                      Navigator.of(dialogContext).pop(false);
+                    },
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: salvando
+                        ? null
+                        : () async {
+                      if (!formKey.currentState!.validate()) {
+                        return;
+                      }
+
+                      atualizarDialogo(() {
+                        salvando = true;
+                      });
+
+                      try {
+                        await SessaoUsuario.instancia
+                            .atualizarPerfil(
+                          nome: nomeController.text,
+                          email: emailController.text,
+                        );
+
+                        if (!dialogContext.mounted) return;
+
+                        Navigator.of(dialogContext).pop(true);
+                      } catch (erro) {
+                        if (!dialogContext.mounted) return;
+
+                        atualizarDialogo(() {
+                          salvando = false;
+                        });
+
+                        ScaffoldMessenger.of(dialogContext)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Não foi possível salvar: $erro',
+                              ),
+                            ),
+                          );
+                      }
+                    },
+                    child: salvando
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                      ),
+                    )
+                        : const Text('Salvar alterações'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (resultado == true && mounted) {
+        _mensagem('Perfil atualizado com sucesso.');
+      }
+    } finally {
+      nomeController.dispose();
+      emailController.dispose();
+    }
   }
 
   // ============================================================
@@ -200,20 +199,20 @@ class _PerfilTutorState extends State<PerfilTutor> {
   // ============================================================
 
   Future<void> _alterarSenha() async {
-    final formKeySenha = GlobalKey<FormState>();
+    final formKey = GlobalKey<FormState>();
 
     final senhaAtualController = TextEditingController();
     final novaSenhaController = TextEditingController();
     final confirmarSenhaController = TextEditingController();
 
-    bool mostrarSenhaAtual = false;
-    bool mostrarNovaSenha = false;
-    bool mostrarConfirmacao = false;
-
     try {
       await showDialog<void>(
         context: context,
         builder: (dialogContext) {
+          bool mostrarSenhaAtual = false;
+          bool mostrarNovaSenha = false;
+          bool mostrarConfirmacao = false;
+
           return StatefulBuilder(
             builder: (contextDialogo, atualizarDialogo) {
               return AlertDialog(
@@ -229,7 +228,7 @@ class _PerfilTutorState extends State<PerfilTutor> {
                   ),
                 ),
                 content: Form(
-                  key: formKeySenha,
+                  key: formKey,
                   child: SingleChildScrollView(
                     child: Column(
                       mainAxisSize: MainAxisSize.min,
@@ -239,8 +238,9 @@ class _PerfilTutorState extends State<PerfilTutor> {
                           obscureText: !mostrarSenhaAtual,
                           decoration: InputDecoration(
                             labelText: 'Senha atual',
-                            prefixIcon:
-                            const Icon(Icons.lock_outline),
+                            prefixIcon: const Icon(
+                              Icons.lock_outline,
+                            ),
                             suffixIcon: IconButton(
                               onPressed: () {
                                 atualizarDialogo(() {
@@ -270,8 +270,9 @@ class _PerfilTutorState extends State<PerfilTutor> {
                           obscureText: !mostrarNovaSenha,
                           decoration: InputDecoration(
                             labelText: 'Nova senha',
-                            prefixIcon:
-                            const Icon(Icons.lock_reset),
+                            prefixIcon: const Icon(
+                              Icons.lock_reset,
+                            ),
                             suffixIcon: IconButton(
                               onPressed: () {
                                 atualizarDialogo(() {
@@ -309,8 +310,9 @@ class _PerfilTutorState extends State<PerfilTutor> {
                           obscureText: !mostrarConfirmacao,
                           decoration: InputDecoration(
                             labelText: 'Confirmar nova senha',
-                            prefixIcon:
-                            const Icon(Icons.verified_user_outlined),
+                            prefixIcon: const Icon(
+                              Icons.verified_user_outlined,
+                            ),
                             suffixIcon: IconButton(
                               onPressed: () {
                                 atualizarDialogo(() {
@@ -334,6 +336,15 @@ class _PerfilTutorState extends State<PerfilTutor> {
                             return null;
                           },
                         ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'A alteração efetiva depende da integração '
+                              'com o serviço de autenticação.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: CoresApp.textSecondary,
+                          ),
+                        ),
                       ],
                     ),
                   ),
@@ -343,23 +354,23 @@ class _PerfilTutorState extends State<PerfilTutor> {
                     onPressed: () {
                       Navigator.of(dialogContext).pop();
                     },
-                    child: const Text('Cancelar'),
+                    child: const Text('Fechar'),
                   ),
                   FilledButton(
                     onPressed: () {
-                      if (!formKeySenha.currentState!.validate()) {
+                      if (!formKey.currentState!.validate()) {
                         return;
                       }
 
                       Navigator.of(dialogContext).pop();
 
-                      _mostrarMensagem(
-                        'Os dados foram validados. '
-                            'A alteração efetiva da senha precisa '
-                            'ser conectada ao serviço de autenticação.',
+                      _mensagem(
+                        'Formulário validado. A senha não foi '
+                            'alterada porque o serviço de autenticação '
+                            'ainda não está conectado.',
                       );
                     },
-                    child: const Text('Alterar senha'),
+                    child: const Text('Validar'),
                   ),
                 ],
               );
@@ -427,14 +438,28 @@ class _PerfilTutorState extends State<PerfilTutor> {
 
     if (confirmar != true || !mounted) return;
 
-    await SessaoUsuario.instancia.sair();
+    setState(() {
+      _salvandoPerfil = true;
+    });
 
-    if (!mounted) return;
+    try {
+      await SessaoUsuario.instancia.sair();
 
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      '/login',
-          (route) => false,
-    );
+      if (!mounted) return;
+
+      Navigator.of(context).pushNamedAndRemoveUntil(
+        '/login',
+            (route) => false,
+      );
+    } catch (erro) {
+      if (!mounted) return;
+
+      setState(() {
+        _salvandoPerfil = false;
+      });
+
+      _mensagem('Não foi possível encerrar a sessão: $erro');
+    }
   }
 
   // ============================================================
@@ -449,15 +474,11 @@ class _PerfilTutorState extends State<PerfilTutor> {
         child: AnimatedBuilder(
           animation: SessaoUsuario.instancia,
           builder: (context, child) {
-            final nome = SessaoUsuario
-                .instancia.nomeUsuario
-                ?.trim() ??
-                '';
+            final nome =
+                SessaoUsuario.instancia.nomeUsuario?.trim() ?? '';
 
-            final email = SessaoUsuario
-                .instancia.emailUsuario
-                ?.trim() ??
-                '';
+            final email =
+                SessaoUsuario.instancia.emailUsuario?.trim() ?? '';
 
             return SingleChildScrollView(
               padding: const EdgeInsets.fromLTRB(
@@ -477,9 +498,7 @@ class _PerfilTutorState extends State<PerfilTutor> {
                       color: CoresApp.darkBlue,
                     ),
                   ),
-                  const SizedBox(
-                    height: EspacamentosApp.sm,
-                  ),
+                  const SizedBox(height: EspacamentosApp.sm),
                   const Text(
                     'Gerencie suas informações e configurações '
                         'da conta.',
@@ -489,9 +508,7 @@ class _PerfilTutorState extends State<PerfilTutor> {
                       color: CoresApp.textSecondary,
                     ),
                   ),
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
+                  const SizedBox(height: EspacamentosApp.xl),
                   _CardPerfilTutor(
                     nome: nome.isEmpty ? 'Tutor' : nome,
                     email: email.isEmpty
@@ -499,9 +516,7 @@ class _PerfilTutorState extends State<PerfilTutor> {
                         : email,
                     onEditar: _editarPerfil,
                   ),
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
+                  const SizedBox(height: EspacamentosApp.xl),
                   _SecaoPerfilTutor(
                     titulo: 'Minha conta',
                     icone: Icons.person_outline_rounded,
@@ -510,14 +525,12 @@ class _PerfilTutorState extends State<PerfilTutor> {
                         icone: Icons.edit_outlined,
                         titulo: 'Editar perfil',
                         descricao:
-                        'Atualize suas informações pessoais.',
+                        'Atualize seu nome e e-mail.',
                         onTap: _editarPerfil,
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
+                  const SizedBox(height: EspacamentosApp.lg),
                   _SecaoPerfilTutor(
                     titulo: 'Segurança',
                     icone: Icons.shield_outlined,
@@ -526,12 +539,10 @@ class _PerfilTutorState extends State<PerfilTutor> {
                         icone: Icons.lock_reset_rounded,
                         titulo: 'Alterar senha',
                         descricao:
-                        'Defina uma nova senha para sua conta.',
+                        'Acesse o formulário de alteração de senha.',
                         onTap: _alterarSenha,
                       ),
-                      const SizedBox(
-                        height: EspacamentosApp.sm,
-                      ),
+                      const SizedBox(height: EspacamentosApp.sm),
                       const _ItemPerfilTutor(
                         icone: Icons.verified_user_outlined,
                         titulo: 'Conta autenticada',
@@ -541,9 +552,7 @@ class _PerfilTutorState extends State<PerfilTutor> {
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: EspacamentosApp.lg,
-                  ),
+                  const SizedBox(height: EspacamentosApp.lg),
                   _SecaoPerfilTutor(
                     titulo: 'Conta',
                     icone: Icons.settings_outlined,
@@ -553,14 +562,12 @@ class _PerfilTutorState extends State<PerfilTutor> {
                         titulo: 'Sair da conta',
                         descricao:
                         'Encerrar sua sessão neste dispositivo.',
-                        onTap: _sair,
+                        onTap: _salvandoPerfil ? null : _sair,
                         corIcone: CoresApp.primary,
                       ),
                     ],
                   ),
-                  const SizedBox(
-                    height: EspacamentosApp.xl,
-                  ),
+                  const SizedBox(height: EspacamentosApp.xl),
                   const Center(
                     child: Text(
                       'PetCare • Cuidar também é uma forma de amar.',
@@ -601,9 +608,7 @@ class _CardPerfilTutor extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(
-        EspacamentosApp.lg,
-      ),
+      padding: const EdgeInsets.all(EspacamentosApp.lg),
       decoration: BoxDecoration(
         color: CoresApp.surface,
         borderRadius: BorderRadius.circular(28),
@@ -637,9 +642,7 @@ class _CardPerfilTutor extends StatelessWidget {
               size: 48,
             ),
           ),
-          const SizedBox(
-            height: EspacamentosApp.md,
-          ),
+          const SizedBox(height: EspacamentosApp.md),
           Text(
             nome,
             textAlign: TextAlign.center,
@@ -649,9 +652,7 @@ class _CardPerfilTutor extends StatelessWidget {
               color: CoresApp.darkBlue,
             ),
           ),
-          const SizedBox(
-            height: EspacamentosApp.sm,
-          ),
+          const SizedBox(height: EspacamentosApp.sm),
           Text(
             email,
             textAlign: TextAlign.center,
@@ -660,9 +661,7 @@ class _CardPerfilTutor extends StatelessWidget {
               color: CoresApp.textSecondary,
             ),
           ),
-          const SizedBox(
-            height: EspacamentosApp.lg,
-          ),
+          const SizedBox(height: EspacamentosApp.lg),
           SizedBox(
             width: double.infinity,
             child: OutlinedButton.icon(
@@ -690,7 +689,7 @@ class _CardPerfilTutor extends StatelessWidget {
 }
 
 // ============================================================
-// SEÇÕES DO PERFIL
+// SEÇÕES
 // ============================================================
 
 class _SecaoPerfilTutor extends StatelessWidget {
@@ -716,9 +715,7 @@ class _SecaoPerfilTutor extends StatelessWidget {
               color: CoresApp.primary,
               size: 22,
             ),
-            const SizedBox(
-              width: EspacamentosApp.sm,
-            ),
+            const SizedBox(width: EspacamentosApp.sm),
             Text(
               titulo,
               style: const TextStyle(
@@ -729,9 +726,7 @@ class _SecaoPerfilTutor extends StatelessWidget {
             ),
           ],
         ),
-        const SizedBox(
-          height: EspacamentosApp.md,
-        ),
+        const SizedBox(height: EspacamentosApp.md),
         ...children,
       ],
     );
@@ -739,7 +734,7 @@ class _SecaoPerfilTutor extends StatelessWidget {
 }
 
 // ============================================================
-// ITENS CLICÁVEIS
+// ITENS
 // ============================================================
 
 class _ItemPerfilTutor extends StatelessWidget {
@@ -762,9 +757,7 @@ class _ItemPerfilTutor extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final conteudo = Container(
-      padding: const EdgeInsets.all(
-        EspacamentosApp.md,
-      ),
+      padding: const EdgeInsets.all(EspacamentosApp.md),
       decoration: BoxDecoration(
         color: CoresApp.surface,
         borderRadius: BorderRadius.circular(16),
@@ -776,9 +769,7 @@ class _ItemPerfilTutor extends StatelessWidget {
             color: corIcone ?? CoresApp.primary,
             size: 22,
           ),
-          const SizedBox(
-            width: EspacamentosApp.md,
-          ),
+          const SizedBox(width: EspacamentosApp.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -813,9 +804,7 @@ class _ItemPerfilTutor extends StatelessWidget {
       ),
     );
 
-    if (onTap == null) {
-      return conteudo;
-    }
+    if (onTap == null) return conteudo;
 
     return Material(
       color: Colors.transparent,
