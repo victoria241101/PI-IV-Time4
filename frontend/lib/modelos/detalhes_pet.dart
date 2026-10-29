@@ -1,7 +1,14 @@
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
 
-enum CategoriaHistoricoPet { vacina, medicamento, exame }
+enum CategoriaHistoricoPet {
+  vacina,
+  medicamento,
+  exame,
+  procedimento,
+  consulta,
+  internacao,
+}
 
 class RegistroHistoricoPet {
   const RegistroHistoricoPet({
@@ -27,7 +34,12 @@ class RegistroHistoricoPet {
         'vacina' => CategoriaHistoricoPet.vacina,
         'medicamento' => CategoriaHistoricoPet.medicamento,
         'exame' => CategoriaHistoricoPet.exame,
-        _ => throw ArgumentError('Categoria de histórico inválida.'),
+        'procedimento' => CategoriaHistoricoPet.procedimento,
+        'consulta' => CategoriaHistoricoPet.consulta,
+        'internacao' => CategoriaHistoricoPet.internacao,
+        _ => throw ArgumentError(
+          'Categoria de histórico inválida: ${dados['categoria']}',
+        ),
       },
       titulo: dados['titulo']! as String,
       data: dados['data']! as String,
@@ -56,7 +68,12 @@ class LembretePet {
         'vacina' => CategoriaHistoricoPet.vacina,
         'medicamento' => CategoriaHistoricoPet.medicamento,
         'exame' => CategoriaHistoricoPet.exame,
-        _ => throw ArgumentError('Categoria de lembrete inválida.'),
+        'procedimento' => CategoriaHistoricoPet.procedimento,
+        'consulta' => CategoriaHistoricoPet.consulta,
+        'internacao' => CategoriaHistoricoPet.internacao,
+        _ => throw ArgumentError(
+          'Categoria de lembrete inválida: ${dados['categoria']}',
+        ),
       },
     );
   }

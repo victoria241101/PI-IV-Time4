@@ -12,7 +12,17 @@ const Color _azulHistorico = Color(0xFF172A46);
 const Color _laranjaHistorico = Color(0xFFFFA45B);
 const Color _fundoLaranjaHistorico = Color(0xFFFFF2E5);
 
-class PaginaHistoricoPet extends StatelessWidget {
+enum _FiltroHistorico {
+  todos,
+  vacina,
+  procedimento,
+  consulta,
+  internacao,
+  medicamento,
+  exame,
+}
+
+class PaginaHistoricoPet extends StatefulWidget {
   const PaginaHistoricoPet({
     super.key,
     required this.nomePet,
@@ -24,19 +34,62 @@ class PaginaHistoricoPet extends StatelessWidget {
   final List<RegistroHistoricoPet> registros;
   final CategoriaHistoricoPet? categoria;
 
-  List<RegistroHistoricoPet> get _registrosVisiveis {
-    if (categoria == null) return registros;
+  @override
+  State<PaginaHistoricoPet> createState() => _PaginaHistoricoPetState();
+}
 
-    return registros
+class _PaginaHistoricoPetState extends State<PaginaHistoricoPet> {
+  late _FiltroHistorico _filtroSelecionado;
+
+  @override
+  void initState() {
+    super.initState();
+    _filtroSelecionado = _filtroInicial(widget.categoria);
+  }
+
+  @override
+  void didUpdateWidget(covariant PaginaHistoricoPet oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    if (oldWidget.categoria != widget.categoria) {
+      _filtroSelecionado = _filtroInicial(widget.categoria);
+    }
+  }
+
+  _FiltroHistorico _filtroInicial(CategoriaHistoricoPet? categoria) {
+    if (categoria == null) return _FiltroHistorico.todos;
+
+    return switch (categoria) {
+      CategoriaHistoricoPet.vacina => _FiltroHistorico.vacina,
+      CategoriaHistoricoPet.medicamento => _FiltroHistorico.medicamento,
+      CategoriaHistoricoPet.exame => _FiltroHistorico.exame,
+      CategoriaHistoricoPet.procedimento => _FiltroHistorico.procedimento,
+      CategoriaHistoricoPet.consulta => _FiltroHistorico.consulta,
+      CategoriaHistoricoPet.internacao => _FiltroHistorico.internacao,
+    };
+  }
+
+  List<RegistroHistoricoPet> get _registrosVisiveis {
+    if (_filtroSelecionado == _FiltroHistorico.todos) {
+      return widget.registros;
+    }
+
+    final categoria = switch (_filtroSelecionado) {
+      _FiltroHistorico.todos => null,
+      _FiltroHistorico.vacina => CategoriaHistoricoPet.vacina,
+      _FiltroHistorico.procedimento => CategoriaHistoricoPet.procedimento,
+      _FiltroHistorico.consulta => CategoriaHistoricoPet.consulta,
+      _FiltroHistorico.internacao => CategoriaHistoricoPet.internacao,
+      _FiltroHistorico.medicamento => CategoriaHistoricoPet.medicamento,
+      _FiltroHistorico.exame => CategoriaHistoricoPet.exame,
+    };
+
+    return widget.registros
         .where((registro) => registro.categoria == categoria)
         .toList(growable: false);
   }
 
-  String get _titulo {
-    if (categoria == null) return 'Histórico de $nomePet';
-
-    return '${nomeCategoriaHistorico(categoria!)} de $nomePet';
-  }
+  String get _titulo => 'Histórico de ${widget.nomePet}';
 
   @override
   Widget build(BuildContext context) {
@@ -56,25 +109,99 @@ class PaginaHistoricoPet extends StatelessWidget {
           ),
         ),
       ),
-      body: itens.isEmpty
-          ? _EstadoVazio(
-        nomePet: nomePet,
-        categoria: categoria,
-      )
-          : ListView.separated(
-        padding: const EdgeInsets.fromLTRB(
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.md,
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.xxl,
+      body: Column(
+        children: [
+          _FiltrosHistorico(
+            selecionado: _filtroSelecionado,
+            onSelecionar: (filtro) {
+              setState(() {
+                _filtroSelecionado = filtro;
+              });
+            },
+          ),
+          Expanded(
+            child: itens.isEmpty
+                ? _EstadoVazio(
+              nomePet: widget.nomePet,
+              filtro: _filtroSelecionado,
+            )
+                : ListView.separated(
+              padding: const EdgeInsets.fromLTRB(
+                EspacamentosApp.pagePadding,
+                EspacamentosApp.md,
+                EspacamentosApp.pagePadding,
+                EspacamentosApp.xxl,
+              ),
+              itemCount: itens.length,
+              separatorBuilder: (_, _) => const SizedBox(
+                height: EspacamentosApp.md,
+              ),
+              itemBuilder: (context, index) {
+                return _CartaoRegistro(
+                  registro: itens[index],
+                );
+              },
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _FiltrosHistorico extends StatelessWidget {
+  const _FiltrosHistorico({
+    required this.selecionado,
+    required this.onSelecionar,
+  });
+
+  final _FiltroHistorico selecionado;
+  final ValueChanged<_FiltroHistorico> onSelecionar;
+
+  static const _opcoes = <({String titulo, _FiltroHistorico filtro})>[
+    (titulo: 'Todos', filtro: _FiltroHistorico.todos),
+    (titulo: 'Vacinas', filtro: _FiltroHistorico.vacina),
+    (titulo: 'Procedimentos', filtro: _FiltroHistorico.procedimento),
+    (titulo: 'Consultas', filtro: _FiltroHistorico.consulta),
+    (titulo: 'Internações', filtro: _FiltroHistorico.internacao),
+    (titulo: 'Medicamentos', filtro: _FiltroHistorico.medicamento),
+    (titulo: 'Exames', filtro: _FiltroHistorico.exame),
+  ];
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      height: 58,
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(
+          horizontal: EspacamentosApp.pagePadding,
+          vertical: EspacamentosApp.sm,
         ),
-        itemCount: itens.length,
+        scrollDirection: Axis.horizontal,
+        itemCount: _opcoes.length,
         separatorBuilder: (_, _) => const SizedBox(
-          height: EspacamentosApp.md,
+          width: EspacamentosApp.sm,
         ),
         itemBuilder: (context, index) {
-          return _CartaoRegistro(
-            registro: itens[index],
+          final opcao = _opcoes[index];
+          final ativo = selecionado == opcao.filtro;
+
+          return ChoiceChip(
+            label: Text(opcao.titulo),
+            selected: ativo,
+            onSelected: (_) => onSelecionar(opcao.filtro),
+            selectedColor: _turquesaHistorico.withAlpha(30),
+            backgroundColor: Colors.white,
+            side: BorderSide(
+              color: ativo ? _turquesaHistorico : const Color(0xFFE5EBF1),
+            ),
+            labelStyle: TipografiaApp.captionBold.copyWith(
+              color: ativo ? _azulHistorico : CoresApp.textSecondary,
+            ),
+            showCheckmark: false,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(22),
+            ),
           );
         },
       ),
@@ -126,6 +253,13 @@ class _CartaoRegistro extends StatelessWidget {
                       ),
                     ),
                   ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  nomeCategoriaHistorico(registro.categoria),
+                  style: TipografiaApp.caption.copyWith(
+                    color: corCategoria,
+                  ),
                 ),
                 if (registro.descricao != null) ...[
                   const SizedBox(height: EspacamentosApp.xs),
@@ -204,18 +338,26 @@ class _CartaoRegistro extends StatelessWidget {
 class _EstadoVazio extends StatelessWidget {
   const _EstadoVazio({
     required this.nomePet,
-    required this.categoria,
+    required this.filtro,
   });
 
   final String nomePet;
-  final CategoriaHistoricoPet? categoria;
+  final _FiltroHistorico filtro;
+
+  String get _descricao {
+    return switch (filtro) {
+      _FiltroHistorico.todos => 'registros de saúde',
+      _FiltroHistorico.vacina => 'vacinas',
+      _FiltroHistorico.procedimento => 'procedimentos',
+      _FiltroHistorico.consulta => 'consultas',
+      _FiltroHistorico.internacao => 'internações',
+      _FiltroHistorico.medicamento => 'medicamentos',
+      _FiltroHistorico.exame => 'exames',
+    };
+  }
 
   @override
   Widget build(BuildContext context) {
-    final descricao = categoria == null
-        ? 'registros de saúde'
-        : nomeCategoriaHistorico(categoria!).toLowerCase();
-
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(EspacamentosApp.xl),
@@ -246,7 +388,7 @@ class _EstadoVazio extends StatelessWidget {
             ),
             const SizedBox(height: EspacamentosApp.sm),
             Text(
-              'Ainda não há $descricao para $nomePet.',
+              'Ainda não há $_descricao para $nomePet.',
               textAlign: TextAlign.center,
               style: TipografiaApp.bodySmall.copyWith(
                 color: CoresApp.textSecondary,

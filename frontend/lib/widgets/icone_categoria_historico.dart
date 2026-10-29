@@ -9,6 +9,9 @@ String nomeCategoriaHistorico(CategoriaHistoricoPet categoria) {
     CategoriaHistoricoPet.vacina => 'Vacinas',
     CategoriaHistoricoPet.medicamento => 'Medicamentos',
     CategoriaHistoricoPet.exame => 'Exames',
+    CategoriaHistoricoPet.procedimento => 'Procedimentos',
+    CategoriaHistoricoPet.consulta => 'Consultas',
+    CategoriaHistoricoPet.internacao => 'Internações',
   };
 }
 
@@ -17,6 +20,9 @@ IconData iconeCategoriaHistorico(CategoriaHistoricoPet categoria) {
     CategoriaHistoricoPet.vacina => Icons.vaccines_outlined,
     CategoriaHistoricoPet.medicamento => Icons.medication_outlined,
     CategoriaHistoricoPet.exame => Icons.science_outlined,
+    CategoriaHistoricoPet.procedimento => Icons.medical_services_outlined,
+    CategoriaHistoricoPet.consulta => Icons.calendar_month_outlined,
+    CategoriaHistoricoPet.internacao => Icons.local_hospital_outlined,
   };
 }
 
@@ -25,6 +31,9 @@ Color corCategoriaHistorico(CategoriaHistoricoPet categoria) {
     CategoriaHistoricoPet.vacina => CoresApp.primary,
     CategoriaHistoricoPet.medicamento => const Color(0xFFD97706),
     CategoriaHistoricoPet.exame => const Color(0xFF3B82F6),
+    CategoriaHistoricoPet.procedimento => const Color(0xFF8B5CF6),
+    CategoriaHistoricoPet.consulta => const Color(0xFF0D9488),
+    CategoriaHistoricoPet.internacao => const Color(0xFFDC6262),
   };
 }
 
@@ -46,7 +55,9 @@ class IconeCategoriaHistorico extends StatelessWidget {
       padding: const EdgeInsets.all(EspacamentosApp.sm),
       decoration: BoxDecoration(
         color: color.withAlpha(24),
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
+        borderRadius: BorderRadius.circular(
+          EspacamentosApp.radiusMd,
+        ),
       ),
       child: Icon(
         iconeCategoriaHistorico(categoria),
