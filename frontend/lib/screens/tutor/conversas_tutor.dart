@@ -3,63 +3,10 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
 
 class ConversasTutor extends StatelessWidget {
-  const ConversasTutor({
-    super.key,
-    this.onAbrirConversa,
-    this.onAbrirInicio,
-    this.onAbrirConsultas,
-    this.onAbrirCampanhas,
-    this.onAbrirPerfil,
-  });
-
-  final ValueChanged<String>? onAbrirConversa;
-  final VoidCallback? onAbrirInicio;
-  final VoidCallback? onAbrirConsultas;
-  final VoidCallback? onAbrirCampanhas;
-  final VoidCallback? onAbrirPerfil;
-
-  void _onNavTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        if (onAbrirInicio != null) {
-          onAbrirInicio!();
-        } else {
-          Navigator.of(context).pop(0);
-        }
-        break;
-
-      case 1:
-        if (onAbrirConsultas != null) {
-          onAbrirConsultas!();
-        } else {
-          Navigator.of(context).pop(1);
-        }
-        break;
-
-      case 2:
-        break;
-
-      case 3:
-        if (onAbrirCampanhas != null) {
-          onAbrirCampanhas!();
-        } else {
-          Navigator.of(context).pop(3);
-        }
-        break;
-
-      case 4:
-        if (onAbrirPerfil != null) {
-          onAbrirPerfil!();
-        } else {
-          Navigator.of(context).pop(4);
-        }
-        break;
-    }
-  }
+  const ConversasTutor({super.key});
 
   @override
   Widget build(BuildContext context) {
@@ -133,10 +80,13 @@ class ConversasTutor extends StatelessWidget {
                               size: 30,
                             ),
                           ),
-                          const SizedBox(width: EspacamentosApp.md),
+                          const SizedBox(
+                            width: EspacamentosApp.md,
+                          ),
                           Expanded(
                             child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
+                              crossAxisAlignment:
+                              CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Estamos aqui para ajudar',
@@ -266,10 +216,6 @@ class ConversasTutor extends StatelessWidget {
             ),
           ],
         ),
-      ),
-      bottomNavigationBar: BarraNavTutor(
-        currentIndex: 2,
-        onTap: (index) => _onNavTap(context, index),
       ),
     );
   }
