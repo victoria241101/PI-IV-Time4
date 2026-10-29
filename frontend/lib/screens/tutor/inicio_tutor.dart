@@ -19,6 +19,7 @@ import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 import 'package:pet_care/screens/tutor/consultas_tutor.dart';
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
+import 'package:pet_care/screens/tutor/conversas_tutor.dart';
 
 import '../doacao/doacao.dart';
 
@@ -124,52 +125,61 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   Future<void> _onNavTap(int index) async {
     if (index == _currentNavIndex) return;
 
-    if (index == 1) {
-      setState(() {
-        _currentNavIndex = 1;
-      });
-      return;
-    }
-
-    if (index == 2) {
-      final abaSelecionada = await Navigator.of(context).push<int>(
-        MaterialPageRoute<int>(
-          builder: (_) => const Doacao(),
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (abaSelecionada != null) {
+    switch (index) {
+      case 0:
         setState(() {
-          _currentNavIndex = abaSelecionada;
+          _currentNavIndex = 0;
         });
-      }
+        break;
 
-      return;
-    }
-
-    if (index == 3) {
-      final abaSelecionada = await Navigator.of(context).push<int>(
-        MaterialPageRoute<int>(
-          builder: (_) => const PerfilGeral(),
-        ),
-      );
-
-      if (!mounted) return;
-
-      if (abaSelecionada != null) {
+      case 1:
         setState(() {
-          _currentNavIndex = abaSelecionada;
+          _currentNavIndex = 1;
         });
-      }
+        break;
 
-      return;
+      case 2:
+        final abaSelecionada = await Navigator.of(context).push<int>(
+          MaterialPageRoute<int>(
+            builder: (_) => const ConversasTutor(),
+          ),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _currentNavIndex = abaSelecionada ?? 0;
+        });
+        break;
+
+      case 3:
+        final abaSelecionada = await Navigator.of(context).push<int>(
+          MaterialPageRoute<int>(
+            builder: (_) => const Doacao(),
+          ),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _currentNavIndex = abaSelecionada ?? 0;
+        });
+        break;
+
+      case 4:
+        final abaSelecionada = await Navigator.of(context).push<int>(
+          MaterialPageRoute<int>(
+            builder: (_) => const PerfilGeral(),
+          ),
+        );
+
+        if (!mounted) return;
+
+        setState(() {
+          _currentNavIndex = abaSelecionada ?? 0;
+        });
+        break;
     }
-
-    setState(() {
-      _currentNavIndex = index;
-    });
   }
 
   void _onAgendamentoConfirmado(DadosAgendamento dados) {
@@ -440,6 +450,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       case 0:
         telaAtual = _construirInicio();
         break;
+
       case 1:
         telaAtual = ConsultasTutor(
           consultas: _consultas,
@@ -448,6 +459,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           onReagendamentoConfirmado: _onReagendamentoConfirmado,
         );
         break;
+
       default:
         telaAtual = _construirInicio();
     }

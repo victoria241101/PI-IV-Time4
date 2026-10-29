@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -30,6 +31,11 @@ class BarraNavTutor extends StatelessWidget {
           icon: Icon(Icons.calendar_today_outlined),
           activeIcon: Icon(Icons.calendar_today_rounded),
           label: 'Consultas',
+        ),
+        BottomNavigationBarItem(
+          icon: Icon(Icons.chat_bubble_outline_rounded),
+          activeIcon: Icon(Icons.chat_rounded),
+          label: 'Chat',
         ),
         BottomNavigationBarItem(
           icon: Icon(Icons.volunteer_activism_outlined),
