@@ -71,7 +71,7 @@ class ConversasTutor extends StatelessWidget {
             const SizedBox(height: EspacamentosApp.lg),
             const CabecalhoApp(
               greeting: 'Chat',
-              mostrarSaudacao: false,
+              name: '',
             ),
             Expanded(
               child: Padding(

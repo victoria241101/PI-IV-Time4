@@ -7,6 +7,7 @@ import 'package:pet_care/modelos/dados_banner.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
 import 'package:pet_care/screens/tutor/pagina_detalhes_pet.dart';
+import 'package:pet_care/screens/tutor/perfil_tutor.dart';
 import 'package:pet_care/widgets/botao_acao_com_icone.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
 import 'package:pet_care/widgets/carrossel_banners.dart';
@@ -14,7 +15,6 @@ import 'package:pet_care/widgets/cartao_proxima_consulta.dart';
 import 'package:pet_care/widgets/lista_horizontal_pets.dart';
 import 'package:pet_care/widgets/modal_detalhes_consulta.dart';
 import 'package:pet_care/widgets/titulo_secao.dart';
-import 'package:pet_care/screens/gerais/perfil_geral.dart';
 import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 import 'package:pet_care/screens/tutor/consultas_tutor.dart';
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
@@ -169,15 +169,15 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       case 4:
         final abaSelecionada = await Navigator.of(context).push<int>(
           MaterialPageRoute<int>(
-            builder: (_) => const PerfilGeral(),
+            builder: (_) => const PerfilTutor(),
           ),
         );
 
         if (!mounted) return;
 
-        setState(() {
-          _currentNavIndex = abaSelecionada ?? 0;
-        });
+        if (abaSelecionada != null) {
+          await _onNavTap(abaSelecionada);
+        }
         break;
     }
   }

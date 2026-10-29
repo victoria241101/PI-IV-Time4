@@ -27,7 +27,7 @@ class Doacao extends StatefulWidget {
 }
 
 class _DoacaoState extends State<Doacao> {
-  int _currentNavIndex = 2;
+  int _currentNavIndex = 3;
 
   @override
   void initState() {
@@ -35,6 +35,8 @@ class _DoacaoState extends State<Doacao> {
 
     if (widget.publica) {
       _currentNavIndex = 1;
+    } else {
+      _currentNavIndex = 3;
     }
   }
 
@@ -43,42 +45,33 @@ class _DoacaoState extends State<Doacao> {
   // =====================================================
 
 
+
   void _onNavTapTutor(int index) {
     if (index == _currentNavIndex) return;
 
     switch (index) {
       case 0:
-      // Retorna à tela anterior, que deve ser InicioTutor
-      // quando Campanhas foi aberta pela Home do tutor.
-        Navigator.of(context).pop();
+        Navigator.of(context).pop(0);
         break;
 
       case 1:
-      // Abre Consultas.
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => const ConsultasTutor(
-              consultas: [],
-              nomesPets: [],
-            ),
-          ),
-        );
+        Navigator.of(context).pop(1);
         break;
 
       case 2:
-      // Já está em Campanhas.
-        return;
+        Navigator.of(context).pop(2);
+        break;
 
       case 3:
-      // Abre o Perfil.
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => const PerfilGeral(),
-          ),
-        );
+      // Já está na tela de Campanhas.
+        break;
+
+      case 4:
+        Navigator.of(context).pop(4);
         break;
     }
   }
+
 
   // =====================================================
   // NAVEGAÇÃO PÚBLICA
