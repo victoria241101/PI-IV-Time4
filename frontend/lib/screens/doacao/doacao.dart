@@ -3,14 +3,16 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/barra_nav_tutor.dart';
-import 'package:pet_care/widgets/cartao_campanha.dart';
-import 'package:pet_care/widgets/cabecalho_app.dart';
-import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
-import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
 
-import 'package:pet_care/screens/gerais/perfil_geral.dart';
-import 'package:pet_care/screens/tutor/consultas_tutor.dart';
+import 'package:pet_care/widgets/barra_nav_tutor.dart';
+import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
+import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
+
+import 'package:pet_care/widgets/cabecalho_app.dart';
+import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
+import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
+
+import 'package:pet_care/widgets/cartao_campanha.dart';
 
 import 'detalhes_doacao.dart';
 
@@ -18,60 +20,29 @@ class Doacao extends StatefulWidget {
   const Doacao({
     super.key,
     this.publica = false,
-  });
+    this.geral = false,
+    this.onDoacaoConcluida,
+
+  }) : assert(
+  !(publica && geral),
+  'A tela não pode pertencer aos contextos público e geral ao mesmo tempo.',
+  );
 
   final bool publica;
+  final bool geral;
+  final VoidCallback? onDoacaoConcluida;
+
+  bool get tutor => !publica && !geral;
 
   @override
   State<Doacao> createState() => _DoacaoState();
 }
 
 class _DoacaoState extends State<Doacao> {
-  int _currentNavIndex = 3;
-
-  @override
-  void initState() {
-    super.initState();
-
-    if (widget.publica) {
-      _currentNavIndex = 1;
-    } else {
-      _currentNavIndex = 3;
-    }
+  int get _currentNavIndex {
+    if (widget.publica) return 1;
+    return 1;
   }
-
-  // =====================================================
-  // NAVEGAÇÃO DO TUTOR
-  // =====================================================
-
-
-
-  void _onNavTapTutor(int index) {
-    if (index == _currentNavIndex) return;
-
-    switch (index) {
-      case 0:
-        Navigator.of(context).pop(0);
-        break;
-
-      case 1:
-        Navigator.of(context).pop(1);
-        break;
-
-      case 2:
-        Navigator.of(context).pop(2);
-        break;
-
-      case 3:
-      // Já está na tela de Campanhas.
-        break;
-
-      case 4:
-        Navigator.of(context).pop(4);
-        break;
-    }
-  }
-
 
   // =====================================================
   // NAVEGAÇÃO PÚBLICA
@@ -84,7 +55,7 @@ class _DoacaoState extends State<Doacao> {
         break;
 
       case 1:
-        return;
+        break;
 
       case 2:
         Navigator.of(context).pushNamedAndRemoveUntil(
@@ -96,19 +67,31 @@ class _DoacaoState extends State<Doacao> {
   }
 
   // =====================================================
-  // ABRIR DETALHES DA CAMPANHA
+  // NAVEGAÇÃO GERAL
   // =====================================================
 
-  void _abrirCampanha({
+  void _onNavTapGeral(int index) {
+    if (index == 1) return;
+
+    // Devolve o controle ao InicioGeral.
+    // Ele será responsável por abrir a aba solicitada.
+    Navigator.of(context).pop(index);
+  }
+
+  // =====================================================
+  // DETALHES DA CAMPANHA
+  // =====================================================
+
+  Future<void> _abrirCampanha({
     required String nomeAnimal,
     required String titulo,
     required double valorArrecadado,
     required double meta,
     bool urgente = false,
     String? imagemUrl,
-  }) {
-    Navigator.of(context).push(
-      MaterialPageRoute(
+  }) async {
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => DetalhesDoacao(
           nomeAnimal: nomeAnimal,
           titulo: titulo,
@@ -118,6 +101,39 @@ class _DoacaoState extends State<Doacao> {
           imagemUrl: imagemUrl,
         ),
       ),
+    );
+
+    if (!mounted) return;
+
+    if (resultado == true) {
+      widget.onDoacaoConcluida?.call();
+    }
+  }
+
+  // =====================================================
+  // CABEÇALHO
+  // =====================================================
+
+  Widget _construirCabecalho() {
+    if (widget.publica) {
+      return CabecalhoPublico(
+        onBackTap: () {
+          Navigator.of(context).pop();
+        },
+      );
+    }
+
+    if (widget.geral) {
+      return CabecalhoGeral(
+        onPerfilTap: () {
+          Navigator.of(context).pop(3);
+        },
+      );
+    }
+
+    return const CabecalhoApp(
+      greeting: 'Cuide. Ajude. Transforme.',
+      name: '',
     );
   }
 
@@ -143,6 +159,29 @@ class _DoacaoState extends State<Doacao> {
     return 'R\$ ${buffer.toString()},${partes[1]}';
   }
 
+  // =====================================================
+  // NAVEGAÇÃO INFERIOR
+  // =====================================================
+
+  Widget? _construirNavegacao() {
+    if (widget.publica) {
+      return BarraNavPublica(
+        currentIndex: _currentNavIndex,
+        onTap: _onNavTapPublica,
+      );
+    }
+
+    if (widget.geral) {
+      return BarraNavGeral(
+        currentIndex: _currentNavIndex,
+        onTap: _onNavTapGeral,
+      );
+    }
+
+    // No tutor, a navegação pertence ao InicioTutor.
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -156,19 +195,7 @@ class _DoacaoState extends State<Doacao> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // CABEÇALHO
-
-              if (widget.publica)
-                CabecalhoPublico(
-                  onBackTap: () {
-                    Navigator.of(context).pop();
-                  },
-                )
-              else
-                const CabecalhoApp(
-                  greeting: 'Cuide. Ajude. Transforme.',
-                  name: '',
-                ),
+              _construirCabecalho(),
 
               const SizedBox(height: EspacamentosApp.xl),
 
@@ -456,18 +483,7 @@ class _DoacaoState extends State<Doacao> {
           ),
         ),
       ),
-
-      // NAVEGAÇÃO INFERIOR
-
-      bottomNavigationBar: widget.publica
-          ? BarraNavPublica(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTapPublica,
-      )
-          : BarraNavTutor(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTapTutor,
-      ),
+      bottomNavigationBar: _construirNavegacao(),
     );
   }
 }

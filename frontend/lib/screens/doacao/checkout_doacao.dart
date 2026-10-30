@@ -56,12 +56,14 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
     });
 
     // Demonstração do fluxo. Nenhuma cobrança é realizada.
-    await Future<void>.delayed(const Duration(milliseconds: 600));
+    await Future<void>.delayed(
+      const Duration(milliseconds: 600),
+    );
 
     if (!mounted) return;
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => ConfirmacaoDoacao(
           nomeAnimal: widget.nomeAnimal,
           titulo: widget.titulo,
@@ -69,6 +71,16 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    if (resultado == true) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _processando = false;
+      });
+    }
   }
 
   @override

@@ -38,9 +38,7 @@ class ConfirmacaoDoacao extends StatelessWidget {
   }
 
   void _voltarParaCampanhas(BuildContext context) {
-    // Retorna à primeira rota do fluxo atual.
-    // Assim, evita voltar à tela de valor ou ao checkout.
-    Navigator.of(context).popUntil((route) => route.isFirst);
+    Navigator.of(context).pop(true);
   }
 
   @override
@@ -354,9 +352,7 @@ class ConfirmacaoDoacao extends StatelessWidget {
                       const SizedBox(height: EspacamentosApp.sm),
 
                       TextButton(
-                        onPressed: () => Navigator.of(context).popUntil(
-                              (route) => route.isFirst,
-                        ),
+                        onPressed: () => Navigator.of(context).pop(true),
                         child: const Text(
                           'Voltar ao início do aplicativo',
                           style: TextStyle(

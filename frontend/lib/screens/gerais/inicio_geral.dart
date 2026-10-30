@@ -20,35 +20,29 @@ class _InicioGeralState extends State<InicioGeral> {
   int _currentIndex = 0;
 
   void _onNavTap(int index) {
-    if (index == 0) {
-      setState(() {
-        _currentIndex = 0;
-      });
-      return;
-    }
+    switch (index) {
+      case 0:
+        setState(() {
+          _currentIndex = 0;
+        });
+        break;
 
-    if (index == 1) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const Doacao(publica: false),
-        ),
-      );
-      return;
-    }
+      case 1:
+        _abrirCampanhas();
+        break;
 
-    if (index == 2) {
-      Navigator.push(
-        context,
-        MaterialPageRoute(
-          builder: (_) => const Sobre(),
-        ),
-      );
-      return;
-    }
+      case 2:
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => const Sobre(),
+          ),
+        );
+        break;
 
-    if (index == 3) {
-      _abrirPerfil();
+      case 3:
+        _abrirPerfil();
+        break;
     }
   }
 
@@ -83,13 +77,17 @@ class _InicioGeralState extends State<InicioGeral> {
     );
   }
 
-  void _abrirCampanhas() {
-    Navigator.push(
+  Future<void> _abrirCampanhas() async {
+    final resultado = await Navigator.push<int>(
       context,
       MaterialPageRoute(
-        builder: (_) => const Doacao(publica: false),
+        builder: (_) => const Doacao(geral: true),
       ),
     );
+
+    if (!mounted || resultado == null) return;
+
+    _onNavTap(resultado);
   }
 
   @override

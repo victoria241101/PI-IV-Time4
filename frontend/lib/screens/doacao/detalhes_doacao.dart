@@ -56,7 +56,7 @@ class DetalhesDoacao extends StatelessWidget {
     return 'R\$ ${buffer.toString()},${partes[1]}';
   }
 
-  void _iniciarDoacao(BuildContext context) {
+  Future<void> _iniciarDoacao(BuildContext context) async {
     Widget criarTelaDoacao() {
       return Doar(
         nomeAnimal: nomeAnimal,
@@ -66,11 +66,16 @@ class DetalhesDoacao extends StatelessWidget {
     }
 
     if (SessaoUsuario.instancia.estaLogado) {
-      Navigator.of(context).push(
-        MaterialPageRoute<void>(
+      final resultado = await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
           builder: (_) => criarTelaDoacao(),
         ),
       );
+
+      if (resultado == true && context.mounted) {
+        Navigator.of(context).pop(true);
+      }
+
       return;
     }
 

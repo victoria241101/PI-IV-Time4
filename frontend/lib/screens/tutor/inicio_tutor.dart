@@ -22,6 +22,7 @@ import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
 
 import '../doacao/doacao.dart';
+import 'detalhes_agendamento_tutor.dart';
 
 typedef ConfirmarConsulta = Future<ResumoConsulta> Function(
     String consultaId,
@@ -104,6 +105,15 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       _consultas = List<ResumoConsulta>.from(widget.consultas);
       _sincronizarProximaConsulta();
     }
+  }
+
+  void _voltarParaInicio() {
+    if (!mounted) return;
+
+    setState(() {
+      _currentNavIndex = 0;
+      _consultaIdParaReagendar = null;
+    });
   }
 
   void _sincronizarProximaConsulta() {
@@ -504,7 +514,14 @@ class _EstadoInicioTutor extends State<InicioTutor> {
         return const ConversasTutor();
 
       case 3:
-        return const Doacao();
+        return Doacao(
+          onDoacaoConcluida: () {
+            setState(() {
+              _currentNavIndex = 0;
+              _consultaIdParaReagendar = null;
+            });
+          },
+        );
 
       case 4:
         return const PerfilTutor();

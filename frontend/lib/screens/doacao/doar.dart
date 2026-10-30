@@ -118,7 +118,7 @@ class _DoarState extends State<Doar> {
   // NAVEGAÇÃO
   // =====================================================
 
-  void _continuar() {
+  Future<void> _continuar() async {
     final valor = _obterValor();
 
     if (valor == null) {
@@ -137,8 +137,8 @@ class _DoarState extends State<Doar> {
 
     _valorFocusNode.unfocus();
 
-    Navigator.of(context).push(
-      MaterialPageRoute<void>(
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => CheckoutDoacao(
           nomeAnimal: widget.nomeAnimal,
           titulo: widget.titulo,
@@ -147,6 +147,12 @@ class _DoarState extends State<Doar> {
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    if (resultado == true) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   // =====================================================
