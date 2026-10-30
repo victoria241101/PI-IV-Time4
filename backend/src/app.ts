@@ -1,6 +1,7 @@
 import express from "express";
+import cors from "cors";
 
-// rotas
+// Rotas
 import usuariosRoutes from "./routes/usuarios.routes.js";
 import petsRoutes from "./routes/pets.routes.js";
 import consultasRoutes from "./routes/consultas.routes.js";
@@ -19,8 +20,16 @@ import doacoesRoutes from "./routes/doacoes.routes.js";
 
 const app = express();
 
+// Configuração de acesso do Flutter Web
+app.use(cors({
+    origin: "http://localhost:7357",
+    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+}));
+
 app.use(express.json());
 
+// Rotas da API
 app.use("/usuarios", usuariosRoutes);
 app.use("/pets", petsRoutes);
 app.use("/consultas", consultasRoutes);
@@ -37,8 +46,8 @@ app.use("/agendamentos", agendamentosRoutes);
 app.use("/campanhas", campanhasRoutes);
 app.use("/doacoes", doacoesRoutes);
 
-
-app.get("/", (req, res) => {
+// Rota inicial
+app.get("/", (_req, res) => {
     res.json({
         mensagem: "Backend do PetCare funcionando!"
     });

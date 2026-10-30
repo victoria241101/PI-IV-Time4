@@ -1,5 +1,6 @@
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class SessaoUsuario extends ChangeNotifier {
@@ -7,6 +8,10 @@ class SessaoUsuario extends ChangeNotifier {
 
   static final SessaoUsuario instancia = SessaoUsuario._();
 
+  static const FlutterSecureStorage _armazenamentoSeguro =
+  FlutterSecureStorage();
+
+  static const String _chaveToken = 'usuario_token';
   static const String _chaveLogado = 'usuario_logado';
   static const String _chaveNome = 'usuario_nome';
   static const String _chaveEmail = 'usuario_email';
@@ -15,20 +20,33 @@ class SessaoUsuario extends ChangeNotifier {
   bool _estaLogado = false;
   String? _nomeUsuario;
   String? _emailUsuario;
+  String? _token;
   bool _ehTutor = false;
 
   bool get estaLogado => _estaLogado;
   String? get nomeUsuario => _nomeUsuario;
   String? get emailUsuario => _emailUsuario;
+  String? get token => _token;
   bool get ehTutor => _ehTutor;
 
   Future<void> carregar() async {
     final prefs = await SharedPreferences.getInstance();
 
-    _estaLogado = prefs.getBool(_chaveLogado) ?? false;
-    _nomeUsuario = prefs.getString(_chaveNome);
-    _emailUsuario = prefs.getString(_chaveEmail);
-    _ehTutor = prefs.getBool(_chaveEhTutor) ?? false;
+    _token = await _armazenamentoSeguro.read(key: _chaveToken);
+
+    _estaLogado = _token != null &&
+        _token!.isNotEmpty &&
+        (prefs.getBool(_chaveLogado) ?? false);
+
+    if (_estaLogado) {
+      _nomeUsuario = prefs.getString(_chaveNome);
+      _emailUsuario = prefs.getString(_chaveEmail);
+      _ehTutor = prefs.getBool(_chaveEhTutor) ?? false;
+    } else {
+      _nomeUsuario = null;
+      _emailUsuario = null;
+      _ehTutor = false;
+    }
 
     notifyListeners();
   }
@@ -36,16 +54,26 @@ class SessaoUsuario extends ChangeNotifier {
   Future<void> entrar({
     required String nome,
     required String email,
+    required String token,
+    bool ehTutor = false,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    await _armazenamentoSeguro.write(
+      key: _chaveToken,
+      value: token,
+    );
 
     await prefs.setBool(_chaveLogado, true);
     await prefs.setString(_chaveNome, nome.trim());
     await prefs.setString(_chaveEmail, email.trim());
+    await prefs.setBool(_chaveEhTutor, ehTutor);
 
+    _token = token;
     _estaLogado = true;
     _nomeUsuario = nome.trim();
     _emailUsuario = email.trim();
+    _ehTutor = ehTutor;
 
     notifyListeners();
   }
@@ -99,11 +127,14 @@ class SessaoUsuario extends ChangeNotifier {
   Future<void> sair() async {
     final prefs = await SharedPreferences.getInstance();
 
+    await _armazenamentoSeguro.delete(key: _chaveToken);
+
     await prefs.remove(_chaveLogado);
     await prefs.remove(_chaveNome);
     await prefs.remove(_chaveEmail);
     await prefs.remove(_chaveEhTutor);
 
+    _token = null;
     _estaLogado = false;
     _nomeUsuario = null;
     _emailUsuario = null;

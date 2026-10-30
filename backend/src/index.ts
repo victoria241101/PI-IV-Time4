@@ -1,3 +1,5 @@
+import "dotenv/config";
+
 import app from "./app.js";
 import { conectarBanco } from "./database.js";
 
@@ -12,6 +14,7 @@ async function iniciarServidor() {
                 `Backend do PetCare rodando na porta ${PORTA}`
             );
         });
+
     } catch (erro) {
         console.error("Erro ao iniciar o backend:", erro);
         process.exit(1);
