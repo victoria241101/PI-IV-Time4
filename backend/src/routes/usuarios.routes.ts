@@ -311,11 +311,20 @@ router.post("/login", async (req, res) => {
 // Consulta do perfil autenticado.
 router.get("/perfil", autenticar, async (_req, res) => {
     try {
-        const usuario = await obterBanco()
+        const banco = obterBanco();
+
+        const usuario = await banco
             .collection("usuarios")
             .findOne(
                 { _id: new ObjectId(res.locals.usuarioId) },
-                { projection: { nome: 1, email: 1, cpf: 1, tipo: 1 } }
+                {
+                    projection: {
+                        nome: 1,
+                        email: 1,
+                        cpf: 1,
+                        tipo: 1
+                    }
+                }
             );
 
         if (!usuario) {
@@ -324,10 +333,19 @@ router.get("/perfil", autenticar, async (_req, res) => {
             });
         }
 
+        // Verifica se existe um cadastro de tutor vinculado ao usuário.
+        const tutor = await banco
+            .collection("tutores")
+            .findOne({
+                usuarioId: usuario._id
+            });
+
         return res.status(200).json({
             mensagem: "Perfil encontrado com sucesso!",
-            usuario
+            usuario,
+            ehTutor: tutor !== null
         });
+
     } catch (erro) {
         console.error("Erro ao buscar perfil:", erro);
 
