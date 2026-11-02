@@ -3,6 +3,7 @@ import { ObjectId, MongoServerError, type Document, type Filter } from "mongodb"
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarChegada } from "../notificacoes/eventos.js";
 
 const router = Router();
 
@@ -48,6 +49,15 @@ router.patch(
                 return res.status(409).json({
                     mensagem: "Consulta não encontrada ou não está agendada."
                 });
+            }
+
+            const consulta = await consultas.findOne(obterFiltroConsulta(id));
+            if (consulta) {
+                await notificarChegada(
+                    banco,
+                    consulta,
+                    new ObjectId(res.locals.usuarioId)
+                );
             }
 
             return res.status(200).json({
