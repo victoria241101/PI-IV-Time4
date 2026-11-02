@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarCampanha } from "../notificacoes/eventos.js";
 import {
     PAPEIS_GESTAO_CAMPANHAS,
     ehEquipe,
@@ -236,6 +237,15 @@ router.patch(
                 return res.status(409).json({
                     mensagem: "Esta campanha já está encerrada."
                 });
+            }
+
+            if (resultado.modifiedCount === 1) {
+                await notificarCampanha(
+                    banco,
+                    "campanha_encerrada",
+                    { ...campanhaExistente, status: "encerrada" },
+                    new ObjectId(res.locals.usuarioId)
+                );
             }
 
             return res.status(200).json({

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarCampanha } from "../notificacoes/eventos.js";
 import {
     ehEquipe,
     arredondarCentavos,
@@ -215,10 +216,18 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
 
         // Passo 4: Encerramento automático por meta atingida
         if (deveEncerrarPorMeta(campanhaAtualizada.valorArrecadado, campanhaAtualizada.metaValor)) {
-            await campanhas.updateOne(
+            const resultadoEncerramento = await campanhas.updateOne(
                 { _id: campanhaAtualizada._id, status: "ativa" },
                 { $set: { status: "encerrada" } }
             );
+            if (resultadoEncerramento.modifiedCount === 1) {
+                await notificarCampanha(
+                    banco,
+                    "campanha_meta_atingida",
+                    campanhaAtualizada,
+                    new ObjectId(res.locals.usuarioId)
+                );
+            }
             campanhaAtualizada.status = "encerrada";
         }
 
