@@ -1,6 +1,7 @@
-
+import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
 
@@ -9,7 +10,6 @@ class AuthService {
 
   static final AuthService instancia = AuthService._();
 
-  // Endereço do backend durante os testes no Chrome.
   static const String _baseUrl = 'http://localhost:3000';
 
   final SessaoUsuario _sessao = SessaoUsuario.instancia;
@@ -19,7 +19,6 @@ class AuthService {
     required String senha,
   }) async {
     try {
-      // 1. Realiza o login.
       final respostaLogin = await http
           .post(
         Uri.parse('$_baseUrl/usuarios/login'),
@@ -44,15 +43,13 @@ class AuthService {
       final token = dadosLogin['token'];
 
       if (token == null || token.toString().isEmpty) {
-        throw Exception('O servidor não retornou o token de autenticação.');
+        throw Exception('O servidor não retornou o token.');
       }
 
-      // 2. Consulta o perfil utilizando o JWT recebido.
       final respostaPerfil = await http
           .get(
         Uri.parse('$_baseUrl/usuarios/perfil'),
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
       )
@@ -66,11 +63,10 @@ class AuthService {
         );
       }
 
-      // 3. Extrai os dados do usuário.
       final usuario = dadosPerfil['usuario'];
 
-      if (usuario == null || usuario is! Map<String, dynamic>) {
-        throw Exception('O servidor retornou um perfil inválido.');
+      if (usuario is! Map<String, dynamic>) {
+        throw Exception('O perfil retornado pelo servidor é inválido.');
       }
 
       final nome = usuario['nome']?.toString();
@@ -80,21 +76,22 @@ class AuthService {
         throw Exception('Os dados do perfil estão incompletos.');
       }
 
-      final ehTutor = dadosPerfil['ehTutor'] == true;
-
-      // 4. Salva o token e os dados na sessão.
       await _sessao.entrar(
         nome: nome,
         email: emailUsuario,
         token: token.toString(),
-        ehTutor: ehTutor,
+        ehTutor: dadosPerfil['ehTutor'] == true,
       );
-    } on http.ClientException {
+    } on http.ClientException catch (e) {
+      debugPrint('ERRO DE CONEXÃO: ${e.message}');
       throw Exception(
-        'Não foi possível conectar ao servidor. Verifique se o backend está ativo.',
+        'Falha na comunicação com o servidor: ${e.message}',
       );
-    } on FormatException {
+    } on FormatException catch (e) {
+      debugPrint('ERRO DE FORMATO: $e');
       throw Exception('O servidor retornou uma resposta inválida.');
+    } on TimeoutException {
+      throw Exception('O servidor demorou demais para responder.');
     }
   }
 

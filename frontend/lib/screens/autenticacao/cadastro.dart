@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -52,6 +51,12 @@ class _CadastroScreenState extends State<CadastroScreen> {
           _temMaiuscula &&
           _temNumero &&
           _temEspecial;
+
+  bool get _senhasCoincidem =>
+      _senhaController.text == _confirmarSenhaController.text;
+
+  bool get _mostrarAvisoConfirmacao =>
+      _confirmarSenhaController.text.isNotEmpty;
 
   double get _forcaSenha {
     if (_senhaController.text.isEmpty) return 0;
@@ -256,6 +261,57 @@ class _CadastroScreenState extends State<CadastroScreen> {
       style: TipografiaApp.bodyMedium.copyWith(
         fontWeight: FontWeight.w700,
         color: CoresApp.textPrimary,
+      ),
+    );
+  }
+
+  Widget _buildAvisoConfirmacao() {
+    if (!_mostrarAvisoConfirmacao) {
+      return const SizedBox.shrink();
+    }
+
+    final coincidem = _senhasCoincidem;
+
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 200),
+      margin: const EdgeInsets.only(top: 10),
+      padding: const EdgeInsets.symmetric(
+        horizontal: 12,
+        vertical: 10,
+      ),
+      decoration: BoxDecoration(
+        color: coincidem
+            ? Colors.green.withAlpha(15)
+            : Colors.redAccent.withAlpha(15),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(
+          color: coincidem
+              ? Colors.green.withAlpha(65)
+              : Colors.redAccent.withAlpha(65),
+        ),
+      ),
+      child: Row(
+        children: [
+          Icon(
+            coincidem
+                ? Icons.check_circle_outline_rounded
+                : Icons.error_outline_rounded,
+            size: 19,
+            color: coincidem ? Colors.green : Colors.redAccent,
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              coincidem
+                  ? 'As senhas coincidem.'
+                  : 'As senhas não coincidem. Verifique os campos.',
+              style: TipografiaApp.bodySmall.copyWith(
+                color: coincidem ? Colors.green.shade800 : Colors.redAccent,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -709,6 +765,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
               return null;
             },
           ),
+          _buildAvisoConfirmacao(),
         ],
       ),
     );
@@ -1000,7 +1057,10 @@ class _CadastroScreenState extends State<CadastroScreen> {
                         width: double.infinity,
                         height: 56,
                         child: ElevatedButton(
-                          onPressed: _cadastrar,
+                          onPressed: _confirmarSenhaController.text.isNotEmpty &&
+                              _senhasCoincidem
+                              ? _cadastrar
+                              : null,
                           style: ElevatedButton.styleFrom(
                             backgroundColor: CoresApp.darkBlue,
                             foregroundColor: Colors.white,

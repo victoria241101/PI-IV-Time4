@@ -1,17 +1,11 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 
-import 'package:pet_care/modelos/resumo_consulta.dart';
-import 'package:pet_care/modelos/resumo_pet.dart';
-
-import 'package:pet_care/screens/tutor/inicio_tutor.dart';
-import 'package:pet_care/controle/sessao_usuario.dart';
-
 import 'package:pet_care/widgets/cabecalho_petcare.dart';
+import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 
 import 'esqueci_senha.dart';
 
@@ -34,6 +28,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final _senhaController = TextEditingController();
 
   bool _ocultarSenha = true;
+  bool _carregando = false;
 
   @override
   void dispose() {
@@ -82,102 +77,40 @@ class _LoginScreenState extends State<LoginScreen> {
   Future<void> _entrar() async {
     if (!_formKey.currentState!.validate()) return;
 
-    await SessaoUsuario.instancia.entrar(
-      nome: 'Victoria',
-      email: _emailController.text.trim(),
-    );
+    try {
+      await AuthService.instancia.login(
+        email: _emailController.text.trim(),
+        senha: _senhaController.text,
+      );
 
-    if (!mounted) return;
+      if (!mounted) return;
 
-    final destino = widget.destinoAposLogin;
+      final destino = widget.destinoAposLogin;
 
-    if (destino != null) {
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(
-          builder: (_) => destino(),
+      if (destino != null) {
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(
+            builder: (_) => destino(),
+          ),
+        );
+        return;
+      }
+
+      // Caso não tenha um destino específico, retorna à tela anterior.
+      Navigator.pop(context, true);
+    } catch (erro) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            erro.toString().replaceFirst('Exception: ', ''),
+          ),
+          behavior: SnackBarBehavior.floating,
         ),
       );
-      return;
     }
-
-    Navigator.pushReplacement(
-      context,
-      MaterialPageRoute(
-        builder: (_) => InicioTutor(
-          saudacao: 'Olá,',
-          nomeTutor: 'Victoria',
-          pets: const [
-            ResumoPet(
-              id: 'pet-001',
-              name: 'Mel',
-              species: 'Cachorro',
-              breed: 'Golden Retriever',
-              age: '3 anos',
-              weight: 25.5,
-            ),
-            ResumoPet(
-              id: 'pet-002',
-              name: 'Luna',
-              species: 'Gato',
-              breed: 'Siamês',
-              age: '2 anos',
-              weight: 4.2,
-            ),
-          ],
-          proximaConsulta: const ResumoConsulta(
-            id: 'consulta-001',
-            type: 'Consulta veterinária',
-            date: '15/10/2026',
-            time: '14:00',
-            vetName: 'Dra. Ana Oliveira',
-            petName: 'Mel',
-            status: 'Confirmada',
-            instructions: 'Chegar com 10 minutos de antecedência.',
-            clinicAddress: 'Rua das Flores, 120 - Campinas/SP',
-          ),
-          banners: const [],
-          onConfirmarConsulta: (consultaId) async {
-            return const ResumoConsulta(
-              id: 'consulta-001',
-              type: 'Consulta veterinária',
-              date: '15/10/2026',
-              time: '14:00',
-              vetName: 'Dra. Ana Oliveira',
-              petName: 'Mel',
-              status: 'Confirmada',
-              instructions: 'Chegar com 10 minutos de antecedência.',
-              clinicAddress: 'Rua das Flores, 120 - Campinas/SP',
-            );
-          },
-          carregarDetalhesPet: (petId) async {
-            throw UnimplementedError(
-              'Detalhes do pet ainda não estão conectados ao backend.',
-            );
-          },
-          onAgendarNovaConsulta: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Agendamento ainda não está conectado ao backend.',
-                ),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-          onNotificacoes: () {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text(
-                  'Notificações ainda não estão disponíveis.',
-                ),
-                behavior: SnackBarBehavior.floating,
-              ),
-            );
-          },
-        ),
-      ),
-    );
   }
 
   InputDecoration _decoracaoCampo({
