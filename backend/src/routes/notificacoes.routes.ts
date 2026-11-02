@@ -153,4 +153,153 @@ router.get("/", async (req, res) => {
     }
 });
 
+/**
+ * PATCH /notificacoes/lidas
+ * Marca todas as notificações não lidas do usuário autenticado como lidas.
+ * Declarada obrigatoriamente antes das rotas com :id para evitar conflitos de roteamento.
+ */
+router.patch("/lidas", async (_req, res) => {
+    try {
+        const usuarioIdHex = res.locals.usuarioId;
+        if (!ehObjectIdHex(usuarioIdHex)) {
+            return res.status(401).json({
+                mensagem: "Usuário autenticado inválido."
+            });
+        }
+        const destinatarioId = new ObjectId(usuarioIdHex);
+
+        const banco = obterBanco();
+        const colecao = banco.collection<NotificacaoDocumento>("notificacoes");
+
+        const resultado = await colecao.updateMany(
+            {
+                destinatarioId,
+                lidaEm: null
+            },
+            {
+                $set: {
+                    lidaEm: new Date()
+                }
+            }
+        );
+
+        return res.status(200).json({
+            mensagem: "Notificações marcadas como lidas.",
+            atualizadas: resultado.modifiedCount
+        });
+    } catch (erro) {
+        console.error("Erro ao marcar notificações como lidas:", erro);
+        return res.status(500).json({
+            mensagem: "Erro ao marcar notificações como lidas."
+        });
+    }
+});
+
+/**
+ * PATCH /notificacoes/:id/lida
+ * Marca uma notificação individual como lida de forma idempotente.
+ * Responde 400 se o id for inválido.
+ * Responde 404 se a notificação não existir ou pertencer a outro usuário.
+ */
+router.patch("/:id/lida", async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!ehObjectIdHex(id)) {
+            return res.status(400).json({
+                mensagem: "Identificador de notificação inválido."
+            });
+        }
+
+        const usuarioIdHex = res.locals.usuarioId;
+        if (!ehObjectIdHex(usuarioIdHex)) {
+            return res.status(401).json({
+                mensagem: "Usuário autenticado inválido."
+            });
+        }
+        const destinatarioId = new ObjectId(usuarioIdHex);
+
+        const banco = obterBanco();
+        const colecao = banco.collection<NotificacaoDocumento>("notificacoes");
+
+        const notificacao = await colecao.findOne({
+            _id: new ObjectId(id),
+            destinatarioId
+        });
+
+        if (!notificacao) {
+            return res.status(404).json({
+                mensagem: "Notificação não encontrada."
+            });
+        }
+
+        // Idempotência: se já estava lida, não altera a data de leitura
+        if (!notificacao.lidaEm) {
+            const agora = new Date();
+            await colecao.updateOne(
+                { _id: notificacao._id },
+                { $set: { lidaEm: agora } }
+            );
+            notificacao.lidaEm = agora;
+        }
+
+        return res.status(200).json({
+            mensagem: "Notificação marcada como lida.",
+            notificacao: serializarNotificacao(notificacao)
+        });
+    } catch (erro) {
+        console.error("Erro ao marcar notificação como lida:", erro);
+        return res.status(500).json({
+            mensagem: "Erro ao marcar notificação como lida."
+        });
+    }
+});
+
+/**
+ * DELETE /notificacoes/:id
+ * Exclui permanentemente uma notificação do usuário autenticado.
+ * Responde 400 se o id for inválido.
+ * Responde 404 se a notificação não existir ou pertencer a outro usuário.
+ */
+router.delete("/:id", async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!ehObjectIdHex(id)) {
+            return res.status(400).json({
+                mensagem: "Identificador de notificação inválido."
+            });
+        }
+
+        const usuarioIdHex = res.locals.usuarioId;
+        if (!ehObjectIdHex(usuarioIdHex)) {
+            return res.status(401).json({
+                mensagem: "Usuário autenticado inválido."
+            });
+        }
+        const destinatarioId = new ObjectId(usuarioIdHex);
+
+        const banco = obterBanco();
+        const colecao = banco.collection<NotificacaoDocumento>("notificacoes");
+
+        const resultado = await colecao.deleteOne({
+            _id: new ObjectId(id),
+            destinatarioId
+        });
+
+        if (resultado.deletedCount === 0) {
+            return res.status(404).json({
+                mensagem: "Notificação não encontrada."
+            });
+        }
+
+        return res.status(200).json({
+            mensagem: "Notificação excluída com sucesso."
+        });
+    } catch (erro) {
+        console.error("Erro ao excluir notificação:", erro);
+        return res.status(500).json({
+            mensagem: "Erro ao excluir notificação."
+        });
+    }
+});
+
 export default router;
