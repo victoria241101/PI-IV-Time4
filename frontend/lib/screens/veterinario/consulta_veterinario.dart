@@ -1,5 +1,6 @@
 // prontuario e atendimento veterinario da consulta
 import 'package:flutter/material.dart';
+import 'package:pet_care/widgets/clinica/dialogo_campos_clinica.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -7,10 +8,9 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
 class ConsultaVeterinario extends StatefulWidget {
@@ -65,15 +65,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     final consulta = widget.consulta;
     return Scaffold(
       backgroundColor: CoresApp.background,
-      appBar: AppBar(
-        backgroundColor: CoresApp.background,
-        elevation: 0,
-        leading: IconButton(
-          onPressed: () => Navigator.of(context).pop(),
-          icon: const Icon(Icons.arrow_back_rounded),
-        ),
-        title: Text('Consulta', style: TipografiaApp.heading3),
-      ),
+      appBar: cabecalhoClinica('Consulta'),
       body: SafeArea(
         top: false,
         child: ListView(
@@ -85,10 +77,10 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
           ),
           children: [
             _cabecalhoConsulta(consulta),
-            const SizedBox(height: EspacamentosApp.md),
+            const SizedBox(height: EspacamentosApp.sm),
             _secaoTriagem(),
             if (_aguardandoVeterinario) ...[
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _aviso(
                 Icons.medical_services_outlined,
                 'Triagem concluída',
@@ -96,7 +88,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
                 CoresApp.primary,
               ),
             ] else if (!_finalizada && !_emConsulta) ...[
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _aviso(
                 Icons.hourglass_top_rounded,
                 'Aguardando triagem',
@@ -105,17 +97,17 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               ),
             ],
             if (_emConsulta || _finalizada) ...[
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _secaoDescricao(),
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _secaoMedicamentos(),
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _secaoExames(),
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _secaoInternacao(),
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _secaoRetorno(),
-              const SizedBox(height: EspacamentosApp.md),
+              const SizedBox(height: EspacamentosApp.sm),
               _secaoObservacoes(),
             ],
             const SizedBox(height: EspacamentosApp.xl),
@@ -127,7 +119,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   }
 
   Widget _cabecalhoConsulta(ConsultaRecepcao consulta) {
-    return CartaoBase(
+    return CartaoClinica(
       padding: const EdgeInsets.all(EspacamentosApp.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -157,7 +149,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               ),
             ],
           ),
-          const SizedBox(height: EspacamentosApp.md),
+          const SizedBox(height: EspacamentosApp.sm),
           IndicadorStatus(
             label: consulta.status.rotulo,
             color: consulta.status.cor,
@@ -322,26 +314,8 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     required IconData icone,
     required Widget child,
     Widget? trailing,
-  }) {
-    return CartaoBase(
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icone, color: CoresApp.primary, size: 20),
-              const SizedBox(width: EspacamentosApp.sm),
-              Expanded(child: Text(titulo, style: TipografiaApp.bodyMedium)),
-              ?trailing,
-            ],
-          ),
-          const SizedBox(height: EspacamentosApp.md),
-          child,
-        ],
-      ),
-    );
-  }
+  }) =>
+      SecaoClinica(titulo: titulo, icone: icone, acao: trailing, child: child);
 
   Widget _campo(
     TextEditingController controller, {
@@ -378,7 +352,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   }
 
   Widget _aviso(IconData icone, String titulo, String descricao, Color cor) {
-    return CartaoBase(
+    return CartaoClinica(
       color: cor.withAlpha(20),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -421,44 +395,32 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     );
   }
 
-  Widget _adicionarBotao(VoidCallback aoTocar) => IconButton(
-    tooltip: 'Adicionar',
-    onPressed: aoTocar,
-    icon: const Icon(Icons.add_circle_outline_rounded, color: CoresApp.primary),
-  );
+  Widget _adicionarBotao(VoidCallback aoTocar) =>
+      botaoAdicionarClinica(aoTocar);
 
   Widget _barraAcoes() {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.sm,
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.md,
-        ),
-        child: _aguardandoVeterinario
-            ? BotaoPrincipal(
-                label: 'Iniciar consulta',
-                icon: Icons.medical_services_outlined,
-                expanded: true,
-                onPressed: _iniciarConsulta,
+    return RodapeClinica(
+      child: _aguardandoVeterinario
+          ? BotaoClinica(
+              label: 'Iniciar consulta',
+              icon: Icons.medical_services_outlined,
+              expanded: true,
+              onPressed: _iniciarConsulta,
             )
-            : _emConsulta
-            ? BotaoPrincipal(
-                label: 'Finalizar consulta',
-                icon: Icons.check_circle_outline_rounded,
-                expanded: true,
-                onPressed: _finalizarConsulta,
-              )
-            : _finalizada
-            ? Text(
-                'Consulta finalizada · prontuário compartilhado',
-                textAlign: TextAlign.center,
-                style: TipografiaApp.bodySmall,
-              )
-            : const SizedBox.shrink(),
-      ),
+          : _emConsulta
+          ? BotaoClinica(
+              label: 'Finalizar consulta',
+              icon: Icons.check_circle_outline_rounded,
+              expanded: true,
+              onPressed: _finalizarConsulta,
+            )
+          : _finalizada
+          ? Text(
+              'Consulta finalizada · prontuário compartilhado',
+              textAlign: TextAlign.center,
+              style: TipografiaApp.bodySmall,
+            )
+          : const SizedBox.shrink(),
     );
   }
 
@@ -472,10 +434,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
 
   void _finalizarConsulta() {
     _atualizarProntuario();
-    AgendaClinica.instancia.finalizarConsulta(
-      widget.consulta,
-      _prontuario,
-    );
+    AgendaClinica.instancia.finalizarConsulta(widget.consulta, _prontuario);
     _mensagem('Consulta finalizada e prontuário atualizado');
     Navigator.of(context).pop();
   }
@@ -519,7 +478,11 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   }) async {
     return showDialog<List<String>>(
       context: context,
-      builder: (_) => _DialogoCampos(titulo: titulo, rotulos: rotulos),
+      builder: (_) => DialogoCamposClinica(
+        titulo: titulo,
+        rotulos: rotulos,
+        labelAcao: 'Adicionar',
+      ),
     );
   }
 
@@ -527,66 +490,5 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     ScaffoldMessenger.of(context)
       ..hideCurrentSnackBar()
       ..showSnackBar(SnackBar(content: Text(texto)));
-  }
-}
-
-class _DialogoCampos extends StatefulWidget {
-  const _DialogoCampos({required this.titulo, required this.rotulos});
-
-  final String titulo;
-  final List<String> rotulos;
-
-  @override
-  State<_DialogoCampos> createState() => _DialogoCamposState();
-}
-
-class _DialogoCamposState extends State<_DialogoCampos> {
-  late final List<TextEditingController> _controllers;
-
-  @override
-  void initState() {
-    super.initState();
-    _controllers = widget.rotulos.map((_) => TextEditingController()).toList();
-  }
-
-  @override
-  void dispose() {
-    for (final controller in _controllers) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.titulo, style: TipografiaApp.heading3),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < widget.rotulos.length; i++) ...[
-            if (i > 0) const SizedBox(height: EspacamentosApp.sm),
-            CampoFormularioApp(
-              controller: _controllers[i],
-              label: widget.rotulos[i],
-              textCapitalization: TextCapitalization.sentences,
-            ),
-          ],
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(
-            context,
-            _controllers.map((controller) => controller.text.trim()).toList(),
-          ),
-          child: const Text('Adicionar'),
-        ),
-      ],
-    );
   }
 }

@@ -7,9 +7,8 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/screens/recepcao/cadastro/etapas_formulario_cadastro.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/cartao_opcao_app.dart';
 
 class CabecalhoEtapaCadastro extends StatelessWidget {
@@ -145,7 +144,7 @@ class CpfResponsavelCadastro extends StatelessWidget {
             validator: _validarCpf,
           ),
           const SizedBox(height: EspacamentosApp.md),
-          BotaoPrincipal(
+          BotaoClinica(
             label: 'Buscar responsável',
             icon: Icons.search_rounded,
             expanded: true,
@@ -189,11 +188,11 @@ class PetsResponsavelCadastro extends StatelessWidget {
         const SizedBox(height: EspacamentosApp.md),
         Text('Responsável localizado', style: TipografiaApp.heading3),
         const SizedBox(height: EspacamentosApp.sm),
-        CartaoBase(
+        CartaoClinica(
           child: Row(
             children: [
               CircleAvatar(
-                backgroundColor: const Color(0xFFFFF1D8),
+                backgroundColor: CoresApp.background,
                 child: Icon(
                   Icons.person_outline_rounded,
                   color: CoresApp.darkBlue,
@@ -234,7 +233,7 @@ class PetsResponsavelCadastro extends StatelessWidget {
           compacto: true,
         ),
         const SizedBox(height: EspacamentosApp.md),
-        BotaoPrincipal(
+        BotaoClinica(
           label: 'Continuar com pet selecionado',
           icon: Icons.arrow_forward_rounded,
           expanded: true,
@@ -276,14 +275,14 @@ class SucessoCadastroRecepcao extends StatelessWidget {
   Widget build(BuildContext context) {
     final agendada = consulta?.status == StatusConsultaRecepcao.agendada;
 
-    return CartaoBase(
+    return CartaoClinica(
       child: Column(
         children: [
           Container(
             width: 56,
             height: 56,
             decoration: const BoxDecoration(
-              color: Color(0xFFE0F7FA),
+              color: CoresApp.surfaceSoft,
               shape: BoxShape.circle,
             ),
             child: const Icon(
@@ -307,7 +306,7 @@ class SucessoCadastroRecepcao extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: EspacamentosApp.lg),
-          BotaoPrincipal(
+          BotaoClinica(
             label: 'Novo cadastro',
             icon: Icons.person_add_alt_1_rounded,
             expanded: true,

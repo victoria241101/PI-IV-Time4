@@ -82,7 +82,6 @@ class AgendaClinica extends ChangeNotifier {
         NotaInternacao(
           texto: 'Exemplo de atualização compartilhada da equipe',
           autor: 'Dra. Camila',
-          registradaEm: DateTime.now().subtract(const Duration(minutes: 30)),
         ),
       ],
     );

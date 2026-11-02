@@ -5,9 +5,8 @@ import 'package:flutter/services.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
 class DadosResponsavelCadastro extends StatelessWidget {
   const DadosResponsavelCadastro({
@@ -95,7 +94,7 @@ class DadosResponsavelCadastro extends StatelessWidget {
             ),
           ),
           const SizedBox(height: EspacamentosApp.md),
-          BotaoPrincipal(
+          BotaoClinica(
             label: 'Continuar para perfil do pet',
             icon: Icons.arrow_forward_rounded,
             expanded: true,
@@ -282,7 +281,7 @@ class PerfilPetCadastro extends StatelessWidget {
             ),
           ),
           const SizedBox(height: EspacamentosApp.md),
-          BotaoPrincipal(
+          BotaoClinica(
             label: 'Continuar',
             icon: Icons.arrow_forward_rounded,
             expanded: true,
@@ -355,7 +354,7 @@ class PassoCadastro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CartaoBase(
+    return CartaoClinica(
       padding: const EdgeInsets.symmetric(
         horizontal: EspacamentosApp.md,
         vertical: EspacamentosApp.sm + 2,
@@ -406,7 +405,7 @@ class PassoCadastro extends StatelessWidget {
           child: Icon(
             concluida ? Icons.check_rounded : Icons.circle,
             size: concluida ? 14 : 7,
-            color: Colors.white,
+            color: CoresApp.textOnPrimary,
           ),
         ),
         const SizedBox(width: EspacamentosApp.xs),
@@ -441,7 +440,7 @@ class SecaoCadastro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return CartaoBase(
+    return CartaoClinica(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -519,7 +518,7 @@ class SeletorFotoPet extends StatelessWidget {
             width: 64,
             height: 64,
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF4DF),
+              color: CoresApp.background,
               shape: BoxShape.circle,
               border: Border.all(color: CoresApp.divider, width: 1.5),
             ),
@@ -580,7 +579,7 @@ class OpcoesCadastro extends StatelessWidget {
           labelStyle: TipografiaApp.captionBold.copyWith(
             color: ativo ? CoresApp.darkBlue : CoresApp.textSecondary,
           ),
-          selectedColor: const Color(0xFFE0F7FA),
+          selectedColor: CoresApp.surfaceSoft,
           side: BorderSide(
             color: ativo ? CoresApp.primary : CoresApp.divider,
             width: ativo ? 1.5 : 1,

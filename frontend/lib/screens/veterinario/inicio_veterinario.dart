@@ -1,5 +1,6 @@
 // consultas, agenda, clientes e chat do veterinario
 import 'package:flutter/material.dart';
+import 'package:pet_care/core/formatadores/data_app.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -11,11 +12,9 @@ import 'package:pet_care/screens/recepcao/agenda/calendario_agendamentos.dart';
 import 'package:pet_care/screens/recepcao/chat_recepcao.dart';
 import 'package:pet_care/screens/veterinario/clientes_veterinario.dart';
 import 'package:pet_care/screens/veterinario/consulta_veterinario.dart';
-import 'package:pet_care/widgets/avatar_pet.dart';
-import 'package:pet_care/widgets/barra_navegacao_app.dart';
-import 'package:pet_care/widgets/cabecalho_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
-import 'package:pet_care/widgets/indicador_status.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
+import 'package:pet_care/widgets/clinica/layout_clinica.dart';
+import 'package:pet_care/widgets/clinica/cartao_atendimento.dart';
 
 class InicioVeterinario extends StatefulWidget {
   const InicioVeterinario({
@@ -28,7 +27,7 @@ class InicioVeterinario extends StatefulWidget {
     this.terceiraAbaBuilder,
     this.terceiraAbaItem,
     this.rotuloAcaoConsulta,
-    this.cartoesCompactos = false,
+    this.resumoHojeBuilder,
   });
 
   final String? profissional;
@@ -39,7 +38,7 @@ class InicioVeterinario extends StatefulWidget {
   final Widget Function(List<ConsultaRecepcao> consultas)? terceiraAbaBuilder;
   final BottomNavigationBarItem? terceiraAbaItem;
   final String? Function(ConsultaRecepcao consulta)? rotuloAcaoConsulta;
-  final bool cartoesCompactos;
+  final Widget Function(List<ConsultaRecepcao> consultas)? resumoHojeBuilder;
 
   @override
   State<InicioVeterinario> createState() => _InicioVeterinarioState();
@@ -66,13 +65,6 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     if (mounted) setState(() {});
   }
 
-  String get _saudacao {
-    final hora = TimeOfDay.now().hour;
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-    return 'Boa noite';
-  }
-
   String get _profissionalAtual {
     if (widget.profissional != null) return widget.profissional!;
     final nome = _chaveProfissional(SessaoUsuario.instancia.nomeUsuario ?? '');
@@ -89,9 +81,6 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
 
   String _chaveProfissional(String nome) =>
       nome.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
-
-  String get _nomeUsuario =>
-      SessaoUsuario.instancia.nomeUsuario ?? _profissionalAtual;
 
   List<ConsultaRecepcao> get _consultasDoPerfil {
     final consultas = AgendaClinica.instancia.consultas
@@ -142,84 +131,36 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     final consultasVisiveis = _consultasVisiveis;
     final consultasAtivasHoje = _consultasAtivasDeHoje;
 
-    return Scaffold(
-      backgroundColor: CoresApp.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: EspacamentosApp.md,
-                bottom: EspacamentosApp.xs,
-              ),
-              child: AnimatedBuilder(
-                animation: SessaoUsuario.instancia,
-                builder: (context, _) => CabecalhoApp(
-                  greeting: _saudacao,
-                  name: _nomeUsuario,
-                  onNotificationTap: () =>
-                      _mensagem('Você está em dia com as notificações'),
-                ),
-              ),
-            ),
-            Expanded(
-              child: IndexedStack(
-                index: _abaAtual,
-                children: [
-                  _listaDeConsultas(consultasAtivasHoje),
-                  CalendarioAgendamentos(
-                    consultas: consultasVisiveis
-                        .where(
-                          (consulta) =>
-                              consulta.status !=
-                              StatusConsultaRecepcao.finalizado,
-                        )
-                        .toList(),
-                    dataInicial: _hoje,
-                    onConsultaTap: _abrirConsulta,
-                    mostrarFotoPet: true,
-                    mostrarMotivo: false,
-                  ),
-                  widget.terceiraAbaBuilder?.call(consultas) ??
-                      ClientesVeterinario(
-                        consultas: consultas,
-                        profissional: _profissionalAtual,
-                        descricao: widget.descricaoClientes,
-                      ),
-                  const ChatRecepcao(),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-      bottomNavigationBar: BarraNavegacaoApp(
-        currentIndex: _abaAtual,
-        onTap: (index) => setState(() => _abaAtual = index),
-        items: [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.today_outlined),
-            activeIcon: Icon(Icons.today_rounded),
-            label: 'Hoje',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_outlined),
-            activeIcon: Icon(Icons.calendar_month_rounded),
-            label: 'Agenda',
-          ),
+    return LayoutClinica(
+      nomePadrao: _profissionalAtual,
+      abaAtual: _abaAtual,
+      onSelecionarAba: (index) => setState(() => _abaAtual = index),
+      onNotificacao: () => _mensagem('Você está em dia com as notificações'),
+      terceiraAba:
           widget.terceiraAbaItem ??
-              const BottomNavigationBarItem(
-                icon: Icon(Icons.people_outline_rounded),
-                activeIcon: Icon(Icons.people_rounded),
-                label: 'Clientes',
-              ),
           const BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
-            activeIcon: Icon(Icons.chat_bubble_rounded),
-            label: 'Chat',
+            icon: Icon(Icons.people_outline_rounded),
+            label: 'Clientes',
           ),
-        ],
-      ),
+      paginas: [
+        _listaDeConsultas(consultasAtivasHoje),
+        CalendarioAgendamentos(
+          consultas: consultasVisiveis
+              .where((c) => c.status != StatusConsultaRecepcao.finalizado)
+              .toList(),
+          dataInicial: _hoje,
+          onConsultaTap: _abrirConsulta,
+          mostrarFotoPet: true,
+          mostrarMotivo: false,
+        ),
+        widget.terceiraAbaBuilder?.call(consultas) ??
+            ClientesVeterinario(
+              consultas: consultas,
+              profissional: _profissionalAtual,
+              descricao: widget.descricaoClientes,
+            ),
+        const ChatRecepcao(),
+      ],
     );
   }
 
@@ -232,9 +173,10 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         EspacamentosApp.xl,
       ),
       children: [
-        Text('Consultas do dia', style: TipografiaApp.heading2),
+        _resumoHoje(),
+        const SizedBox(height: EspacamentosApp.md),
         const SizedBox(height: EspacamentosApp.xs),
-        Text(_dataFormatada(_hoje), style: TipografiaApp.bodySmall),
+        Text(formatarDataExtensa(_hoje), style: TipografiaApp.bodySmall),
         const SizedBox(height: EspacamentosApp.md),
         Row(
           children: [
@@ -253,111 +195,61 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         else
           for (final consulta in consultas) ...[
             _cartaoConsulta(consulta),
-            SizedBox(
-              height: widget.cartoesCompactos
-                  ? EspacamentosApp.xs
-                  : EspacamentosApp.sm,
-            ),
+            const SizedBox(height: EspacamentosApp.sm),
           ],
       ],
     );
   }
 
   Widget _cartaoConsulta(ConsultaRecepcao consulta) {
-    final acao = widget.rotuloAcaoConsulta?.call(consulta);
-    final linhaConsulta = Row(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        SizedBox(
-          width: 50,
-          child: Text(
-            consulta.horario,
-            style: TipografiaApp.bodyMedium.copyWith(
-              color: CoresApp.primaryDark,
-              fontWeight: FontWeight.w700,
-            ),
-          ),
+    final personalizada = widget.rotuloAcaoConsulta;
+    final acao = personalizada != null
+        ? personalizada(consulta)
+        : switch (consulta.status) {
+            StatusConsultaRecepcao.aguardandoVeterinario => 'Iniciar consulta',
+            StatusConsultaRecepcao.emConsulta => 'Continuar consulta',
+            _ => null,
+          };
+    return CartaoAtendimento(
+      consulta: consulta,
+      onTap: () => _abrirConsulta(consulta),
+      acao: acao ?? (personalizada != null ? 'Ver triagem' : 'Ver atendimento'),
+      acaoSecundaria: acao == null,
+      iconeAcao: acao == null
+          ? Icons.description_outlined
+          : Icons.arrow_forward_rounded,
+      onAcao: () => _abrirConsulta(consulta),
+    );
+  }
+
+  Widget _resumoHoje() {
+    final consultas = _consultasDoPerfil
+        .where((c) => DateUtils.isSameDay(c.data, _hoje))
+        .toList();
+    if (widget.resumoHojeBuilder != null) {
+      return widget.resumoHojeBuilder!(consultas);
+    }
+    return ResumoClinica(
+      titulo: 'Suas consultas',
+      indicadores: [
+        (
+          consultas
+              .where((c) => c.status != StatusConsultaRecepcao.finalizado)
+              .length,
+          'Em acompanhamento',
         ),
-        const SizedBox(width: EspacamentosApp.sm),
-        AvatarPet(fotoUrl: consulta.fotoPet, nome: consulta.pet, tamanho: 48),
-        const SizedBox(width: EspacamentosApp.sm),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                children: [
-                  Expanded(
-                    child: Text(
-                      '${consulta.pet} · ${consulta.especie}',
-                      style: TipografiaApp.bodyMedium,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  const Icon(
-                    Icons.chevron_right_rounded,
-                    color: CoresApp.iconDefault,
-                  ),
-                ],
-              ),
-              const SizedBox(height: EspacamentosApp.xs),
-              Text(
-                consulta.tutor,
-                style: TipografiaApp.caption,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-              ),
-              const SizedBox(height: EspacamentosApp.xs),
-              IndicadorStatus(
-                label: consulta.status.rotulo,
-                color: consulta.status.cor,
-              ),
-            ],
-          ),
+        (
+          consultas
+              .where((c) => c.status == StatusConsultaRecepcao.finalizado)
+              .length,
+          'Finalizadas',
         ),
       ],
-    );
-
-    return CartaoBase(
-      onTap: () => _abrirConsulta(consulta),
-      padding: EdgeInsets.symmetric(
-        horizontal: EspacamentosApp.md,
-        vertical: widget.cartoesCompactos
-            ? EspacamentosApp.sm
-            : EspacamentosApp.md,
-      ),
-      child: acao == null
-          ? linhaConsulta
-          : Column(
-              children: [
-                linhaConsulta,
-                const SizedBox(height: EspacamentosApp.xs),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton.icon(
-                    onPressed: () => _abrirConsulta(consulta),
-                    icon: const Icon(Icons.arrow_forward_rounded),
-                    label: Text(acao),
-                    style: widget.cartoesCompactos
-                        ? TextButton.styleFrom(
-                            visualDensity: VisualDensity.compact,
-                            tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                            minimumSize: const Size(0, 36),
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: EspacamentosApp.sm,
-                            ),
-                          )
-                        : null,
-                  ),
-                ),
-              ],
-            ),
     );
   }
 
   Widget _vazio() {
-    return CartaoBase(
+    return CartaoClinica(
       padding: const EdgeInsets.all(EspacamentosApp.xl),
       child: Column(
         children: [
@@ -371,23 +263,5 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         ],
       ),
     );
-  }
-
-  String _dataFormatada(DateTime data) {
-    const meses = [
-      'janeiro',
-      'fevereiro',
-      'março',
-      'abril',
-      'maio',
-      'junho',
-      'julho',
-      'agosto',
-      'setembro',
-      'outubro',
-      'novembro',
-      'dezembro',
-    ];
-    return '${data.day} de ${meses[data.month - 1]} de ${data.year}';
   }
 }

@@ -1,17 +1,14 @@
 // tela principal da recepção com agenda, cadastro, calendário e chat
 import 'package:flutter/material.dart';
+import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
-import 'package:pet_care/controle/sessao_usuario.dart';
-import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/screens/recepcao/cadastro/cadastro_recepcao.dart';
 import 'package:pet_care/screens/recepcao/agenda/agenda_recepcao.dart';
 import 'package:pet_care/screens/recepcao/agenda/calendario_agendamentos.dart';
 import 'package:pet_care/screens/recepcao/chat_recepcao.dart';
-import 'package:pet_care/widgets/barra_navegacao_app.dart';
-import 'package:pet_care/widgets/cabecalho_app.dart';
 
 /// Tela principal do fluxo de recepção / secretaria.
 class InicioRecepcao extends StatefulWidget {
@@ -57,18 +54,6 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
           margin: const EdgeInsets.all(EspacamentosApp.md),
         ),
       );
-  }
-
-  String get _saudacao {
-    final hora = TimeOfDay.now().hour;
-    if (hora < 12) return 'Bom dia';
-    if (hora < 18) return 'Boa tarde';
-    return 'Boa noite';
-  }
-
-  String get _nomeUsuario {
-    final nome = SessaoUsuario.instancia.nomeUsuario;
-    return (nome != null && nome.isNotEmpty) ? nome : 'Recepção';
   }
 
   void _confirmarChegada(ConsultaRecepcao consulta) {
@@ -142,75 +127,30 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
         .where((consulta) => DateUtils.isSameDay(consulta.data, _hoje))
         .toList();
 
-    return Scaffold(
-      backgroundColor: CoresApp.background,
-      body: SafeArea(
-        child: Column(
-          children: [
-            Padding(
-              padding: const EdgeInsets.only(
-                top: EspacamentosApp.md,
-                bottom: EspacamentosApp.xs,
-              ),
-              child: AnimatedBuilder(
-                animation: SessaoUsuario.instancia,
-                builder: (context, _) => CabecalhoApp(
-                  greeting: _saudacao,
-                  name: _nomeUsuario,
-                  onNotificationTap: () =>
-                      _mensagem('Você está em dia com as notificações'),
-                ),
-              ),
-            ),
-            Expanded(
-              child: IndexedStack(
-                index: _abaAtual,
-                children: [
-                  AgendaRecepcao(
-                    consultas: consultasDeHoje,
-                    onConfirmarChegada: _confirmarChegada,
-                  ),
-                  CalendarioAgendamentos(
-                    key: ValueKey(_versaoCalendario),
-                    consultas: _consultas,
-                    dataInicial: _dataInicialAgenda,
-                    onCancelar: _cancelarConsulta,
-                    onReagendar: _reagendarConsulta,
-                  ),
-                  CadastroRecepcao(onRegistrarConsulta: _registrarConsulta),
-                  const ChatRecepcao(),
-                ],
-              ),
-            ),
-          ],
+    return LayoutClinica(
+      nomePadrao: 'Recepção',
+      abaAtual: _abaAtual,
+      onSelecionarAba: (index) => setState(() => _abaAtual = index),
+      onNotificacao: () => _mensagem('Você está em dia com as notificações'),
+      terceiraAba: const BottomNavigationBarItem(
+        icon: Icon(Icons.person_add_alt_1_outlined),
+        label: 'Cadastro',
+      ),
+      paginas: [
+        AgendaRecepcao(
+          consultas: consultasDeHoje,
+          onConfirmarChegada: _confirmarChegada,
         ),
-      ),
-      bottomNavigationBar: BarraNavegacaoApp(
-        currentIndex: _abaAtual,
-        onTap: (index) => setState(() => _abaAtual = index),
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.today_outlined),
-            activeIcon: Icon(Icons.today_rounded),
-            label: 'Hoje',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.calendar_month_outlined),
-            activeIcon: Icon(Icons.calendar_month_rounded),
-            label: 'Agenda',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person_add_alt_1_outlined),
-            activeIcon: Icon(Icons.person_add_alt_1_rounded),
-            label: 'Cadastro',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.chat_bubble_outline_rounded),
-            activeIcon: Icon(Icons.chat_bubble_rounded),
-            label: 'Chat',
-          ),
-        ],
-      ),
+        CalendarioAgendamentos(
+          key: ValueKey(_versaoCalendario),
+          consultas: _consultas,
+          dataInicial: _dataInicialAgenda,
+          onCancelar: _cancelarConsulta,
+          onReagendar: _reagendarConsulta,
+        ),
+        CadastroRecepcao(onRegistrarConsulta: _registrarConsulta),
+        const ChatRecepcao(),
+      ],
     );
   }
 }

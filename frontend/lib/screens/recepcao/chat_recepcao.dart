@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
 class ChatRecepcao extends StatefulWidget {
   const ChatRecepcao({super.key});
@@ -84,11 +84,6 @@ class _ChatRecepcaoState extends State<ChatRecepcao> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text('Chat da equipe', style: TipografiaApp.heading2),
-        const SizedBox(height: EspacamentosApp.xs),
-        Text(
-          'Fale com a recepção e com os veterinários',
-          style: TipografiaApp.bodySmall,
-        ),
         const SizedBox(height: EspacamentosApp.md),
         Expanded(
           child: ListView.separated(
@@ -103,7 +98,8 @@ class _ChatRecepcaoState extends State<ChatRecepcao> {
               return InkWell(
                 onTap: () => setState(() => _conversaSelecionada = conversa),
                 borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
-                child: CartaoBase(
+                child: CartaoClinica(
+                  color: CoresApp.surfaceSoft,
                   padding: const EdgeInsets.all(EspacamentosApp.md),
                   child: Row(
                     children: [
@@ -202,7 +198,7 @@ class _ChatRecepcaoState extends State<ChatRecepcao> {
                   hintText: 'Escreva uma mensagem',
                   hintStyle: TipografiaApp.bodySmall,
                   filled: true,
-                  fillColor: CoresApp.surface,
+                  fillColor: CoresApp.surfaceSoft,
                   contentPadding: const EdgeInsets.symmetric(
                     horizontal: EspacamentosApp.md,
                     vertical: EspacamentosApp.sm + 2,
@@ -224,6 +220,10 @@ class _ChatRecepcaoState extends State<ChatRecepcao> {
             ),
             const SizedBox(width: EspacamentosApp.xs),
             IconButton.filled(
+              style: IconButton.styleFrom(
+                backgroundColor: CoresApp.primaryDark,
+                foregroundColor: CoresApp.textOnPrimary,
+              ),
               tooltip: 'Enviar mensagem',
               onPressed: () => _enviar(conversa),
               icon: const Icon(Icons.send_rounded),
@@ -247,7 +247,7 @@ class _ChatRecepcaoState extends State<ChatRecepcao> {
           vertical: EspacamentosApp.sm,
         ),
         decoration: BoxDecoration(
-          color: mensagem.enviada ? const Color(0xFFDDF7F4) : CoresApp.surface,
+          color: mensagem.enviada ? CoresApp.primaryDark : CoresApp.surfaceSoft,
           borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
           border: Border.all(
             color: mensagem.enviada
@@ -255,7 +255,12 @@ class _ChatRecepcaoState extends State<ChatRecepcao> {
                 : CoresApp.divider,
           ),
         ),
-        child: Text(mensagem.texto, style: TipografiaApp.bodySmall),
+        child: Text(
+          mensagem.texto,
+          style: TipografiaApp.bodySmall.copyWith(
+            color: mensagem.enviada ? CoresApp.textOnPrimary : null,
+          ),
+        ),
       ),
     );
   }

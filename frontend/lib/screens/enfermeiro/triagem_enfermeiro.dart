@@ -9,9 +9,8 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/screens/gerais/prontuario_internacao.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
 class TriagemEnfermeiro extends StatefulWidget {
@@ -45,7 +44,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
       widget.consulta.status == StatusConsultaRecepcao.emTriagem;
 
   String get _responsavel =>
-      SessaoUsuario.instancia.nomeUsuario ?? 'Equipe de enfermagem';
+      SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro';
 
   void _salvarObservacoes({StatusConsultaRecepcao? novoStatus}) {
     _agenda.prontuarioDa(widget.consulta).observacoesTriagem =
@@ -64,12 +63,13 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
       _salvarObservacoes(
         novoStatus: StatusConsultaRecepcao.aguardandoVeterinario,
       );
+      Navigator.of(context).pop();
     }
   }
 
   String get _rotuloAcao => switch (widget.consulta.status) {
     StatusConsultaRecepcao.aguardandoTriagem => 'Iniciar triagem',
-    StatusConsultaRecepcao.emTriagem => 'Concluir triagem e encaminhar',
+    StatusConsultaRecepcao.emTriagem => 'Concluir triagem',
     _ => '',
   };
 
@@ -87,10 +87,8 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
         final prontuario = _agenda.prontuarioDa(widget.consulta);
         return Scaffold(
           backgroundColor: CoresApp.background,
-          appBar: AppBar(
-            backgroundColor: CoresApp.background,
-            elevation: 0,
-            title: Text('Triagem', style: TipografiaApp.heading3),
+          appBar: cabecalhoClinica(
+            'Triagem',
             actions: [
               if (prontuario.internacaoAtiva)
                 IconButton(
@@ -116,15 +114,33 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
             ),
             children: [
               _cabecalho(),
-              const SizedBox(height: EspacamentosApp.lg),
-              Text('Observações da triagem', style: TipografiaApp.heading3),
+              const SizedBox(height: EspacamentosApp.sm),
+              CartaoClinica(
+                color: CoresApp.primary.withAlpha(24),
+                padding: const EdgeInsets.all(EspacamentosApp.sm),
+                child: Row(
+                  children: [
+                    const Icon(
+                      Icons.edit_note_rounded,
+                      color: CoresApp.primaryDark,
+                    ),
+                    const SizedBox(width: EspacamentosApp.sm),
+                    Expanded(
+                      child: Text(
+                        'Observações da triagem',
+                        style: TipografiaApp.heading3,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
               const SizedBox(height: EspacamentosApp.sm),
               CampoFormularioApp(
                 controller: _observacoesController,
                 label: 'Observações clínicas',
                 hint: 'Registre as informações iniciais do paciente',
                 prefixIcon: Icons.notes_rounded,
-                maxLines: 5,
+                maxLines: 7,
                 enabled: _podeEditar,
                 onChanged: (_) => _salvarObservacoes(),
                 textCapitalization: TextCapitalization.sentences,
@@ -134,7 +150,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
                   'A triagem ficará disponível depois que a recepção confirmar a chegada do tutor',
                 ),
               if (status == StatusConsultaRecepcao.aguardandoVeterinario)
-                _aviso('Triagem concluída · paciente aguardando veterinário'),
+                _aviso('Triagem concluída'),
             ],
           ),
           bottomNavigationBar: _barraAcao(status),
@@ -143,7 +159,8 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     );
   }
 
-  Widget _cabecalho() => CartaoBase(
+  Widget _cabecalho() => CartaoClinica(
+    color: CoresApp.surfaceSoft,
     padding: const EdgeInsets.all(EspacamentosApp.md),
     child: Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -162,7 +179,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
                 children: [
                   Text(
                     '${widget.consulta.pet} · ${widget.consulta.especie}',
-                    style: TipografiaApp.bodyMedium,
+                    style: TipografiaApp.heading3,
                   ),
                   Text(
                     'Tutor: ${widget.consulta.tutor}',
@@ -175,7 +192,11 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
         ),
         const SizedBox(height: EspacamentosApp.md),
         IndicadorStatus(
-          label: widget.consulta.status.rotulo,
+          label:
+              widget.consulta.status ==
+                  StatusConsultaRecepcao.aguardandoVeterinario
+              ? 'Triagem concluída'
+              : widget.consulta.status.rotulo,
           color: widget.consulta.status.cor,
         ),
         const SizedBox(height: EspacamentosApp.sm),
@@ -189,7 +210,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
 
   Widget _aviso(String texto) => Padding(
     padding: const EdgeInsets.only(top: EspacamentosApp.md),
-    child: CartaoBase(
+    child: CartaoClinica(
       color: CoresApp.primary.withAlpha(20),
       padding: const EdgeInsets.all(EspacamentosApp.md),
       child: Text(texto, style: TipografiaApp.bodySmall),
@@ -203,34 +224,25 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     final textoInformativo = switch (status) {
       StatusConsultaRecepcao.agendada =>
         'Aguardando confirmação de chegada pela recepção',
-      StatusConsultaRecepcao.aguardandoVeterinario =>
-        'Triagem concluída · aguardando veterinário',
+      StatusConsultaRecepcao.aguardandoVeterinario => 'Triagem concluída',
       StatusConsultaRecepcao.emConsulta => 'Atendimento veterinário iniciado',
       StatusConsultaRecepcao.finalizado => 'Atendimento finalizado',
       _ => '',
     };
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.sm,
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.md,
-        ),
-        child: podeAvancar
-            ? BotaoPrincipal(
-                label: _rotuloAcao,
-                icon: _iconeAcao,
-                expanded: true,
-                onPressed: _avancarEtapa,
-              )
-            : Text(
-                textoInformativo,
-                textAlign: TextAlign.center,
-                style: TipografiaApp.bodySmall,
-              ),
-      ),
+    return RodapeClinica(
+      child: podeAvancar
+          ? BotaoClinica(
+              label: _rotuloAcao,
+              backgroundColor: CoresApp.primaryDark,
+              icon: _iconeAcao,
+              expanded: true,
+              onPressed: _avancarEtapa,
+            )
+          : Text(
+              textoInformativo,
+              textAlign: TextAlign.center,
+              style: TipografiaApp.bodySmall,
+            ),
     );
   }
 }

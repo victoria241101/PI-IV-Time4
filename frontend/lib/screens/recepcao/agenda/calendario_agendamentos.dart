@@ -5,8 +5,7 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
@@ -133,7 +132,8 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
       Duration(days: primeiroDiaDoMes.weekday - 1),
     );
 
-    return CartaoBase(
+    return CartaoClinica(
+      color: CoresApp.surfaceSoft,
       padding: const EdgeInsets.fromLTRB(
         EspacamentosApp.md,
         EspacamentosApp.sm,
@@ -153,12 +153,20 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                 ),
               ),
               IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: CoresApp.primaryDark,
+                  foregroundColor: CoresApp.textOnPrimary,
+                ),
                 tooltip: 'Mês anterior',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _mudarMes(-1),
                 icon: const Icon(Icons.chevron_left_rounded),
               ),
               IconButton(
+                style: IconButton.styleFrom(
+                  backgroundColor: CoresApp.primaryDark,
+                  foregroundColor: CoresApp.textOnPrimary,
+                ),
                 tooltip: 'Próximo mês',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _mudarMes(1),
@@ -235,7 +243,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                             color: !pertenceAoMes
                                 ? CoresApp.textSecondary.withAlpha(100)
                                 : selecionado
-                                ? Colors.white
+                                ? CoresApp.textOnPrimary
                                 : CoresApp.textPrimary,
                             fontWeight: selecionado
                                 ? FontWeight.w700
@@ -250,7 +258,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                               height: 4,
                               decoration: BoxDecoration(
                                 color: selecionado
-                                    ? Colors.white
+                                    ? CoresApp.textOnPrimary
                                     : CoresApp.primary,
                                 shape: BoxShape.circle,
                               ),
@@ -342,7 +350,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
           ? _abrirDetalhes(consulta)
           : widget.onConsultaTap!(consulta),
       borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
-      child: CartaoBase(
+      child: CartaoClinica(
         padding: const EdgeInsets.all(EspacamentosApp.md),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
@@ -376,12 +384,14 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
             ),
             const SizedBox(height: EspacamentosApp.xs),
             Row(
+              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                IndicadorStatus(
-                  label: consulta.status.rotulo,
-                  color: consulta.status.cor,
+                Flexible(
+                  child: IndicadorStatus(
+                    label: consulta.status.rotulo,
+                    color: consulta.status.cor,
+                  ),
                 ),
-                const Spacer(),
                 const Icon(
                   Icons.chevron_right_rounded,
                   color: CoresApp.iconDefault,
@@ -396,7 +406,8 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
   }
 
   Widget _semAgendamentos() {
-    return CartaoBase(
+    return CartaoClinica(
+      color: CoresApp.surfaceSoft,
       padding: const EdgeInsets.all(EspacamentosApp.lg),
       child: Row(
         children: [
@@ -479,7 +490,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                   ],
                 ),
                 const SizedBox(height: EspacamentosApp.md),
-                CartaoBase(
+                CartaoClinica(
                   padding: const EdgeInsets.all(EspacamentosApp.md),
                   child: Column(
                     children: [
@@ -788,7 +799,7 @@ class _FormularioReagendamentoState extends State<_FormularioReagendamento> {
                       },
               ),
               const SizedBox(height: EspacamentosApp.md),
-              BotaoPrincipal(
+              BotaoClinica(
                 label: 'Salvar alteração',
                 icon: Icons.event_available_rounded,
                 expanded: true,

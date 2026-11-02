@@ -10,7 +10,7 @@ import 'package:pet_care/modelos/prontuario_compartilhado.dart';
 import 'package:pet_care/screens/gerais/prontuario_internacao.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
 class ClientesVeterinario extends StatefulWidget {
@@ -170,10 +170,14 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
     final historico = _consultasDoPet(cliente);
     final internado = historico.any(_temInternacaoAtiva);
     final ultimaConsulta = historico.first;
-    return CartaoBase(
+    return CartaoClinica(
+      color: CoresApp.surfaceSoft,
       onTap: () => Navigator.of(context).push(
         MaterialPageRoute<void>(
-          builder: (_) => _HistoricoPetVeterinario(cliente: cliente),
+          builder: (_) => _HistoricoPetVeterinario(
+            cliente: cliente,
+            responsavel: widget.profissional,
+          ),
         ),
       ),
       padding: const EdgeInsets.all(EspacamentosApp.md),
@@ -200,11 +204,15 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
           if (internado) ...[
             const IndicadorStatus(label: 'Internado', color: CoresApp.primary),
             IconButton(
+              style: IconButton.styleFrom(
+                backgroundColor: CoresApp.primaryDark,
+                foregroundColor: CoresApp.textOnPrimary,
+              ),
               tooltip: 'Abrir prontuário da internação',
               onPressed: () => _abrirInternacao(cliente),
-              icon: const Icon(
+              icon: Icon(
                 Icons.local_hospital_outlined,
-                color: CoresApp.primary,
+                color: CoresApp.textOnPrimary,
               ),
             ),
           ] else
@@ -231,7 +239,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
 
   Widget _vazio() {
     return Center(
-      child: CartaoBase(
+      child: CartaoClinica(
         padding: const EdgeInsets.all(EspacamentosApp.lg),
         child: Row(
           children: [
@@ -253,7 +261,12 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
 }
 
 class _HistoricoPetVeterinario extends StatelessWidget {
-  const _HistoricoPetVeterinario({required this.cliente});
+  const _HistoricoPetVeterinario({
+    required this.cliente,
+    required this.responsavel,
+  });
+
+  final String responsavel;
 
   final _ClienteVeterinario cliente;
 
@@ -283,11 +296,7 @@ class _HistoricoPetVeterinario extends StatelessWidget {
     final internacao = _internacaoDisponivel;
     return Scaffold(
       backgroundColor: CoresApp.background,
-      appBar: AppBar(
-        backgroundColor: CoresApp.background,
-        elevation: 0,
-        title: Text('Prontuário', style: TipografiaApp.heading3),
-      ),
+      appBar: cabecalhoClinica('Prontuário'),
       body: ListView(
         padding: const EdgeInsets.fromLTRB(
           EspacamentosApp.pagePadding,
@@ -296,7 +305,7 @@ class _HistoricoPetVeterinario extends StatelessWidget {
           EspacamentosApp.xl,
         ),
         children: [
-          CartaoBase(
+          CartaoClinica(
             padding: const EdgeInsets.all(EspacamentosApp.md),
             child: Row(
               children: [
@@ -324,12 +333,12 @@ class _HistoricoPetVeterinario extends StatelessWidget {
           ),
           if (internacao != null) ...[
             const SizedBox(height: EspacamentosApp.md),
-            CartaoBase(
+            CartaoClinica(
               onTap: () => Navigator.of(context).push(
                 MaterialPageRoute<void>(
                   builder: (_) => ProntuarioInternacao(
                     consulta: internacao,
-                    responsavel: internacao.profissional,
+                    responsavel: responsavel,
                   ),
                 ),
               ),
@@ -373,7 +382,7 @@ class _RegistroConsulta extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final prontuario = AgendaClinica.instancia.prontuarios[consulta.id];
-    return CartaoBase(
+    return CartaoClinica(
       padding: const EdgeInsets.all(EspacamentosApp.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,

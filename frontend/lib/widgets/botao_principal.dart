@@ -1,3 +1,4 @@
+// Botão principal reutilizável, com texto adaptável à largura disponível.
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -32,10 +33,13 @@ class BotaoPrincipal extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: textColor ?? CoresApp.textOnPrimary),
               const SizedBox(width: EspacamentosApp.sm),
-              Text(
-                label,
-                style: TipografiaApp.button.copyWith(
-                  color: textColor ?? CoresApp.textOnPrimary,
+              Flexible(
+                child: Text(
+                  label,
+                  textAlign: TextAlign.center,
+                  style: TipografiaApp.button.copyWith(
+                    color: textColor ?? CoresApp.textOnPrimary,
+                  ),
                 ),
               ),
             ],

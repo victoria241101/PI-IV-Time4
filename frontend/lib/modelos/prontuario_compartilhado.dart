@@ -143,19 +143,10 @@ class AdministracaoMedicacao {
 }
 
 class NotaInternacao {
-  NotaInternacao({
-    required this.texto,
-    required this.autor,
-    required this.registradaEm,
-  });
+  NotaInternacao({required this.texto, required this.autor});
 
   final String texto;
   final String autor;
-  final DateTime registradaEm;
 
-  NotaInternacao copiar() => NotaInternacao(
-    texto: texto,
-    autor: autor,
-    registradaEm: registradaEm,
-  );
+  NotaInternacao copiar() => NotaInternacao(texto: texto, autor: autor);
 }

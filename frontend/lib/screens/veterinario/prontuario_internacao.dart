@@ -1,5 +1,6 @@
-// prontuario compartilhado dos pacientes internados
+// Prontuário compartilhado: evolução do pet, cuidados e dados da admissão.
 import 'package:flutter/material.dart';
+import 'package:pet_care/widgets/clinica/dialogo_campos_clinica.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -9,8 +10,7 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/indicador_status.dart';
 
 class ProntuarioInternacao extends StatefulWidget {
@@ -31,51 +31,73 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   final _agenda = AgendaClinica.instancia;
 
   String get _responsavel =>
-      widget.responsavel ??
       SessaoUsuario.instancia.nomeUsuario ??
+      widget.responsavel ??
       widget.consulta.profissional;
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedBuilder(
-      animation: _agenda,
-      builder: (context, _) {
-        final prontuario = _agenda.prontuarioDa(widget.consulta);
-        return Scaffold(
-          backgroundColor: CoresApp.background,
-          appBar: AppBar(
+    return DefaultTabController(
+      length: 3,
+      child: AnimatedBuilder(
+        animation: _agenda,
+        builder: (context, _) {
+          final prontuario = _agenda.prontuarioDa(widget.consulta);
+          return Scaffold(
             backgroundColor: CoresApp.background,
-            elevation: 0,
-            title: Text('Prontuário da internação', style: TipografiaApp.heading3),
-          ),
-          body: ListView(
-            padding: const EdgeInsets.fromLTRB(
-              EspacamentosApp.pagePadding,
-              EspacamentosApp.sm,
-              EspacamentosApp.pagePadding,
-              EspacamentosApp.md,
+            appBar: cabecalhoClinica('Prontuário da internação'),
+            body: Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(
+                    EspacamentosApp.pagePadding,
+                    EspacamentosApp.sm,
+                    EspacamentosApp.pagePadding,
+                    EspacamentosApp.sm,
+                  ),
+                  child: _cabecalho(prontuario),
+                ),
+                TabBar(
+                  labelColor: CoresApp.primaryDark,
+                  unselectedLabelColor: CoresApp.textSecondary,
+                  indicatorColor: CoresApp.primaryDark,
+                  labelStyle: TipografiaApp.captionBold,
+                  tabs: const [
+                    Tab(text: 'Evolução'),
+                    Tab(text: 'Cuidados'),
+                    Tab(text: 'Admissão'),
+                  ],
+                ),
+                Expanded(
+                  child: TabBarView(
+                    children: [
+                      _pagina([_secaoNotas(prontuario)]),
+                      _pagina([
+                        _secaoProcedimentos(prontuario),
+                        const SizedBox(height: EspacamentosApp.sm),
+                        _secaoMedicacoes(prontuario),
+                      ]),
+                      _pagina([_secaoAdmissao(prontuario)]),
+                    ],
+                  ),
+                ),
+              ],
             ),
-            children: [
-              _cabecalho(prontuario),
-              const SizedBox(height: EspacamentosApp.md),
-              _secaoAdmissao(prontuario),
-              const SizedBox(height: EspacamentosApp.md),
-              _secaoProcedimentos(prontuario),
-              const SizedBox(height: EspacamentosApp.md),
-              _secaoMedicacoes(prontuario),
-              const SizedBox(height: EspacamentosApp.md),
-              _secaoNotas(prontuario),
-              const SizedBox(height: EspacamentosApp.xl),
-            ],
-          ),
-          bottomNavigationBar: _barraAcao(prontuario),
-        );
-      },
+            bottomNavigationBar: _barraAcao(prontuario),
+          );
+        },
+      ),
     );
   }
 
+  Widget _pagina(List<Widget> children) => ListView(
+    padding: const EdgeInsets.all(EspacamentosApp.pagePadding),
+    children: children,
+  );
+
   Widget _cabecalho(ProntuarioCompartilhado prontuario) {
-    return CartaoBase(
+    return CartaoClinica(
+      color: CoresApp.darkBlue,
       padding: const EdgeInsets.all(EspacamentosApp.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -94,19 +116,28 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
                   children: [
                     Text(
                       '${widget.consulta.pet} · ${widget.consulta.especie}',
-                      style: TipografiaApp.bodyMedium,
+                      style: TipografiaApp.heading3.copyWith(
+                        color: CoresApp.textOnDarkBlue,
+                      ),
                     ),
-                    Text('Tutor: ${widget.consulta.tutor}', style: TipografiaApp.caption),
+                    Text(
+                      'Tutor: ${widget.consulta.tutor}',
+                      style: TipografiaApp.caption.copyWith(
+                        color: CoresApp.textOnDarkBlue,
+                      ),
+                    ),
                     Text(
                       'Veterinário: ${widget.consulta.profissional}',
-                      style: TipografiaApp.caption,
+                      style: TipografiaApp.caption.copyWith(
+                        color: CoresApp.textOnDarkBlue,
+                      ),
                     ),
                   ],
                 ),
               ),
             ],
           ),
-          const SizedBox(height: EspacamentosApp.md),
+          SizedBox(height: EspacamentosApp.sm),
           IndicadorStatus(
             label: prontuario.internacaoAtiva
                 ? 'Internação ativa'
@@ -129,7 +160,10 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
         children: [
           _linhaInfo('Tipo', prontuario.internacao),
           if (prontuario.internacaoIniciadaEm != null)
-            _linhaInfo('Admitido em', _dataHora(prontuario.internacaoIniciadaEm!)),
+            _linhaInfo(
+              'Admitido em',
+              _dataHora(prontuario.internacaoIniciadaEm!),
+            ),
           if (prontuario.internacaoFinalizadaEm != null)
             _linhaInfo(
               'Finalizada em',
@@ -148,7 +182,9 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     return _secao(
       titulo: 'Procedimentos',
       icone: Icons.medical_services_outlined,
-      acao: prontuario.internacaoAtiva ? _botaoAdicionar(_adicionarProcedimento) : null,
+      acao: prontuario.internacaoAtiva
+          ? _botaoAdicionar(_adicionarProcedimento)
+          : null,
       child: prontuario.procedimentosInternacao.isEmpty
           ? _textoVazio('Nenhum procedimento registrado')
           : Column(
@@ -241,51 +277,62 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     );
   }
 
-  Widget _secaoNotas(ProntuarioCompartilhado prontuario) {
-    return _secao(
-      titulo: 'Acompanhamento da equipe',
-      icone: Icons.notes_rounded,
-      acao: prontuario.internacaoAtiva ? _botaoAdicionar(_adicionarNota) : null,
-      child: prontuario.notasInternacao.isEmpty
-          ? _textoVazio('Nenhuma atualização registrada')
-          : Column(
-              children: [
-                for (final nota in prontuario.notasInternacao)
-                  _cartaoItem(
-                    titulo: nota.texto,
-                    icone: Icons.chat_bubble_outline_rounded,
-                    linhas: ['${nota.autor} · ${_dataHora(nota.registradaEm)}'],
+  Widget _secaoNotas(ProntuarioCompartilhado prontuario) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      if (prontuario.internacaoAtiva) ...[
+        BotaoClinica(
+          label: 'Adicionar nota',
+          icon: Icons.edit_note_rounded,
+          expanded: true,
+          onPressed: _adicionarNota,
+        ),
+        const SizedBox(height: EspacamentosApp.md),
+      ],
+      Text('Atualizações do paciente', style: TipografiaApp.heading3),
+      const SizedBox(height: EspacamentosApp.sm),
+      if (prontuario.notasInternacao.isEmpty)
+        CartaoClinica(
+          child: Text(
+            'Nenhuma atualização registrada',
+            style: TipografiaApp.bodySmall,
+          ),
+        )
+      else
+        CartaoClinica(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              for (var i = 0; i < prontuario.notasInternacao.length; i++) ...[
+                if (i > 0)
+                  const Divider(
+                    height: EspacamentosApp.xl,
+                    color: CoresApp.divider,
                   ),
+                Text(
+                  'Registrado por ${prontuario.notasInternacao[i].autor}',
+                  style: TipografiaApp.captionBold.copyWith(
+                    color: CoresApp.primaryDark,
+                  ),
+                ),
+                const SizedBox(height: EspacamentosApp.xs),
+                Text(
+                  prontuario.notasInternacao[i].texto,
+                  style: TipografiaApp.bodyMedium,
+                ),
               ],
-            ),
-    );
-  }
+            ],
+          ),
+        ),
+    ],
+  );
 
   Widget _secao({
     required String titulo,
     required IconData icone,
     required Widget child,
     Widget? acao,
-  }) {
-    return CartaoBase(
-      padding: const EdgeInsets.all(EspacamentosApp.md),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Icon(icone, color: CoresApp.primary, size: 20),
-              const SizedBox(width: EspacamentosApp.sm),
-              Expanded(child: Text(titulo, style: TipografiaApp.bodyMedium)),
-              ?acao,
-            ],
-          ),
-          const SizedBox(height: EspacamentosApp.md),
-          child,
-        ],
-      ),
-    );
-  }
+  }) => SecaoClinica(titulo: titulo, icone: icone, acao: acao, child: child);
 
   Widget _cartaoItem({
     required String titulo,
@@ -296,7 +343,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   }) {
     return Padding(
       padding: const EdgeInsets.only(bottom: EspacamentosApp.sm),
-      child: CartaoBase(
+      child: CartaoClinica(
         color: CoresApp.surfaceSoft,
         padding: const EdgeInsets.all(EspacamentosApp.md),
         child: Column(
@@ -333,10 +380,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(
-          width: 112,
-          child: Text(rotulo, style: TipografiaApp.caption),
-        ),
+        SizedBox(width: 112, child: Text(rotulo, style: TipografiaApp.caption)),
         Expanded(child: Text(valor, style: TipografiaApp.captionBold)),
       ],
     ),
@@ -347,36 +391,24 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     child: Text(texto, style: TipografiaApp.caption),
   );
 
-  Widget _botaoAdicionar(VoidCallback aoTocar) => IconButton(
-    tooltip: 'Adicionar',
-    onPressed: aoTocar,
-    icon: const Icon(Icons.add_circle_outline_rounded, color: CoresApp.primary),
-  );
+  Widget _botaoAdicionar(VoidCallback aoTocar) =>
+      botaoAdicionarClinica(aoTocar);
 
   Widget _barraAcao(ProntuarioCompartilhado prontuario) {
-    return SafeArea(
-      top: false,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.sm,
-          EspacamentosApp.pagePadding,
-          EspacamentosApp.md,
-        ),
-        child: prontuario.internacaoAtiva
-            ? BotaoPrincipal(
-                label: 'Finalizar internação',
-                icon: Icons.check_circle_outline_rounded,
-                expanded: true,
-                backgroundColor: CoresApp.danger,
-                onPressed: _finalizarInternacao,
-              )
-            : Text(
-                'Internação finalizada · prontuário compartilhado',
-                textAlign: TextAlign.center,
-                style: TipografiaApp.bodySmall,
-              ),
-      ),
+    return RodapeClinica(
+      child: prontuario.internacaoAtiva
+          ? BotaoClinica(
+              label: 'Finalizar internação',
+              icon: Icons.check_circle_outline_rounded,
+              expanded: true,
+              backgroundColor: CoresApp.danger,
+              onPressed: _finalizarInternacao,
+            )
+          : Text(
+              'Internação finalizada · prontuário compartilhado',
+              textAlign: TextAlign.center,
+              style: TipografiaApp.bodySmall,
+            ),
     );
   }
 
@@ -398,7 +430,9 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     );
   }
 
-  Future<void> _concluirProcedimento(ProcedimentoInternacao procedimento) async {
+  Future<void> _concluirProcedimento(
+    ProcedimentoInternacao procedimento,
+  ) async {
     final campos = await _dialogoCampos(
       titulo: 'Concluir procedimento',
       rotulos: const ['Detalhes da conclusão (opcional)'],
@@ -459,17 +493,13 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   Future<void> _adicionarNota() async {
     final campos = await _dialogoCampos(
       titulo: 'Adicionar atualização',
-      rotulos: const ['Nota de acompanhamento'],
+      rotulos: const ['Nota (data e horário opcionais)'],
       maxLines: 4,
     );
-    if (campos == null || campos[0].isEmpty) return;
+    if (campos == null || campos[0].isEmpty || !mounted) return;
     _agenda.adicionarNotaInternacao(
       widget.consulta,
-      NotaInternacao(
-        texto: campos[0],
-        autor: _responsavel,
-        registradaEm: DateTime.now(),
-      ),
+      NotaInternacao(texto: campos[0], autor: _responsavel),
     );
   }
 
@@ -501,16 +531,15 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     required List<String> rotulos,
     List<String> valoresIniciais = const [],
     int maxLines = 1,
-  }) =>
-      showDialog<List<String>>(
-        context: context,
-        builder: (_) => _DialogoCamposInternacao(
-          titulo: titulo,
-          rotulos: rotulos,
-          valoresIniciais: valoresIniciais,
-          maxLines: maxLines,
-        ),
-      );
+  }) => showDialog<List<String>>(
+    context: context,
+    builder: (_) => DialogoCamposClinica(
+      titulo: titulo,
+      rotulos: rotulos,
+      valoresIniciais: valoresIniciais,
+      maxLines: maxLines,
+    ),
+  );
 
   Future<DateTime?> _selecionarDataHora() async {
     final inicial = DateTime.now();
@@ -527,88 +556,6 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     );
     if (hora == null) return null;
     return DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
-  }
-}
-
-class _DialogoCamposInternacao extends StatefulWidget {
-  const _DialogoCamposInternacao({
-    required this.titulo,
-    required this.rotulos,
-    required this.valoresIniciais,
-    required this.maxLines,
-  });
-
-  final String titulo;
-  final List<String> rotulos;
-  final List<String> valoresIniciais;
-  final int maxLines;
-
-  @override
-  State<_DialogoCamposInternacao> createState() =>
-      _DialogoCamposInternacaoState();
-}
-
-class _DialogoCamposInternacaoState extends State<_DialogoCamposInternacao> {
-  late final List<TextEditingController> _controllers;
-
-  @override
-  void initState() {
-    super.initState();
-    _controllers = List.generate(
-      widget.rotulos.length,
-      (index) => TextEditingController(
-        text: index < widget.valoresIniciais.length
-            ? widget.valoresIniciais[index]
-            : '',
-      ),
-    );
-  }
-
-  @override
-  void dispose() {
-    for (final controller in _controllers) {
-      controller.dispose();
-    }
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text(widget.titulo, style: TipografiaApp.heading3),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            for (var index = 0; index < widget.rotulos.length; index++) ...[
-              if (index > 0) const SizedBox(height: EspacamentosApp.sm),
-              TextField(
-                controller: _controllers[index],
-                maxLines: widget.maxLines,
-                textCapitalization: TextCapitalization.sentences,
-                decoration: InputDecoration(
-                  labelText: widget.rotulos[index],
-                  border: const OutlineInputBorder(),
-                ),
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
-        ),
-        TextButton(
-          onPressed: () => Navigator.pop(
-            context,
-            _controllers.map((controller) => controller.text.trim()).toList(),
-          ),
-          child: const Text('Salvar'),
-        ),
-      ],
-    );
   }
 }
 

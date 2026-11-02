@@ -4,8 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
-import 'package:pet_care/widgets/cartao_base.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/cartao_opcao_app.dart';
 import 'package:pet_care/screens/recepcao/cadastro/etapas_formulario_cadastro.dart';
 
@@ -48,11 +47,11 @@ class EncaminhamentoCadastro extends StatelessWidget {
       children: [
         const PassoCadastro(ativo: 1, concluido: true),
         const SizedBox(height: EspacamentosApp.md),
-        CartaoBase(
+        CartaoClinica(
           child: Row(
             children: [
               const CircleAvatar(
-                backgroundColor: Color(0xFFE0F7FA),
+                backgroundColor: CoresApp.surfaceSoft,
                 child: Icon(Icons.pets_rounded, color: CoresApp.primary),
               ),
               const SizedBox(width: EspacamentosApp.md),
@@ -99,7 +98,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
           ),
         ],
         const SizedBox(height: EspacamentosApp.md),
-        BotaoPrincipal(
+        BotaoClinica(
           label: _agendando
               ? 'Confirmar agendamento'
               : 'Registrar e enviar à triagem',
@@ -114,7 +113,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
   }
 
   Widget _seletoresAgendamento() {
-    return CartaoBase(
+    return CartaoClinica(
       padding: const EdgeInsets.all(EspacamentosApp.md),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
