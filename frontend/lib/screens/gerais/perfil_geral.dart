@@ -4,7 +4,6 @@ import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
-import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 
 class PerfilGeral extends StatefulWidget {
@@ -17,20 +16,6 @@ class PerfilGeral extends StatefulWidget {
 }
 
 class _PerfilGeralState extends State<PerfilGeral> {
-  int _currentIndex = 3;
-
-  // =====================================================
-  // NAVEGAÇÃO
-  // =====================================================
-
-  void _onNavTap(int index) {
-    // O InicioGeral controla a navegação entre as telas.
-    // Apenas devolvemos o índice selecionado.
-    if (index == 3) return;
-
-    Navigator.of(context).pop(index);
-  }
-
   // =====================================================
   // AÇÕES DO PERFIL
   // =====================================================
@@ -258,10 +243,6 @@ class _PerfilGeralState extends State<PerfilGeral> {
             },
           ),
         ),
-      ),
-      bottomNavigationBar: BarraNavGeral(
-        currentIndex: _currentIndex,
-        onTap: _onNavTap,
       ),
     );
   }
