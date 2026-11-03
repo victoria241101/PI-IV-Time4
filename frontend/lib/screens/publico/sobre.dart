@@ -3,12 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
-import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
-
-import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
-
 import 'package:pet_care/widgets/barra_nav_tutor.dart';
 
 enum ContextoSobre {
@@ -29,89 +25,31 @@ class Sobre extends StatelessWidget {
   final int indiceTutor;
   final ValueChanged<int>? onNavTutorTap;
 
-  // =====================================================
-  // NAVEGAÇÃO
-  // =====================================================
-
-  void _onNavTap(BuildContext context, int index) {
+  Widget _construirCabecalho() {
     switch (contexto) {
       case ContextoSobre.publico:
-        switch (index) {
-          case 0:
-            Navigator.of(context).popUntil(
-                  (route) => route.isFirst,
-            );
-            break;
-
-          case 1:
-            Navigator.of(context).pushNamedAndRemoveUntil(
-              '/campanhas',
-                  (route) => route.isFirst,
-            );
-            break;
-        }
-        break;
+        return const CabecalhoPublico();
 
       case ContextoSobre.geral:
-      // Se já está em Sobre, não precisa navegar novamente.
-        if (index != 2) {
-          Navigator.of(context).pop(index);
-        }
-        break;
-
-      case ContextoSobre.tutor:
-      // Fecha Sobre e devolve o índice ao InicioTutor.
-        Navigator.of(context).pop();
-        onNavTutorTap?.call(index);
-        break;
-    }
-  }
-
-  // =====================================================
-  // CABEÇALHO
-  // =====================================================
-
-  Widget _construirCabecalho(BuildContext context) {
-    switch (contexto) {
-      case ContextoSobre.publico:
-        return CabecalhoPublico(
-          onBackTap: () => Navigator.of(context).pop(),
-        );
-
-      case ContextoSobre.geral:
-        return CabecalhoGeral(
-          onPerfilTap: () => Navigator.of(context).pop(3),
-        );
+        return const CabecalhoGeral();
 
       case ContextoSobre.tutor:
         return const SizedBox.shrink();
     }
   }
 
-  // =====================================================
-  // NAVEGAÇÃO INFERIOR
-  // =====================================================
-
   Widget? _construirNavegacao(BuildContext context) {
-    switch (contexto) {
-      case ContextoSobre.publico:
-        return BarraNavPublica(
-          currentIndex: 2,
-          onTap: (index) => _onNavTap(context, index),
-        );
-
-      case ContextoSobre.geral:
-        return BarraNavGeral(
-          currentIndex: 2,
-          onTap: (index) => _onNavTap(context, index),
-        );
-
-      case ContextoSobre.tutor:
-        return BarraNavTutor(
-          currentIndex: indiceTutor,
-          onTap: (index) => _onNavTap(context, index),
-        );
+    if (contexto != ContextoSobre.tutor) {
+      return null;
     }
+
+    return BarraNavTutor(
+      currentIndex: indiceTutor,
+      onTap: (index) {
+        Navigator.of(context).pop();
+        onNavTutorTap?.call(index);
+      },
+    );
   }
 
   @override
@@ -135,11 +73,9 @@ class Sobre extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _construirCabecalho(context),
+              _construirCabecalho(),
 
-              const SizedBox(
-                height: EspacamentosApp.lg,
-              ),
+              const SizedBox(height: EspacamentosApp.lg),
 
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -158,15 +94,11 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(
-                        EspacamentosApp.lg,
-                      ),
+                      padding: const EdgeInsets.all(EspacamentosApp.lg),
                       decoration: BoxDecoration(
                         color: CoresApp.darkBlue,
                         borderRadius: BorderRadius.circular(28),
@@ -195,9 +127,7 @@ class Sobre extends StatelessWidget {
                             ),
                           ),
 
-                          const SizedBox(
-                            height: EspacamentosApp.lg,
-                          ),
+                          const SizedBox(height: EspacamentosApp.lg),
 
                           const Text(
                             'Cuidar também é uma forma de amar.',
@@ -209,9 +139,7 @@ class Sobre extends StatelessWidget {
                             ),
                           ),
 
-                          const SizedBox(
-                            height: EspacamentosApp.sm,
-                          ),
+                          const SizedBox(height: EspacamentosApp.sm),
 
                           const Text(
                             'O PetCare foi pensado para aproximar '
@@ -227,9 +155,7 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     const Text(
                       'O que é o PetCare?',
@@ -240,9 +166,7 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
+                    const SizedBox(height: EspacamentosApp.sm),
 
                     const Text(
                       'Uma plataforma para centralizar o cuidado '
@@ -255,9 +179,7 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.lg,
-                    ),
+                    const SizedBox(height: EspacamentosApp.lg),
 
                     const _ItemSobre(
                       icone: Icons.favorite_outline_rounded,
@@ -267,9 +189,7 @@ class Sobre extends StatelessWidget {
                           'dos seus pets.',
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
+                    const SizedBox(height: EspacamentosApp.sm),
 
                     const _ItemSobre(
                       icone: Icons.calendar_month_outlined,
@@ -279,9 +199,7 @@ class Sobre extends StatelessWidget {
                           'veterinários em um só lugar.',
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
+                    const SizedBox(height: EspacamentosApp.sm),
 
                     const _ItemSobre(
                       icone: Icons.volunteer_activism_outlined,
@@ -291,15 +209,11 @@ class Sobre extends StatelessWidget {
                           'mais transparência e segurança.',
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(
-                        EspacamentosApp.md,
-                      ),
+                      padding: const EdgeInsets.all(EspacamentosApp.md),
                       decoration: BoxDecoration(
                         color: CoresApp.primary.withAlpha(16),
                         borderRadius: BorderRadius.circular(18),
@@ -311,9 +225,7 @@ class Sobre extends StatelessWidget {
                             Icons.verified_outlined,
                             color: CoresApp.primary,
                           ),
-
                           SizedBox(width: 12),
-
                           Expanded(
                             child: Text(
                               'Nas campanhas, a visualização é pública, '
@@ -356,9 +268,7 @@ class _ItemSobre extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(
-        EspacamentosApp.md,
-      ),
+      padding: const EdgeInsets.all(EspacamentosApp.md),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -382,11 +292,7 @@ class _ItemSobre extends StatelessWidget {
               size: 22,
             ),
           ),
-
-          const SizedBox(
-            width: EspacamentosApp.md,
-          ),
-
+          const SizedBox(width: EspacamentosApp.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -399,9 +305,7 @@ class _ItemSobre extends StatelessWidget {
                     color: CoresApp.darkBlue,
                   ),
                 ),
-
                 const SizedBox(height: 4),
-
                 Text(
                   descricao,
                   style: const TextStyle(

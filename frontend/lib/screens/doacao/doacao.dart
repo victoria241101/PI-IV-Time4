@@ -1,12 +1,7 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-
-import 'package:pet_care/widgets/barra_nav_tutor.dart';
-import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
-import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 
 import 'package:pet_care/widgets/cabecalho_app.dart';
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
@@ -22,7 +17,6 @@ class Doacao extends StatefulWidget {
     this.publica = false,
     this.geral = false,
     this.onDoacaoConcluida,
-
   }) : assert(
   !(publica && geral),
   'A tela não pode pertencer aos contextos público e geral ao mesmo tempo.',
@@ -39,49 +33,6 @@ class Doacao extends StatefulWidget {
 }
 
 class _DoacaoState extends State<Doacao> {
-  int get _currentNavIndex {
-    if (widget.publica) return 1;
-    return 1;
-  }
-
-  // =====================================================
-  // NAVEGAÇÃO PÚBLICA
-  // =====================================================
-
-  void _onNavTapPublica(int index) {
-    switch (index) {
-      case 0:
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        break;
-
-      case 1:
-        break;
-
-      case 2:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/sobre',
-              (route) => route.isFirst,
-        );
-        break;
-    }
-  }
-
-  // =====================================================
-  // NAVEGAÇÃO GERAL
-  // =====================================================
-
-  void _onNavTapGeral(int index) {
-    if (index == 1) return;
-
-    // Devolve o controle ao InicioGeral.
-    // Ele será responsável por abrir a aba solicitada.
-    Navigator.of(context).pop(index);
-  }
-
-  // =====================================================
-  // DETALHES DA CAMPANHA
-  // =====================================================
-
   Future<void> _abrirCampanha({
     required String nomeAnimal,
     required String titulo,
@@ -110,25 +61,13 @@ class _DoacaoState extends State<Doacao> {
     }
   }
 
-  // =====================================================
-  // CABEÇALHO
-  // =====================================================
-
   Widget _construirCabecalho() {
     if (widget.publica) {
-      return CabecalhoPublico(
-        onBackTap: () {
-          Navigator.of(context).pop();
-        },
-      );
+      return const CabecalhoPublico();
     }
 
     if (widget.geral) {
-      return CabecalhoGeral(
-        onPerfilTap: () {
-          Navigator.of(context).pop(3);
-        },
-      );
+      return const CabecalhoGeral();
     }
 
     return const CabecalhoApp(
@@ -136,10 +75,6 @@ class _DoacaoState extends State<Doacao> {
       name: '',
     );
   }
-
-  // =====================================================
-  // FORMATAÇÃO
-  // =====================================================
 
   String _formatarMoeda(double valor) {
     final partes = valor.toStringAsFixed(2).split('.');
@@ -157,29 +92,6 @@ class _DoacaoState extends State<Doacao> {
     }
 
     return 'R\$ ${buffer.toString()},${partes[1]}';
-  }
-
-  // =====================================================
-  // NAVEGAÇÃO INFERIOR
-  // =====================================================
-
-  Widget? _construirNavegacao() {
-    if (widget.publica) {
-      return BarraNavPublica(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTapPublica,
-      );
-    }
-
-    if (widget.geral) {
-      return BarraNavGeral(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTapGeral,
-      );
-    }
-
-    // No tutor, a navegação pertence ao InicioTutor.
-    return null;
   }
 
   @override
@@ -483,7 +395,6 @@ class _DoacaoState extends State<Doacao> {
           ),
         ),
       ),
-      bottomNavigationBar: _construirNavegacao(),
     );
   }
 }
