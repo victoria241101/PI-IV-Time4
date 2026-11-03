@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-
+import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
@@ -27,6 +27,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   bool _ocultarSenha = true;
   bool _ocultarConfirmacao = true;
+  bool _cadastrando = false;
 
   bool? _temPet;
 
@@ -156,20 +157,22 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return null;
   }
 
-  void _cadastrar() {
+  Future<void> _cadastrar() async {
+    FocusScope.of(context).unfocus();
+
+    if (_cadastrando) return;
+
     if (_temPet == null) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Informe se você já tem um pet.',
-          ),
+          content: Text('Informe se você já tem um pet.'),
           behavior: SnackBarBehavior.floating,
         ),
       );
       return;
     }
 
-    if (!_formKey.currentState!.validate()) return;
+    if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_temPet == true) {
       if (_nomePetController.text.trim().isEmpty ||
@@ -178,9 +181,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
           _sexoPet == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text(
-              'Preencha os dados básicos do seu pet.',
-            ),
+            content: Text('Preencha os dados básicos do seu pet.'),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -188,14 +189,77 @@ class _CadastroScreenState extends State<CadastroScreen> {
       }
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Cadastro ainda não está conectado ao backend.',
+    setState(() {
+      _cadastrando = true;
+    });
+
+    try {
+      await AuthService.instancia.cadastrar(
+        nome: _nomeController.text,
+        email: _emailController.text,
+        cpf: _cpfController.text,
+        senha: _senhaController.text,
+        confirmarSenha: _confirmarSenhaController.text,
+        possuiPet: _temPet!,
+        pet: _temPet == true
+            ? {
+          'nome': _nomePetController.text.trim(),
+          'especie': _especiePet!,
+          'raca': _racaPetController.text.trim(),
+          'sexo': _sexoPet!,
+        }
+            : null,
+      );
+
+      if (!mounted) return;
+
+      await showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (dialogContext) => AlertDialog(
+          icon: const Icon(
+            Icons.check_circle_outline_rounded,
+            color: CoresApp.primary,
+            size: 48,
+          ),
+          title: const Text('Conta criada!'),
+          content: const Text(
+            'Seu cadastro foi realizado com sucesso. '
+                'Agora você já pode entrar no PetCare.',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
+              child: const Text('Ir para o login'),
+            ),
+          ],
         ),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+      );
+
+      if (!mounted) return;
+
+      Navigator.pop(context, true);
+    } catch (erro) {
+      if (!mounted) return;
+
+      final mensagem = erro.toString().replaceFirst('Exception: ', '');
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(mensagem),
+          behavior: SnackBarBehavior.floating,
+          backgroundColor: CoresApp.danger,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _cadastrando = false;
+        });
+      }
+    }
   }
 
   InputDecoration _decoracaoCampo({
@@ -1056,37 +1120,47 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       SizedBox(
                         width: double.infinity,
                         height: 56,
-                        child: ElevatedButton(
-                          onPressed: _confirmarSenhaController.text.isNotEmpty &&
-                              _senhasCoincidem
-                              ? _cadastrar
-                              : null,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: CoresApp.darkBlue,
-                            foregroundColor: Colors.white,
-                            elevation: 0,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(16),
+                          child: ElevatedButton(
+                            onPressed: !_cadastrando &&
+                                _confirmarSenhaController.text.isNotEmpty &&
+                                _senhasCoincidem
+                                ? _cadastrar
+                                : null,
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: CoresApp.darkBlue,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
+                            ),
+                            child: _cadastrando
+                                ? const SizedBox(
+                              width: 22,
+                              height: 22,
+                              child: CircularProgressIndicator(
+                                color: Colors.white,
+                                strokeWidth: 2,
+                              ),
+                            )
+                                : const Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Text(
+                                  'Criar minha conta',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                                ),
+                                SizedBox(width: 10),
+                                Icon(
+                                  Icons.arrow_forward_rounded,
+                                  size: 20,
+                                ),
+                              ],
                             ),
                           ),
-                          child: const Row(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Text(
-                                'Criar minha conta',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                              SizedBox(width: 10),
-                              Icon(
-                                Icons.arrow_forward_rounded,
-                                size: 20,
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
 
                       const SizedBox(height: EspacamentosApp.lg),

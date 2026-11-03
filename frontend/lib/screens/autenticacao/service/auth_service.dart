@@ -95,6 +95,50 @@ class AuthService {
     }
   }
 
+  Future<void> cadastrar({
+    required String nome,
+    required String email,
+    required String cpf,
+    required String senha,
+    required String confirmarSenha,
+    required bool possuiPet,
+    Map<String, String>? pet,
+  }) async {
+    try {
+      final resposta = await http
+          .post(
+        Uri.parse('$_baseUrl/usuarios/cadastro'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'nome': nome.trim(),
+          'email': email.trim().toLowerCase(),
+          'cpf': cpf.replaceAll(RegExp(r'\D'), ''),
+          'senha': senha,
+          'confirmarSenha': confirmarSenha,
+          'possuiPet': possuiPet,
+          if (possuiPet) 'pet': pet,
+        }),
+      )
+          .timeout(const Duration(seconds: 20));
+
+      final dados = _decodificarResposta(resposta);
+
+      if (resposta.statusCode != 201) {
+        throw Exception(
+          dados['mensagem'] ?? 'Não foi possível concluir o cadastro.',
+        );
+      }
+    } on http.ClientException catch (e) {
+      debugPrint('ERRO DE CONEXÃO NO CADASTRO: ${e.message}');
+      throw Exception('Falha na comunicação com o servidor.');
+    } on FormatException catch (e) {
+      debugPrint('ERRO DE FORMATO NO CADASTRO: $e');
+      throw Exception('O servidor retornou uma resposta inválida.');
+    } on TimeoutException {
+      throw Exception('O servidor demorou demais para responder.');
+    }
+  }
+
   Map<String, dynamic> _decodificarResposta(http.Response resposta) {
     final dados = jsonDecode(resposta.body);
 
