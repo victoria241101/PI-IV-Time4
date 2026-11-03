@@ -3,11 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
-
-import 'package:pet_care/screens/doacao/doacao.dart';
-import 'package:pet_care/screens/publico/sobre.dart';
 
 class PerfilGeral extends StatefulWidget {
   const PerfilGeral({
@@ -21,41 +19,21 @@ class PerfilGeral extends StatefulWidget {
 class _PerfilGeralState extends State<PerfilGeral> {
   int _currentIndex = 3;
 
+  // =====================================================
+  // NAVEGAÇÃO
+  // =====================================================
 
   void _onNavTap(int index) {
-    switch (index) {
-      case 0:
-      // Retorna à primeira tela da pilha.
-      // No fluxo do tutor, essa tela é InicioTutor.
-        Navigator.of(context).popUntil(
-              (route) => route.isFirst,
-        );
-        break;
+    // O InicioGeral controla a navegação entre as telas.
+    // Apenas devolvemos o índice selecionado.
+    if (index == 3) return;
 
-      case 1:
-      // Abre Campanhas usando a mesma estratégia
-      // de navegação utilizada nas outras telas.
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => const Doacao(),
-          ),
-        );
-        break;
-
-      case 2:
-      // Abre Sobre sem depender de uma rota nomeada.
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => const Sobre(),
-          ),
-        );
-        break;
-
-      case 3:
-      // O usuário já está no Perfil.
-        return;
-    }
+    Navigator.of(context).pop(index);
   }
+
+  // =====================================================
+  // AÇÕES DO PERFIL
+  // =====================================================
 
   void _editarPerfil() {
     ScaffoldMessenger.of(context).showSnackBar(
@@ -126,15 +104,11 @@ class _PerfilGeralState extends State<PerfilGeral> {
       },
     );
 
-    if (confirmar != true) {
-      return;
-    }
+    if (confirmar != true) return;
 
     await SessaoUsuario.instancia.sair();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -142,6 +116,10 @@ class _PerfilGeralState extends State<PerfilGeral> {
           (route) => false,
     );
   }
+
+  // =====================================================
+  // TELA
+  // =====================================================
 
   @override
   Widget build(BuildContext context) {
@@ -159,11 +137,16 @@ class _PerfilGeralState extends State<PerfilGeral> {
             animation: SessaoUsuario.instancia,
             builder: (context, child) {
               final nome =
-                  SessaoUsuario.instancia.nomeUsuario?.trim() ?? 'Usuário';
+              SessaoUsuario.instancia.nomeUsuario?.trim().isNotEmpty ==
+                  true
+                  ? SessaoUsuario.instancia.nomeUsuario!.trim()
+                  : 'Usuário';
 
               final email =
-                  SessaoUsuario.instancia.emailUsuario?.trim() ??
-                      'E-mail não informado';
+              SessaoUsuario.instancia.emailUsuario?.trim().isNotEmpty ==
+                  true
+                  ? SessaoUsuario.instancia.emailUsuario!.trim()
+                  : 'E-mail não informado';
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +204,11 @@ class _PerfilGeralState extends State<PerfilGeral> {
                         'Atualize a senha usada para acessar sua conta.',
                         onTap: _alterarSenha,
                       ),
-                      const SizedBox(height: EspacamentosApp.sm),
+
+                      const SizedBox(
+                        height: EspacamentosApp.sm,
+                      ),
+
                       const _ItemPerfil(
                         icone: Icons.verified_user_outlined,
                         titulo: 'Conta autenticada',
@@ -243,7 +230,8 @@ class _PerfilGeralState extends State<PerfilGeral> {
                       _ItemPerfil(
                         icone: Icons.logout_rounded,
                         titulo: 'Sair da conta',
-                        descricao: 'Encerrar sua sessão neste dispositivo.',
+                        descricao:
+                        'Encerrar sua sessão neste dispositivo.',
                         onTap: _sair,
                         corIcone: CoresApp.primary,
                       ),
@@ -278,6 +266,10 @@ class _PerfilGeralState extends State<PerfilGeral> {
     );
   }
 }
+
+// =====================================================
+// CARD PRINCIPAL DO PERFIL
+// =====================================================
 
 class _CardPerfil extends StatelessWidget {
   const _CardPerfil({
@@ -412,6 +404,10 @@ class _CardPerfil extends StatelessWidget {
   }
 }
 
+// =====================================================
+// INFORMAÇÕES INDIVIDUAIS
+// =====================================================
+
 class _InformacaoPerfil extends StatelessWidget {
   const _InformacaoPerfil({
     required this.icone,
@@ -458,7 +454,9 @@ class _InformacaoPerfil extends StatelessWidget {
                     color: CoresApp.textSecondary,
                   ),
                 ),
+
                 const SizedBox(height: 2),
+
                 Text(
                   valor,
                   overflow: TextOverflow.ellipsis,
@@ -476,6 +474,10 @@ class _InformacaoPerfil extends StatelessWidget {
     );
   }
 }
+
+// =====================================================
+// SEÇÕES DO PERFIL
+// =====================================================
 
 class _SecaoPerfil extends StatelessWidget {
   const _SecaoPerfil({
@@ -512,9 +514,11 @@ class _SecaoPerfil extends StatelessWidget {
                 color: CoresApp.primary,
                 size: 20,
               ),
+
               const SizedBox(
                 width: EspacamentosApp.sm,
               ),
+
               Text(
                 titulo,
                 style: const TextStyle(
@@ -525,15 +529,21 @@ class _SecaoPerfil extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(
             height: EspacamentosApp.md,
           ),
+
           ...children,
         ],
       ),
     );
   }
 }
+
+// =====================================================
+// ITENS DAS SEÇÕES
+// =====================================================
 
 class _ItemPerfil extends StatelessWidget {
   const _ItemPerfil({
@@ -586,7 +596,9 @@ class _ItemPerfil extends StatelessWidget {
                     color: CoresApp.darkBlue,
                   ),
                 ),
+
                 const SizedBox(height: 3),
+
                 Text(
                   descricao,
                   style: const TextStyle(

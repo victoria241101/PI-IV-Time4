@@ -5,6 +5,7 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 
 import 'package:pet_care/screens/doacao/doacao.dart';
 import 'package:pet_care/screens/publico/sobre.dart';
+import 'package:pet_care/screens/gerais/perfil_geral.dart';
 import 'package:pet_care/screens/tutor/cadastro_pet.dart';
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
@@ -26,35 +27,30 @@ class _InicioGeralState extends State<InicioGeral> {
           _currentIndex = 0;
         });
         break;
-
       case 1:
         _abrirCampanhas();
         break;
-
       case 2:
-        Navigator.push(
-          context,
-          MaterialPageRoute(
-            builder: (_) => const Sobre(),
-          ),
-        );
+        _abrirSobre();
         break;
-
       case 3:
         _abrirPerfil();
         break;
     }
   }
 
-  void _abrirPerfil() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Perfil do usuário será implementado em seguida.',
-        ),
-        behavior: SnackBarBehavior.floating,
+
+  Future<void> _abrirPerfil() async {
+    final resultado = await Navigator.push<int>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const PerfilGeral(),
       ),
     );
+
+    if (!mounted || resultado == null) return;
+
+    _onNavTap(resultado);
   }
 
   Future<void> _adicionarPet() async {
@@ -75,6 +71,21 @@ class _InicioGeralState extends State<InicioGeral> {
         behavior: SnackBarBehavior.floating,
       ),
     );
+  }
+
+  Future<void> _abrirSobre() async {
+    final resultado = await Navigator.push<int>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => const Sobre(
+          contexto: ContextoSobre.geral,
+        ),
+      ),
+    );
+
+    if (!mounted || resultado == null) return;
+
+    _onNavTap(resultado);
   }
 
   Future<void> _abrirCampanhas() async {
@@ -365,14 +376,7 @@ class _InicioGeralState extends State<InicioGeral> {
                   horizontal: EspacamentosApp.pagePadding,
                 ),
                 child: InkWell(
-                  onTap: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => const Sobre(),
-                      ),
-                    );
-                  },
+                  onTap: _abrirSobre,
                   borderRadius: BorderRadius.circular(20),
                   child: Container(
                     width: double.infinity,
