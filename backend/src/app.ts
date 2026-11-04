@@ -53,6 +53,8 @@ app.use("/agendamentos", agendamentosRoutes);
 app.use("/campanhas", campanhasRoutes);
 app.use("/doacoes", doacoesRoutes);
 app.use("/chat", chatRoutes);
+app.use("/notificacoes", notificacoesRoutes);
+app.use("/veterinarios", veterinariosRoutes);
 
 // Rota inicial
 app.get("/", (_req, res) => {
