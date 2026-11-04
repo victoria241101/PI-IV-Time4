@@ -1,8 +1,9 @@
+
 import 'package:flutter/material.dart';
 
-import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 
 const Color _azulPet = Color(0xFF172A46);
 const Color _turquesaPet = Color(0xFF27B8B0);
@@ -27,6 +28,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
 
   String? _especie;
   String? _sexo;
+  DateTime? _dataNascimento;
 
   bool _salvando = false;
 
@@ -35,6 +37,54 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     _nomeController.dispose();
     _racaController.dispose();
     super.dispose();
+  }
+
+  String _formatarData(DateTime data) {
+    final ano = data.year.toString().padLeft(4, '0');
+    final mes = data.month.toString().padLeft(2, '0');
+    final dia = data.day.toString().padLeft(2, '0');
+
+    return '$ano-$mes-$dia';
+  }
+
+  String _dataExibicao(DateTime data) {
+    final dia = data.day.toString().padLeft(2, '0');
+    final mes = data.month.toString().padLeft(2, '0');
+    final ano = data.year.toString();
+
+    return '$dia/$mes/$ano';
+  }
+
+  Future<void> _selecionarDataNascimento() async {
+    final hoje = DateTime.now();
+
+    final data = await showDatePicker(
+      context: context,
+      initialDate: _dataNascimento ?? hoje,
+      firstDate: DateTime(1900),
+      lastDate: hoje,
+      helpText: 'Selecione a data de nascimento',
+      cancelText: 'Cancelar',
+      confirmText: 'Confirmar',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: const ColorScheme.light(
+              primary: _turquesaPet,
+              onPrimary: Colors.white,
+              onSurface: _azulPet,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (data != null && mounted) {
+      setState(() {
+        _dataNascimento = data;
+      });
+    }
   }
 
   Future<void> _cadastrarPet() async {
@@ -51,19 +101,28 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     });
 
     try {
+      await AuthService.instancia.cadastrarPet(
+        nome: _nomeController.text,
+        especie: _especie!,
+        raca: _racaController.text,
+        sexo: _sexo!,
+        dataNascimento: _formatarData(_dataNascimento!),
+      );
+
+      // Atualiza a sessão somente depois do cadastro confirmado.
       await SessaoUsuario.instancia.tornarTutor();
 
       if (!mounted) return;
 
       Navigator.pop(context, true);
-    } catch (_) {
+    } catch (erro) {
       if (!mounted) return;
+
+      final mensagem = erro.toString().replaceFirst('Exception: ', '');
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: const Text(
-            'Não foi possível concluir o cadastro. Tente novamente.',
-          ),
+          content: Text(mensagem),
           backgroundColor: _azulPet,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
@@ -156,6 +215,52 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
           ],
         ],
       ),
+    );
+  }
+
+  Widget _campoDataNascimento() {
+    return FormField<DateTime>(
+      validator: (_) {
+        if (_dataNascimento == null) {
+          return 'Selecione a data de nascimento.';
+        }
+
+        return null;
+      },
+      builder: (field) {
+        return Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            InkWell(
+              onTap: _salvando ? null : _selecionarDataNascimento,
+              borderRadius: BorderRadius.circular(15),
+              child: InputDecorator(
+                decoration: _decoracaoCampo(
+                  hintText: 'Selecione a data',
+                  icon: Icons.calendar_month_outlined,
+                ).copyWith(
+                  errorText: field.errorText,
+                  suffixIcon: const Icon(
+                    Icons.keyboard_arrow_down_rounded,
+                    color: _textoSecundarioPet,
+                  ),
+                ),
+                child: Text(
+                  _dataNascimento == null
+                      ? 'DD/MM/AAAA'
+                      : _dataExibicao(_dataNascimento!),
+                  style: TextStyle(
+                    color: _dataNascimento == null
+                        ? _textoSecundarioPet
+                        : _azulPet,
+                    fontSize: 14,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
     );
   }
 
@@ -300,7 +405,6 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
             children: [
               _cabecalho(),
               const SizedBox(height: 27),
-
               const Text(
                 'Informações do pet',
                 style: TextStyle(
@@ -318,9 +422,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   height: 1.5,
                 ),
               ),
-
               const SizedBox(height: 21),
-
               _cartaoFormulario(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -347,20 +449,16 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 22),
-
                     _campoLabel('Espécie'),
                     _campoEspecie(),
-
                     const SizedBox(height: 22),
-
                     _campoLabel('Raça'),
                     TextFormField(
                       controller: _racaController,
                       enabled: !_salvando,
                       textCapitalization: TextCapitalization.words,
-                      textInputAction: TextInputAction.done,
+                      textInputAction: TextInputAction.next,
                       decoration: _decoracaoCampo(
                         hintText: 'Ex.: Golden Retriever',
                         icon: Icons.loyalty_outlined,
@@ -373,17 +471,16 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                         return null;
                       },
                     ),
-
                     const SizedBox(height: 22),
-
                     _campoLabel('Sexo'),
                     _campoSexo(),
+                    const SizedBox(height: 22),
+                    _campoLabel('Data de nascimento'),
+                    _campoDataNascimento(),
                   ],
                 ),
               ),
-
               const SizedBox(height: 20),
-
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
@@ -416,7 +513,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                           ),
                           SizedBox(height: 5),
                           Text(
-                            'Informações como peso, nascimento e microchip podem ser adicionadas posteriormente.',
+                            'Informações como peso e microchip podem ser adicionadas posteriormente.',
                             style: TextStyle(
                               color: Color(0xFF87541F),
                               fontSize: 12,
@@ -429,9 +526,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   ],
                 ),
               ),
-
               const SizedBox(height: 25),
-
               SizedBox(
                 height: 56,
                 child: ElevatedButton(
@@ -472,9 +567,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   ),
                 ),
               ),
-
               const SizedBox(height: 13),
-
               const Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [

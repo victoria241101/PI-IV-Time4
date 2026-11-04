@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+
 import 'package:pet_care/modelos/dados_banner.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
 
+import 'package:pet_care/screens/tutor/cadastro_pet.dart';
 import 'package:pet_care/screens/tutor/pagina_detalhes_pet.dart';
 import 'package:pet_care/screens/tutor/perfil_tutor.dart';
 import 'package:pet_care/screens/tutor/consultas_tutor.dart';
@@ -30,6 +32,8 @@ typedef ConfirmarConsulta = Future<ResumoConsulta> Function(
 
 typedef AcaoConsulta = Future<void> Function(String consultaId);
 
+typedef AtualizarPets = Future<void> Function();
+
 class InicioTutor extends StatefulWidget {
   const InicioTutor({
     super.key,
@@ -47,6 +51,7 @@ class InicioTutor extends StatefulWidget {
     this.consultas = const [],
     this.onAgendamentoConfirmado,
     this.onReagendamentoConfirmado,
+    this.onPetCadastrado,
   });
 
   final String saudacao;
@@ -68,6 +73,8 @@ class InicioTutor extends StatefulWidget {
 
   final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
   final ConfirmarReagendamento? onReagendamentoConfirmado;
+
+  final AtualizarPets? onPetCadastrado;
 
   @override
   State<InicioTutor> createState() => _EstadoInicioTutor();
@@ -104,12 +111,37 @@ class _EstadoInicioTutor extends State<InicioTutor> {
     if (oldWidget.consultas != widget.consultas) {
       _consultas = List<ResumoConsulta>.from(widget.consultas);
     }
+
     if (oldWidget.pets != widget.pets) {
       _pets = List<ResumoPet>.from(widget.pets);
     }
   }
 
   void _voltarParaInicio() {
+    if (!mounted) return;
+
+    setState(() {
+      _currentNavIndex = 0;
+      _consultaIdParaReagendar = null;
+    });
+  }
+
+  // ============================================================
+  // CADASTRO DE PET
+  // ============================================================
+
+  Future<void> _abrirCadastroPet() async {
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const CadastroPetScreen(),
+      ),
+    );
+
+    if (!mounted || resultado != true) return;
+
+    // Recarrega a lista de pets pela API.
+    await widget.onPetCadastrado?.call();
+
     if (!mounted) return;
 
     setState(() {
@@ -165,10 +197,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
         break;
 
       default:
-        setState(() {
-          _currentNavIndex = 0;
-          _consultaIdParaReagendar = null;
-        });
+        _voltarParaInicio();
         break;
     }
   }
@@ -185,8 +214,8 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _onAgendamentoConfirmado(DadosAgendamento dados) {
-    // O banco já foi atualizado pela tela de confirmação.
-    // Não gerar IDs locais falsos; o pai recarrega os dados da API.
+    // O cadastro do agendamento é realizado pela tela de confirmação.
+    // O pai atualiza os dados reais da API.
     widget.onAgendamentoConfirmado?.call(dados);
   }
 
@@ -195,8 +224,12 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _abrirFluxoReagendamento() {
+    final consulta = _proximaConsulta;
+
+    if (consulta == null) return;
+
     setState(() {
-      _consultaIdParaReagendar = _proximaConsulta?.id;
+      _consultaIdParaReagendar = consulta.id;
       _currentNavIndex = 1;
     });
   }
@@ -269,7 +302,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
   void _onAppointmentDetails() {
     final consulta = _proximaConsulta;
+
     if (consulta == null) return;
+
     ModalDetalhesConsulta.show(
       context,
       appointment: consulta,
@@ -321,6 +356,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
   Future<void> _onConfirmAppointment() async {
     final consulta = _proximaConsulta;
+
     if (consulta == null || _confirmandoConsulta) return;
 
     setState(() {
@@ -415,6 +451,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           ListaHorizontalPets(
             pets: _pets,
             onPetTap: _abrirDetalhesPet,
+            onAdicionarTap: _abrirCadastroPet,
           ),
 
           const SizedBox(height: EspacamentosApp.xl),
@@ -432,8 +469,12 @@ class _EstadoInicioTutor extends State<InicioTutor> {
             )
           else
             const Padding(
-              padding: EdgeInsets.symmetric(horizontal: EspacamentosApp.pagePadding),
-              child: Text('Você não possui consultas futuras agendadas.'),
+              padding: EdgeInsets.symmetric(
+                horizontal: EspacamentosApp.pagePadding,
+              ),
+              child: Text(
+                'Você não possui consultas futuras agendadas.',
+              ),
             ),
 
           const SizedBox(height: EspacamentosApp.xl),
@@ -487,12 +528,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
       case 3:
         return Doacao(
-          onDoacaoConcluida: () {
-            setState(() {
-              _currentNavIndex = 0;
-              _consultaIdParaReagendar = null;
-            });
-          },
+          onDoacaoConcluida: _voltarParaInicio,
         );
 
       case 4:
