@@ -18,6 +18,7 @@ import prontuarioPdfRoutes from "./routes/prontuarioPdf.routes.js";
 import campanhasRoutes from "./routes/campanhas.routes.js";
 import doacoesRoutes from "./routes/doacoes.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import notificacoesRoutes from "./routes/notificacoes.routes.js";
 import veterinariosRoutes from "./routes/veterinarios.routes.js";
 
 
@@ -52,6 +53,7 @@ app.use("/agendamentos", agendamentosRoutes);
 app.use("/campanhas", campanhasRoutes);
 app.use("/doacoes", doacoesRoutes);
 app.use("/chat", chatRoutes);
+app.use("/notificacoes", notificacoesRoutes);
 app.use("/veterinarios", veterinariosRoutes);
 
 // Rota inicial

@@ -54,6 +54,28 @@ export async function conectarBanco() {
 
     await mensagens.createIndex({ conversaId: 1, _id: 1 });
 
+    const notificacoes = banco.collection("notificacoes");
+
+    await notificacoes.createIndex({ destinatarioId: 1, criadoEm: -1 });
+    await notificacoes.createIndex({ destinatarioId: 1, lidaEm: 1 });
+    await notificacoes.createIndex(
+        { chave: 1 },
+        {
+            unique: true,
+            partialFilterExpression: {
+                chave: { $type: "string" }
+            }
+        }
+    );
+    await notificacoes.createIndex(
+        { emailStatus: 1, criadoEm: 1 },
+        {
+            partialFilterExpression: {
+                emailStatus: "pendente"
+            }
+        }
+    );
+
     console.log("Conectado ao MongoDB Atlas!");
 
     return banco;

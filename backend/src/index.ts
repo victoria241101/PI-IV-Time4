@@ -2,13 +2,14 @@ import "dotenv/config";
 
 import app from "./app.js";
 import { conectarBanco } from "./database.js";
+import { iniciarAgendador } from "./notificacoes/agendador.js";
 
 const PORTA = 3000;
 
 async function iniciarServidor() {
     try {
-        await conectarBanco();
-
+        const db = await conectarBanco();
+iniciarAgendador(db);
         app.listen(PORTA, () => {
             console.log(
                 `Backend do PetCare rodando na porta ${PORTA}`
