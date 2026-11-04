@@ -18,13 +18,18 @@ import prontuarioPdfRoutes from "./routes/prontuarioPdf.routes.js";
 import campanhasRoutes from "./routes/campanhas.routes.js";
 import doacoesRoutes from "./routes/doacoes.routes.js";
 import chatRoutes from "./routes/chat.routes.js";
+import veterinariosRoutes from "./routes/veterinarios.routes.js";
+
 
 const app = express();
 
 // Configuração de acesso do Flutter Web
 app.use(cors({
-    origin: "http://localhost:7357",
-    methods: ["GET", "POST", "PATCH", "DELETE", "OPTIONS"],
+    origin: [
+        "http://localhost:7357",
+        "http://localhost:9058"
+    ],
+    methods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
@@ -47,6 +52,7 @@ app.use("/agendamentos", agendamentosRoutes);
 app.use("/campanhas", campanhasRoutes);
 app.use("/doacoes", doacoesRoutes);
 app.use("/chat", chatRoutes);
+app.use("/veterinarios", veterinariosRoutes);
 
 // Rota inicial
 app.get("/", (_req, res) => {

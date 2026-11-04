@@ -33,20 +33,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     _logo = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(
-        0.68,
-        0.84,
-        curve: Curves.easeOutBack,
-      ),
+      curve: const Interval(0.68, 0.84, curve: Curves.easeOutBack),
     );
 
     _nome = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(
-        0.80,
-        0.96,
-        curve: Curves.easeOutCubic,
-      ),
+      curve: const Interval(0.80, 0.96, curve: Curves.easeOutCubic),
     );
 
     _controller.forward();
@@ -54,9 +46,7 @@ class _SplashScreenState extends State<SplashScreen>
   }
 
   Future<void> _finalizarSplash() async {
-    await Future.delayed(
-      const Duration(milliseconds: 4400),
-    );
+    await Future.delayed(const Duration(milliseconds: 4400));
 
     await SessaoUsuario.instancia.carregar();
 
@@ -68,8 +58,7 @@ class _SplashScreenState extends State<SplashScreen>
         MaterialPageRoute(
           builder: (_) => InicioTutor(
             saudacao: 'Olá,',
-            nomeTutor:
-            SessaoUsuario.instancia.nomeUsuario ?? 'Tutor',
+            nomeTutor: SessaoUsuario.instancia.nomeUsuario ?? 'Tutor',
             pets: const [
               ResumoPet(
                 id: 'pet-001',
@@ -96,10 +85,8 @@ class _SplashScreenState extends State<SplashScreen>
               vetName: 'Dra. Ana Oliveira',
               petName: 'Mel',
               status: 'Confirmada',
-              instructions:
-              'Chegar com 10 minutos de antecedência.',
-              clinicAddress:
-              'Rua das Flores, 120 - Campinas/SP',
+              instructions: 'Chegar com 10 minutos de antecedência.',
+              clinicAddress: 'Rua das Flores, 120 - Campinas/SP',
             ),
             banners: const [],
             onConfirmarConsulta: (consultaId) async {
@@ -111,10 +98,8 @@ class _SplashScreenState extends State<SplashScreen>
                 vetName: 'Dra. Ana Oliveira',
                 petName: 'Mel',
                 status: 'Confirmada',
-                instructions:
-                'Chegar com 10 minutos de antecedência.',
-                clinicAddress:
-                'Rua das Flores, 120 - Campinas/SP',
+                instructions: 'Chegar com 10 minutos de antecedência.',
+                clinicAddress: 'Rua das Flores, 120 - Campinas/SP',
               );
             },
             carregarDetalhesPet: (petId) async {
@@ -135,9 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
             onNotificacoes: () {
               ScaffoldMessenger.of(context).showSnackBar(
                 const SnackBar(
-                  content: Text(
-                    'Notificações ainda não estão disponíveis.',
-                  ),
+                  content: Text('Notificações ainda não estão disponíveis.'),
                   behavior: SnackBarBehavior.floating,
                 ),
               );
@@ -148,9 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
     } else {
       Navigator.pushReplacement(
         context,
-        MaterialPageRoute(
-          builder: (_) => const InicioPublico(),
-        ),
+        MaterialPageRoute(builder: (_) => const InicioPublico()),
       );
     }
   }
@@ -196,10 +177,7 @@ class _SplashScreenState extends State<SplashScreen>
                     ),
 
                     // Passos distribuídos ao longo de uma caminhada.
-                    ..._construirPegadas(
-                      largura: largura,
-                      altura: altura,
-                    ),
+                    ..._construirPegadas(largura: largura, altura: altura),
 
                     // Logo simples: patinha turquesa + nome em bold.
                     Center(
@@ -218,10 +196,7 @@ class _SplashScreenState extends State<SplashScreen>
                       left: 16,
                       right: 16,
                       child: Transform.translate(
-                        offset: Offset(
-                          0,
-                          10 * (1 - _nome.value),
-                        ),
+                        offset: Offset(0, 10 * (1 - _nome.value)),
                         child: Opacity(
                           opacity: _nome.value.clamp(0.0, 1.0),
                           child: Column(
@@ -232,8 +207,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 height: 4,
                                 decoration: BoxDecoration(
                                   color: CoresApp.primary,
-                                  borderRadius:
-                                  BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               const SizedBox(height: 18),
@@ -242,8 +216,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: CoresApp.textSecondary
-                                      .withAlpha(210),
+                                  color: CoresApp.textSecondary.withAlpha(210),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -266,11 +239,7 @@ class _SplashScreenState extends State<SplashScreen>
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        const Icon(
-          Icons.pets_rounded,
-          size: 32,
-          color: CoresApp.primary,
-        ),
+        const Icon(Icons.pets_rounded, size: 32, color: CoresApp.primary),
         const SizedBox(width: 8),
         const Text(
           'PetCare',
@@ -315,10 +284,10 @@ class _SplashScreenState extends State<SplashScreen>
       ).transform(_controller.value);
 
       // As pegadas desaparecem gradualmente antes da logo.
-      final opacidadeSaida = 1.0 -
+      final opacidadeSaida =
+          1.0 -
           Curves.easeIn.transform(
-            ((_controller.value - 0.62) / 0.08)
-                .clamp(0.0, 1.0),
+            ((_controller.value - 0.62) / 0.08).clamp(0.0, 1.0),
           );
 
       if (_controller.value < inicio) {
@@ -335,19 +304,15 @@ class _SplashScreenState extends State<SplashScreen>
           left: ponto.dx - 22,
           top: ponto.dy - 22,
           child: Opacity(
-            opacity: progresso.clamp(0.0, 1.0) *
-                opacidadeSaida.clamp(0.0, 1.0),
+            opacity: progresso.clamp(0.0, 1.0) * opacidadeSaida.clamp(0.0, 1.0),
             child: Transform.rotate(
               angle: rotacao,
               child: Transform.scale(
-                scale: 0.75 +
-                    progresso.clamp(0.0, 1.0) * 0.25,
+                scale: 0.75 + progresso.clamp(0.0, 1.0) * 0.25,
                 child: Icon(
                   Icons.pets_rounded,
                   size: 44,
-                  color: i.isEven
-                      ? CoresApp.primary
-                      : CoresApp.darkBlue,
+                  color: i.isEven ? CoresApp.primary : CoresApp.darkBlue,
                 ),
               ),
             ),
@@ -359,17 +324,11 @@ class _SplashScreenState extends State<SplashScreen>
     return pegadas;
   }
 
-  Widget _circuloDecorativo({
-    required double tamanho,
-    required Color cor,
-  }) {
+  Widget _circuloDecorativo({required double tamanho, required Color cor}) {
     return Container(
       width: tamanho,
       height: tamanho,
-      decoration: BoxDecoration(
-        color: cor,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: cor, shape: BoxShape.circle),
     );
   }
 }
