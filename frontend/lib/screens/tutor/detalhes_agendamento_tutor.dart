@@ -2,10 +2,16 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/screens/tutor/checkout_agendamento_tutor.dart';
+import 'package:pet_care/services/veterinarios_service.dart';
+import 'package:pet_care/services/agendamentos_service.dart';
+import 'package:pet_care/services/pets_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 class DadosAgendamento {
   final DateTime data;
   final String nomePet;
+  final String? petId;
+  final String? veterinarioId;
   final String tipoAtendimento;
   final String veterinario;
   final String horario;
@@ -14,6 +20,8 @@ class DadosAgendamento {
   const DadosAgendamento({
     required this.data,
     required this.nomePet,
+    this.petId,
+    this.veterinarioId,
     required this.tipoAtendimento,
     required this.veterinario,
     required this.horario,
@@ -59,37 +67,190 @@ class _DetalhesAgendamentoTutorState
     'Retorno',
   ];
 
-  final List<String> _veterinarios = const [
-    'Qualquer veterinário',
-    'Dra. Ana Silva',
-    'Dr. Bruno Costa',
-    'Dra. Mariana Oliveira',
-  ];
+  final _veterinariosService = VeterinariosService(
+    baseUrl: 'http://localhost:3000',
+  );
 
-  final List<String> _horarios = const [
-    '08:00',
-    '09:00',
-    '10:00',
-    '11:00',
-    '13:00',
-    '14:00',
-    '15:00',
-    '16:00',
-  ];
+  final _petsService = PetsService(baseUrl: 'http://localhost:3000');
+
+  List<String> _pets = [];
+  final Map<String, String> _idsPets = {};
+  bool _carregandoPets = false;
+  String? _erroPets;
+
+  List<String> _veterinarios = [];
+  List<String> _horarios = [];
+
+  final Map<String, String> _idsVeterinarios = {};
+
+  bool _carregandoVeterinarios = false;
+  bool _carregandoHorarios = false;
+
+  String? _erroVeterinarios;
+  String? _erroHorarios;
+
+  int _versaoBuscaHorarios = 0;
+
+  Future<void> _carregarPets() async {
+    setState(() {
+      _carregandoPets = true;
+      _erroPets = null;
+    });
+
+    try {
+      final lista = await _petsService.listarPets();
+      final ids = <String, String>{};
+      for (final pet in lista) {
+        final id = (pet['_id'] ?? pet['id'])?.toString();
+        final nome = pet['nome']?.toString();
+        if (id != null && id.isNotEmpty && nome != null && nome.isNotEmpty) {
+          ids[nome] = id;
+        }
+      }
+      if (!mounted) return;
+      setState(() {
+        _idsPets
+          ..clear()
+          ..addAll(ids);
+        _pets = ids.keys.toList();
+        _pet = _pets.isNotEmpty ? _pets.first : null;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+      setState(() {
+        _erroPets = erro.toString();
+        _pet = null;
+        _pets = [];
+        _idsPets.clear();
+      });
+    } finally {
+      if (mounted) setState(() => _carregandoPets = false);
+    }
+  }
+
+  Future<void> _carregarVeterinarios() async {
+    setState(() {
+      _carregandoVeterinarios = true;
+      _erroVeterinarios = null;
+    });
+
+    try {
+      final lista = await _veterinariosService.listarVeterinarios();
+
+      final ids = <String, String>{};
+
+      for (final vet in lista) {
+        final id = (vet['id'] ?? vet['_id'])?.toString();
+        final nome = vet['nome']?.toString();
+
+        if (id != null &&
+            id.isNotEmpty &&
+            nome != null &&
+            nome.isNotEmpty) {
+          ids[nome] = id;
+        }
+      }
+
+      if (!mounted) return;
+
+      setState(() {
+        _idsVeterinarios
+          ..clear()
+          ..addAll(ids);
+
+        _veterinarios = ids.keys.toList();
+
+        _veterinario =
+            _veterinarios.contains(widget.veterinarioInicial)
+                ? widget.veterinarioInicial
+                : (_veterinarios.isNotEmpty
+                    ? _veterinarios.first
+                    : null);
+      });
+
+      await _carregarHorarios();
+    } catch (erro) {
+      if (!mounted) return;
+
+      setState(() {
+        _erroVeterinarios = erro.toString();
+        _veterinario = null;
+        _veterinarios = [];
+        _idsVeterinarios.clear();
+        _versaoBuscaHorarios++;
+        _carregandoHorarios = false;
+        _horarios = [];
+      });
+    } finally {
+      if (mounted) {
+        setState(() => _carregandoVeterinarios = false);
+      }
+    }
+  }
+
+  Future<void> _carregarHorarios() async {
+    final versao = ++_versaoBuscaHorarios;
+    final veterinarioId = _idsVeterinarios[_veterinario];
+
+    setState(() {
+      _horario = null;
+      _horarios = [];
+      _erroHorarios = null;
+      _carregandoHorarios = veterinarioId != null;
+    });
+
+    if (veterinarioId == null) return;
+
+    try {
+      // Token temporário apenas para testes sem passar pela tela de login.
+      final token = SessaoUsuario.instancia.token ??
+          const String.fromEnvironment('TOKEN_TESTE');
+
+      if (token.isEmpty) {
+        throw StateError('Token de autenticação não encontrado.');
+      }
+
+      final service = AgendamentosService(
+        baseUrl: 'http://localhost:3000',
+        token: token,
+      );
+
+      final horarios = await service.consultarDisponibilidade(
+        veterinarioId: veterinarioId,
+        data: _data,
+        duracaoMinutos: 30,
+      );
+
+      if (!mounted || versao != _versaoBuscaHorarios) return;
+
+      setState(() {
+        _horarios = horarios;
+      });
+    } catch (erro) {
+      if (!mounted || versao != _versaoBuscaHorarios) return;
+
+      setState(() {
+        _erroHorarios = erro.toString();
+      });
+    } finally {
+      if (mounted && versao == _versaoBuscaHorarios) {
+        setState(() => _carregandoHorarios = false);
+      }
+    }
+  }
 
   @override
   void initState() {
     super.initState();
 
     _data = widget.dataSelecionada;
-    _pet = widget.nomesPets.isNotEmpty ? widget.nomesPets.first : null;
 
-    _veterinario = widget.veterinarioInicial != null &&
-        _veterinarios.contains(widget.veterinarioInicial)
-        ? widget.veterinarioInicial
-        : 'Qualquer veterinário';
+    _pet = null;
 
     _tipoAtendimento = _tiposAtendimento.first;
+
+    _carregarPets();
+    _carregarVeterinarios();
   }
 
   String get _dataFormatada =>
@@ -129,17 +290,23 @@ class _DetalhesAgendamentoTutorState
         _data = data;
         _horario = null;
       });
+
+      await _carregarHorarios();
     }
   }
 
   void _continuar() {
+    if (_carregandoPets || _carregandoVeterinarios || _carregandoHorarios) {
+      return;
+    }
+
     if (!_formKey.currentState!.validate()) return;
 
-    if (_horario == null) {
+    if (_horario == null || !_horarios.contains(_horario)) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: const Text(
-            'Selecione um horário para continuar.',
+            'Selecione um horário disponível para continuar.',
           ),
           backgroundColor: CoresApp.darkBlue,
           behavior: SnackBarBehavior.floating,
@@ -151,9 +318,25 @@ class _DetalhesAgendamentoTutorState
       return;
     }
 
+    if (_idsVeterinarios[_veterinario] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um veterinário válido.')),
+      );
+      return;
+    }
+
+    if (_pet == null || _idsPets[_pet] == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Selecione um pet cadastrado.')),
+      );
+      return;
+    }
+
     final dados = DadosAgendamento(
       data: _data,
       nomePet: _pet!,
+      petId: _idsPets[_pet],
+      veterinarioId: _idsVeterinarios[_veterinario],
       tipoAtendimento: _tipoAtendimento!,
       veterinario: _veterinario!,
       horario: _horario!,
@@ -298,11 +481,17 @@ class _DetalhesAgendamentoTutorState
                     const SizedBox(height: 9),
                     _dropdown<String>(
                       value: _pet,
-                      items: widget.nomesPets,
+                      items: _pets,
                       hint: 'Selecione seu pet',
                       icone: Icons.pets_rounded,
                       onChanged: (value) => setState(() => _pet = value),
                     ),
+                    if (_carregandoPets)
+                      const LinearProgressIndicator(),
+                    if (_erroPets != null)
+                      Text(_erroPets!, style: const TextStyle(color: Colors.red)),
+                    if (!_carregandoPets && _erroPets == null && _pets.isEmpty)
+                      const Text('Nenhum pet cadastrado para este tutor.'),
                     const SizedBox(height: 22),
                     const _RotuloCampo('Tipo de atendimento'),
                     const SizedBox(height: 9),
@@ -324,9 +513,21 @@ class _DetalhesAgendamentoTutorState
                       hint: 'Selecione o profissional',
                       icone: Icons.person_rounded,
                       onChanged: (value) {
-                        setState(() => _veterinario = value);
+                        setState(() {
+                          _veterinario = value;
+                          _horario = null;
+                        });
+
+                        _carregarHorarios();
                       },
                     ),
+                    if (_carregandoVeterinarios)
+                      const LinearProgressIndicator(),
+                    if (_erroVeterinarios != null)
+                      Text(
+                        _erroVeterinarios!,
+                        style: const TextStyle(color: Colors.red),
+                      ),
                     const SizedBox(height: 10),
                     const Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -363,59 +564,49 @@ class _DetalhesAgendamentoTutorState
                       subtitulo: 'Selecione uma das opções disponíveis.',
                     ),
                     const SizedBox(height: 18),
-                    Wrap(
-                      spacing: 10,
-                      runSpacing: 10,
-                      children: _horarios.map((horario) {
-                        final selecionado = _horario == horario;
-
-                        return _OpcaoHorario(
-                          horario: horario,
-                          selecionado: selecionado,
-                          onTap: () {
-                            setState(() => _horario = horario);
-                          },
-                        );
-                      }).toList(),
-                    ),
-                    const SizedBox(height: 15),
-                    Container(
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        color: CoresApp.surfaceSoft,
-                        borderRadius: BorderRadius.circular(13),
-                        border: Border.all(
-                          color: CoresApp.accentOrange.withAlpha(75),
+                    if (_carregandoHorarios)
+                      const Center(
+                        child: CircularProgressIndicator(),
+                      )
+                    else if (_erroHorarios != null)
+                      Text(
+                        'Não foi possível carregar os horários.\n$_erroHorarios',
+                        style: const TextStyle(color: Colors.red),
+                      )
+                    else if (_horarios.isEmpty)
+                      const Text(
+                        'Nenhum horário disponível para esta data e profissional.',
+                        style: TextStyle(
+                          color: CoresApp.textSecondary,
+                          fontSize: 13,
                         ),
+                      )
+                    else
+                      Wrap(
+                        spacing: 10,
+                        runSpacing: 10,
+                        children: _horarios.map((horario) {
+                          final selecionado = _horario == horario;
+
+                          return _OpcaoHorario(
+                            horario: horario,
+                            selecionado: selecionado,
+                            onTap: () {
+                              setState(() {
+                                _horario = horario;
+                              });
+                            },
+                          );
+                        }).toList(),
                       ),
-                      child: const Row(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Icon(
-                            Icons.info_outline_rounded,
-                            color: CoresApp.accentOrangeDark,
-                            size: 18,
-                          ),
-                          SizedBox(width: 9),
-                          Expanded(
-                            child: Text(
-                              'Os horários são ilustrativos. A disponibilidade ainda não está conectada ao backend.',
-                              style: TextStyle(
-                                color: CoresApp.textSecondary,
-                                fontSize: 12,
-                                height: 1.5,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
                   ],
                 ),
               ),
               const SizedBox(height: 18),
               _cartao(
-                child: SwitchListTile(
+                child: Material(
+                  color: Colors.transparent,
+                  child: SwitchListTile(
                   contentPadding: EdgeInsets.zero,
                   activeTrackColor: CoresApp.primary,
                   activeThumbColor: CoresApp.surface,
@@ -460,6 +651,7 @@ class _DetalhesAgendamentoTutorState
                   onChanged: (value) {
                     setState(() => _urgente = value);
                   },
+                  ),
                 ),
               ),
               const SizedBox(height: 25),
@@ -639,6 +831,7 @@ class _DetalhesAgendamentoTutorState
     final valorValido = items.contains(value) ? value : null;
 
     return DropdownButtonFormField<T>(
+      key: ValueKey('$hint-$valorValido'),
       initialValue: valorValido,
       isExpanded: true,
       icon: const Icon(

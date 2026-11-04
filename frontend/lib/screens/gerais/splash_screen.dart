@@ -33,20 +33,12 @@ class _SplashScreenState extends State<SplashScreen>
 
     _logo = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(
-        0.68,
-        0.84,
-        curve: Curves.easeOutBack,
-      ),
+      curve: const Interval(0.68, 0.84, curve: Curves.easeOutBack),
     );
 
     _nome = CurvedAnimation(
       parent: _controller,
-      curve: const Interval(
-        0.80,
-        0.96,
-        curve: Curves.easeOutCubic,
-      ),
+      curve: const Interval(0.80, 0.96, curve: Curves.easeOutCubic),
     );
 
     _iniciarAnimacao();
@@ -128,10 +120,7 @@ class _SplashScreenState extends State<SplashScreen>
                       left: 16,
                       right: 16,
                       child: Transform.translate(
-                        offset: Offset(
-                          0,
-                          10 * (1 - _nome.value),
-                        ),
+                        offset: Offset(0, 10 * (1 - _nome.value)),
                         child: Opacity(
                           opacity: _nome.value.clamp(0.0, 1.0),
                           child: Column(
@@ -142,8 +131,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 height: 4,
                                 decoration: BoxDecoration(
                                   color: CoresApp.primary,
-                                  borderRadius:
-                                  BorderRadius.circular(10),
+                                  borderRadius: BorderRadius.circular(10),
                                 ),
                               ),
                               const SizedBox(height: 18),
@@ -152,8 +140,7 @@ class _SplashScreenState extends State<SplashScreen>
                                 textAlign: TextAlign.center,
                                 style: TextStyle(
                                   fontSize: 12,
-                                  color: CoresApp.textSecondary
-                                      .withAlpha(210),
+                                  color: CoresApp.textSecondary.withAlpha(210),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -224,8 +211,7 @@ class _SplashScreenState extends State<SplashScreen>
 
       final opacidadeSaida = 1.0 -
           Curves.easeIn.transform(
-            ((_controller.value - 0.62) / 0.08)
-                .clamp(0.0, 1.0),
+            ((_controller.value - 0.62) / 0.08).clamp(0.0, 1.0),
           );
 
       if (_controller.value < inicio) continue;
@@ -238,19 +224,15 @@ class _SplashScreenState extends State<SplashScreen>
           left: ponto.dx - 22,
           top: ponto.dy - 22,
           child: Opacity(
-            opacity: progresso.clamp(0.0, 1.0) *
-                opacidadeSaida.clamp(0.0, 1.0),
+            opacity: progresso.clamp(0.0, 1.0) * opacidadeSaida.clamp(0.0, 1.0),
             child: Transform.rotate(
               angle: rotacao,
               child: Transform.scale(
-                scale: 0.75 +
-                    progresso.clamp(0.0, 1.0) * 0.25,
+                scale: 0.75 + progresso.clamp(0.0, 1.0) * 0.25,
                 child: Icon(
                   Icons.pets_rounded,
                   size: 44,
-                  color: i.isEven
-                      ? CoresApp.primary
-                      : CoresApp.darkBlue,
+                  color: i.isEven ? CoresApp.primary : CoresApp.darkBlue,
                 ),
               ),
             ),
@@ -262,17 +244,11 @@ class _SplashScreenState extends State<SplashScreen>
     return pegadas;
   }
 
-  Widget _circuloDecorativo({
-    required double tamanho,
-    required Color cor,
-  }) {
+  Widget _circuloDecorativo({required double tamanho, required Color cor}) {
     return Container(
       width: tamanho,
       height: tamanho,
-      decoration: BoxDecoration(
-        color: cor,
-        shape: BoxShape.circle,
-      ),
+      decoration: BoxDecoration(color: cor, shape: BoxShape.circle),
     );
   }
 }

@@ -443,6 +443,3 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
 });
 
 export default router;
-
-
-
