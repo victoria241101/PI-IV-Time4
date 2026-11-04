@@ -74,8 +74,15 @@ class _LoginScreenState extends State<LoginScreen> {
     return null;
   }
 
+
   Future<void> _entrar() async {
+    if (_carregando) return;
+
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() {
+      _carregando = true;
+    });
 
     try {
       await AuthService.instancia.login(
@@ -88,19 +95,27 @@ class _LoginScreenState extends State<LoginScreen> {
       final destino = widget.destinoAposLogin;
 
       if (destino != null) {
-        Navigator.pushReplacement(
+        Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(
             builder: (_) => destino(),
           ),
+              (route) => false,
         );
         return;
       }
 
-      // Caso não tenha um destino específico, retorna à tela anterior.
-      Navigator.pop(context, true);
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/inicio-autenticado',
+            (route) => false,
+      );
     } catch (erro) {
       if (!mounted) return;
+
+      setState(() {
+        _carregando = false;
+      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -112,6 +127,7 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     }
   }
+
 
   InputDecoration _decoracaoCampo({
     required String hintText,
