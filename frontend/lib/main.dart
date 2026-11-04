@@ -50,6 +50,8 @@ class AplicativoVeterinaria extends StatelessWidget {
 
     if (!sessao.estaLogado) {
       destino = const InicioPublico();
+    } else if (sessao.ehEquipeClinica) {
+      destino = const AcessoProfissionalEmDesenvolvimento();
     } else if (sessao.ehTutor) {
       destino = _construirInicioTutor(context);
     } else {
@@ -67,6 +69,10 @@ class AplicativoVeterinaria extends StatelessWidget {
 
   Widget _construirDestinoAutenticado(BuildContext context) {
     final sessao = SessaoUsuario.instancia;
+
+    if (sessao.ehEquipeClinica) {
+      return const AcessoProfissionalEmDesenvolvimento();
+    }
 
     if (sessao.ehTutor) {
       return _construirInicioTutor(context);
@@ -191,6 +197,23 @@ class _InicioTutorComDadosReaisState
   }
 
   // ============================================================
+  // CARREGAMENTO SEGURO DOS VETERINÁRIOS
+  // ============================================================
+
+  Future<List<dynamic>> _listarVeterinariosSeguro() async {
+    try {
+      final veterinarios = await VeterinariosService(
+        baseUrl: 'http://localhost:3000',
+      ).listarVeterinarios();
+
+      return veterinarios;
+    } catch (erro) {
+      debugPrint('ERRO AO CARREGAR VETERINÁRIOS: $erro');
+      return <dynamic>[];
+    }
+  }
+
+  // ============================================================
   // CARREGAMENTO DOS DADOS
   // ============================================================
 
@@ -210,14 +233,16 @@ class _InicioTutorComDadosReaisState
       }
 
       final resultados = await Future.wait<dynamic>([
-        PetsService(baseUrl: 'http://localhost:3000').listarPets(),
+        PetsService(
+          baseUrl: 'http://localhost:3000',
+        ).listarPets(),
+
         AgendamentosService(
           baseUrl: 'http://localhost:3000',
           token: token,
         ).listarAgendamentos(),
-        VeterinariosService(
-          baseUrl: 'http://localhost:3000',
-        ).listarVeterinarios(),
+
+        _listarVeterinariosSeguro(),
       ]);
 
       final petsApi = resultados[0] as List;
@@ -403,6 +428,8 @@ class _InicioTutorComDadosReaisState
 
       onReagendamentoConfirmado: (_, __) => _atualizar(),
 
+      onPetCadastrado: _atualizar,
+
       onConfirmarConsulta: (consultaId) async {
         // Recarrega os dados reais, sem confirmar artificialmente.
         await _atualizar();
@@ -432,6 +459,82 @@ class _InicioTutorComDadosReaisState
           ),
         );
       },
+    );
+  }
+}
+
+// ================================================================
+// ACESSO PROVISÓRIO DA EQUIPE CLÍNICA
+// ================================================================
+
+class AcessoProfissionalEmDesenvolvimento extends StatelessWidget {
+  const AcessoProfissionalEmDesenvolvimento({super.key});
+
+  String _nomePerfil(String tipo) {
+    switch (tipo) {
+      case 'VETERINARIO':
+        return 'Veterinário';
+      case 'ENFERMEIRO':
+        return 'Enfermeiro';
+      case 'SECRETARIA':
+        return 'Secretária';
+      default:
+        return 'Profissional';
+    }
+  }
+
+  Future<void> _sair(BuildContext context) async {
+    await SessaoUsuario.instancia.sair();
+
+    if (!context.mounted) return;
+
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      '/inicio-publico',
+          (route) => false,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final sessao = SessaoUsuario.instancia;
+
+    return Scaffold(
+      body: Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const Icon(
+                Icons.medical_services_outlined,
+                size: 64,
+              ),
+              const SizedBox(height: 20),
+              Text(
+                'Olá, ${sessao.nomeUsuario ?? 'Profissional'}!',
+                style: Theme.of(context).textTheme.headlineSmall,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 12),
+              Text(
+                'Perfil: ${_nomePerfil(sessao.tipoUsuario)}',
+                style: Theme.of(context).textTheme.titleMedium,
+              ),
+              const SizedBox(height: 12),
+              const Text(
+                'Sua conta foi identificada corretamente. '
+                    'A área profissional do PetCare ainda está em desenvolvimento.',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 24),
+              ElevatedButton(
+                onPressed: () => _sair(context),
+                child: const Text('Sair da conta'),
+              ),
+            ],
+          ),
+        ),
+      ),
     );
   }
 }

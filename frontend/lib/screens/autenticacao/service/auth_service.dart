@@ -1,4 +1,3 @@
-
 import 'dart:async';
 import 'dart:convert';
 
@@ -72,16 +71,30 @@ class AuthService {
 
       final nome = usuario['nome']?.toString();
       final emailUsuario = usuario['email']?.toString();
+      final tipoUsuario = usuario['tipo']?.toString().toUpperCase();
 
-      if (nome == null || emailUsuario == null) {
+      if (nome == null || emailUsuario == null || tipoUsuario == null) {
         throw Exception('Os dados do perfil estão incompletos.');
+      }
+
+      const tiposPermitidos = {
+        'USUARIO',
+        'VETERINARIO',
+        'ENFERMEIRO',
+        'SECRETARIA',
+      };
+
+      if (!tiposPermitidos.contains(tipoUsuario)) {
+        throw Exception('Tipo de usuário não reconhecido: $tipoUsuario');
       }
 
       await _sessao.entrar(
         nome: nome,
         email: emailUsuario,
         token: token.toString(),
-        ehTutor: dadosPerfil['ehTutor'] == true,
+        tipoUsuario: tipoUsuario,
+        ehTutor: tipoUsuario == 'USUARIO' &&
+            dadosPerfil['ehTutor'] == true,
       );
     } on http.ClientException catch (e) {
       debugPrint('ERRO DE CONEXÃO: ${e.message}');

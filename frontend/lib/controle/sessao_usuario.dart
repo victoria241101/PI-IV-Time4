@@ -1,4 +1,3 @@
-
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -16,18 +15,28 @@ class SessaoUsuario extends ChangeNotifier {
   static const String _chaveNome = 'usuario_nome';
   static const String _chaveEmail = 'usuario_email';
   static const String _chaveEhTutor = 'usuario_eh_tutor';
+  static const String _chaveTipoUsuario = 'usuario_tipo';
 
   bool _estaLogado = false;
   String? _nomeUsuario;
   String? _emailUsuario;
   String? _token;
   bool _ehTutor = false;
+  String _tipoUsuario = 'USUARIO';
 
   bool get estaLogado => _estaLogado;
   String? get nomeUsuario => _nomeUsuario;
   String? get emailUsuario => _emailUsuario;
   String? get token => _token;
   bool get ehTutor => _ehTutor;
+  String get tipoUsuario => _tipoUsuario;
+
+  bool get ehVeterinario => _tipoUsuario == 'VETERINARIO';
+  bool get ehEnfermeiro => _tipoUsuario == 'ENFERMEIRO';
+  bool get ehSecretaria => _tipoUsuario == 'SECRETARIA';
+
+  bool get ehEquipeClinica =>
+      ehVeterinario || ehEnfermeiro || ehSecretaria;
 
   Future<void> carregar() async {
     final prefs = await SharedPreferences.getInstance();
@@ -41,11 +50,17 @@ class SessaoUsuario extends ChangeNotifier {
     if (_estaLogado) {
       _nomeUsuario = prefs.getString(_chaveNome);
       _emailUsuario = prefs.getString(_chaveEmail);
-      _ehTutor = prefs.getBool(_chaveEhTutor) ?? false;
+
+      _tipoUsuario =
+          (prefs.getString(_chaveTipoUsuario) ?? 'USUARIO').toUpperCase();
+
+      _ehTutor = _tipoUsuario == 'USUARIO' &&
+          (prefs.getBool(_chaveEhTutor) ?? false);
     } else {
       _nomeUsuario = null;
       _emailUsuario = null;
       _ehTutor = false;
+      _tipoUsuario = 'USUARIO';
     }
 
     notifyListeners();
@@ -55,9 +70,12 @@ class SessaoUsuario extends ChangeNotifier {
     required String nome,
     required String email,
     required String token,
+    String tipoUsuario = 'USUARIO',
     bool ehTutor = false,
   }) async {
     final prefs = await SharedPreferences.getInstance();
+
+    final tipoNormalizado = tipoUsuario.trim().toUpperCase();
 
     await _armazenamentoSeguro.write(
       key: _chaveToken,
@@ -67,13 +85,18 @@ class SessaoUsuario extends ChangeNotifier {
     await prefs.setBool(_chaveLogado, true);
     await prefs.setString(_chaveNome, nome.trim());
     await prefs.setString(_chaveEmail, email.trim());
-    await prefs.setBool(_chaveEhTutor, ehTutor);
+    await prefs.setString(_chaveTipoUsuario, tipoNormalizado);
+
+    final tutor = tipoNormalizado == 'USUARIO' && ehTutor;
+
+    await prefs.setBool(_chaveEhTutor, tutor);
 
     _token = token;
     _estaLogado = true;
     _nomeUsuario = nome.trim();
     _emailUsuario = email.trim();
-    _ehTutor = ehTutor;
+    _tipoUsuario = tipoNormalizado;
+    _ehTutor = tutor;
 
     notifyListeners();
   }
@@ -115,6 +138,10 @@ class SessaoUsuario extends ChangeNotifier {
   }
 
   Future<void> tornarTutor() async {
+    if (!_estaLogado || _tipoUsuario != 'USUARIO') {
+      return;
+    }
+
     final prefs = await SharedPreferences.getInstance();
 
     await prefs.setBool(_chaveEhTutor, true);
@@ -133,12 +160,14 @@ class SessaoUsuario extends ChangeNotifier {
     await prefs.remove(_chaveNome);
     await prefs.remove(_chaveEmail);
     await prefs.remove(_chaveEhTutor);
+    await prefs.remove(_chaveTipoUsuario);
 
     _token = null;
     _estaLogado = false;
     _nomeUsuario = null;
     _emailUsuario = null;
     _ehTutor = false;
+    _tipoUsuario = 'USUARIO';
 
     notifyListeners();
   }
