@@ -36,7 +36,7 @@ class InicioTutor extends StatefulWidget {
     required this.saudacao,
     required this.nomeTutor,
     required this.pets,
-    required this.proximaConsulta,
+    this.proximaConsulta,
     required this.banners,
     required this.onConfirmarConsulta,
     required this.carregarDetalhesPet,
@@ -52,7 +52,7 @@ class InicioTutor extends StatefulWidget {
   final String saudacao;
   final String nomeTutor;
   final List<ResumoPet> pets;
-  final ResumoConsulta proximaConsulta;
+  final ResumoConsulta? proximaConsulta;
   final List<DadosBanner> banners;
 
   final ConfirmarConsulta onConfirmarConsulta;
@@ -78,8 +78,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
   bool _confirmandoConsulta = false;
 
-  late ResumoConsulta _proximaConsulta;
+  ResumoConsulta? _proximaConsulta;
   late List<ResumoConsulta> _consultas;
+  late List<ResumoPet> _pets;
 
   String? _consultaIdParaReagendar;
 
@@ -89,8 +90,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
     _proximaConsulta = widget.proximaConsulta;
     _consultas = List<ResumoConsulta>.from(widget.consultas);
-
-    _sincronizarProximaConsulta();
+    _pets = List<ResumoPet>.from(widget.pets);
   }
 
   @override
@@ -103,7 +103,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
     if (oldWidget.consultas != widget.consultas) {
       _consultas = List<ResumoConsulta>.from(widget.consultas);
-      _sincronizarProximaConsulta();
+    }
+    if (oldWidget.pets != widget.pets) {
+      _pets = List<ResumoPet>.from(widget.pets);
     }
   }
 
@@ -114,18 +116,6 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       _currentNavIndex = 0;
       _consultaIdParaReagendar = null;
     });
-  }
-
-  void _sincronizarProximaConsulta() {
-    final indice = _consultas.indexWhere(
-          (consulta) => consulta.id == _proximaConsulta.id,
-    );
-
-    if (indice >= 0) {
-      _consultas[indice] = _proximaConsulta;
-    } else {
-      _consultas.insert(0, _proximaConsulta);
-    }
   }
 
   String _formatarData(DateTime data) {
@@ -195,36 +185,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _onAgendamentoConfirmado(DadosAgendamento dados) {
-    final consulta = ResumoConsulta(
-      id: 'consulta-${DateTime.now().microsecondsSinceEpoch}',
-      type: dados.tipoAtendimento,
-      date: _formatarData(dados.data),
-      time: dados.horario,
-      vetName: dados.veterinario,
-      petName: dados.nomePet,
-      status: 'Agendada',
-      instructions: dados.urgente
-          ? 'Atendimento marcado como urgente.'
-          : 'Consulte as orientações da clínica antes do atendimento.',
-      clinicAddress: 'Endereço a confirmar',
-    );
-
-    setState(() {
-      _consultas = [..._consultas, consulta];
-    });
-
+    // O banco já foi atualizado pela tela de confirmação.
+    // Não gerar IDs locais falsos; o pai recarrega os dados da API.
     widget.onAgendamentoConfirmado?.call(dados);
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Agendamento adicionado à lista de consultas.',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
   }
 
   // ============================================================
@@ -233,7 +196,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
   void _abrirFluxoReagendamento() {
     setState(() {
-      _consultaIdParaReagendar = _proximaConsulta.id;
+      _consultaIdParaReagendar = _proximaConsulta?.id;
       _currentNavIndex = 1;
     });
   }
@@ -278,7 +241,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       _consultas = List<ResumoConsulta>.from(_consultas);
       _consultas[indice] = consultaAtualizada;
 
-      if (_proximaConsulta.id == consultaId) {
+      if (_proximaConsulta?.id == consultaId) {
         _proximaConsulta = consultaAtualizada;
       }
 
@@ -305,9 +268,11 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _onAppointmentDetails() {
+    final consulta = _proximaConsulta;
+    if (consulta == null) return;
     ModalDetalhesConsulta.show(
       context,
-      appointment: _proximaConsulta,
+      appointment: consulta,
       onReschedule: () {
         Navigator.of(context).pop();
         _abrirFluxoReagendamento();
@@ -318,7 +283,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
         Navigator.of(context).pop();
 
         await widget.onCancelarConsulta!(
-          _proximaConsulta.id,
+          consulta.id,
         );
 
         if (!mounted) return;
@@ -355,7 +320,8 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   Future<void> _onConfirmAppointment() async {
-    if (_confirmandoConsulta) return;
+    final consulta = _proximaConsulta;
+    if (consulta == null || _confirmandoConsulta) return;
 
     setState(() {
       _confirmandoConsulta = true;
@@ -363,7 +329,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
     try {
       final consultaAtualizada = await widget.onConfirmarConsulta(
-        _proximaConsulta.id,
+        consulta.id,
       );
 
       if (!mounted) return;
@@ -447,7 +413,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           const SizedBox(height: EspacamentosApp.md),
 
           ListaHorizontalPets(
-            pets: widget.pets,
+            pets: _pets,
             onPetTap: _abrirDetalhesPet,
           ),
 
@@ -457,12 +423,18 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
           const SizedBox(height: EspacamentosApp.md),
 
-          CartaoProximaConsulta(
-            appointment: _proximaConsulta,
-            onDetailsTap: _onAppointmentDetails,
-            onConfirmTap: _onConfirmAppointment,
-            isConfirming: _confirmandoConsulta,
-          ),
+          if (_proximaConsulta != null)
+            CartaoProximaConsulta(
+              appointment: _proximaConsulta!,
+              onDetailsTap: _onAppointmentDetails,
+              onConfirmTap: _onConfirmAppointment,
+              isConfirming: _confirmandoConsulta,
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: EspacamentosApp.pagePadding),
+              child: Text('Você não possui consultas futuras agendadas.'),
+            ),
 
           const SizedBox(height: EspacamentosApp.xl),
 
@@ -504,7 +476,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       case 1:
         return ConsultasTutor(
           consultas: _consultas,
-          nomesPets: widget.pets.map((pet) => pet.name).toList(),
+          nomesPets: _pets.map((pet) => pet.name).toList(),
           consultaIdParaReagendar: _consultaIdParaReagendar,
           onAgendamentoConfirmado: _onAgendamentoConfirmado,
           onReagendamentoConfirmado: _onReagendamentoConfirmado,
