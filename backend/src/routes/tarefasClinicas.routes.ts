@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarTarefaClinica } from "../notificacoes/eventos.js";
 
 const router = Router();
 
@@ -120,6 +121,17 @@ router.post(
                     dataCriacao: new Date(),
                     dataConclusao: null
                 });
+
+            await notificarTarefaClinica(
+                banco,
+                {
+                    _id: resultado.insertedId,
+                    petId: pet._id,
+                    enfermeiroId: enfermeiro._id,
+                    descricao: descricao.trim()
+                },
+                new ObjectId(res.locals.usuarioId)
+            );
 
             return res.status(201).json({
                 mensagem: "Tarefa clínica cadastrada com sucesso!",

@@ -3,6 +3,7 @@ import { ObjectId, MongoServerError } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco, obterCliente } from "../database.js";
+import { notificarConsulta } from "../notificacoes/eventos.js";
 
 const router = Router();
 
@@ -432,6 +433,12 @@ router.post("/", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (re
         } finally {
             await session.endSession();
         }
+        await notificarConsulta(
+            db,
+            "consulta_agendada",
+            consulta,
+            new ObjectId(res.locals.usuarioId)
+        );
         return res.status(201).json({ mensagem: "Agendamento confirmado!", consulta });
     } catch (erro) {
         return erroInterno(res, erro);
@@ -535,6 +542,12 @@ router.patch("/:id/remarcar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
                 mensagem: "Consulta alterada por outra operação. Tente novamente."
             });
         }
+        await notificarConsulta(
+            db,
+            "consulta_remarcada",
+            { ...consulta, dataHora, duracaoMinutos },
+            new ObjectId(res.locals.usuarioId)
+        );
         return res.json({ mensagem: "Consulta remarcada com sucesso!", consultaId: id, dataHora, duracaoMinutos });
     } catch (erro) {
         return erroInterno(res, erro);
@@ -584,6 +597,12 @@ router.patch("/:id/cancelar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
                 mensagem: "Consulta já alterada por outra operação."
             });
         }
+        await notificarConsulta(
+            db,
+            "consulta_cancelada",
+            { ...acesso.consulta, status: "cancelada" },
+            new ObjectId(res.locals.usuarioId)
+        );
         return res.json({ mensagem: "Consulta cancelada com sucesso!" });
     } catch (erro) {
         return erroInterno(res, erro);
