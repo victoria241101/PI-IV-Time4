@@ -122,6 +122,7 @@ class _DoacaoState extends State<Doacao> {
           Builder(builder: (context) {
             final campanha = _campanhas[i];
             final campanhaId = campanha['_id']?.toString() ?? '';
+            final idValido = RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(campanhaId);
             final nomeAnimal = (campanha['nomeAnimal'] as String?)
                     ?.trim()
                     .isNotEmpty == true
@@ -138,14 +139,24 @@ class _DoacaoState extends State<Doacao> {
               valorArrecadado: valorArrecadado,
               meta: meta,
               imagemUrl: imagemUrl,
-              onTap: () => _abrirCampanha(
+              onTap: () {
+                if (!idValido) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Esta campanha não possui um ID válido no MongoDB.'),
+                    ),
+                  );
+                  return;
+                }
+                _abrirCampanha(
                 campanhaId: campanhaId,
                 nomeAnimal: nomeAnimal,
                 titulo: titulo,
                 valorArrecadado: valorArrecadado,
                 meta: meta,
                 imagemUrl: imagemUrl,
-              ),
+                );
+              },
             );
           }),
         ],

@@ -61,7 +61,7 @@ class DetalhesDoacao extends StatelessWidget {
   Future<void> _iniciarDoacao(BuildContext context) async {
     Widget criarTelaDoacao() {
       return Doar(
-        // O campanhaId será encaminhado ao Doar na próxima etapa.
+        campanhaId: campanhaId,
         nomeAnimal: nomeAnimal,
         titulo: titulo,
         meta: meta,
