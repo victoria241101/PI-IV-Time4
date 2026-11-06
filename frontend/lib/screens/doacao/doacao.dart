@@ -8,6 +8,7 @@ import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 
 import 'package:pet_care/widgets/cartao_campanha.dart';
+import 'package:pet_care/services/campanhas_service.dart';
 
 import 'detalhes_doacao.dart';
 
@@ -33,7 +34,127 @@ class Doacao extends StatefulWidget {
 }
 
 class _DoacaoState extends State<Doacao> {
+  final CampanhasService _campanhasService = CampanhasService.criar(
+    baseUrl: 'http://localhost:3000',
+  );
+
+  List<Map<String, dynamic>> _campanhas = [];
+  bool _carregando = true;
+  String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarCampanhas();
+  }
+
+  Future<void> _carregarCampanhas() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+
+    try {
+      final resultado = await _campanhasService.listarCampanhas();
+      if (!mounted) return;
+
+      setState(() {
+        _campanhas = resultado
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .where((campanha) => campanha['status'] == 'ativa')
+            .toList();
+        _carregando = false;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+      setState(() {
+        _erro = erro.toString().replaceFirst('Exception: ', '');
+        _carregando = false;
+      });
+    }
+  }
+
+  double _numero(dynamic valor) {
+    if (valor is num) return valor.toDouble();
+    return double.tryParse(valor?.toString() ?? '') ?? 0;
+  }
+
+  String? _imagem(dynamic valor) {
+    if (valor is String && valor.trim().isNotEmpty) return valor;
+    return null;
+  }
+
+  Widget _listaCampanhas() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_erro != null) {
+      return Column(
+        children: [
+          Text(
+            'Não foi possível carregar as campanhas. $_erro',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: CoresApp.textSecondary),
+          ),
+          const SizedBox(height: EspacamentosApp.sm),
+          TextButton(
+            onPressed: _carregarCampanhas,
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      );
+    }
+
+    if (_campanhas.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nenhuma campanha ativa no momento.',
+          style: TextStyle(color: CoresApp.textSecondary),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (int i = 0; i < _campanhas.length; i++) ...[
+          if (i > 0) const SizedBox(height: EspacamentosApp.lg),
+          Builder(builder: (context) {
+            final campanha = _campanhas[i];
+            final campanhaId = campanha['_id']?.toString() ?? '';
+            final nomeAnimal = (campanha['nomeAnimal'] as String?)
+                    ?.trim()
+                    .isNotEmpty == true
+                ? campanha['nomeAnimal'] as String
+                : 'Campanha';
+            final titulo = campanha['titulo']?.toString() ?? 'Campanha';
+            final valorArrecadado = _numero(campanha['valorArrecadado']);
+            final meta = _numero(campanha['metaValor']);
+            final imagemUrl = _imagem(campanha['imagemCapa']);
+
+            return CartaoCampanha(
+              nomeAnimal: nomeAnimal,
+              titulo: titulo,
+              valorArrecadado: valorArrecadado,
+              meta: meta,
+              imagemUrl: imagemUrl,
+              onTap: () => _abrirCampanha(
+                campanhaId: campanhaId,
+                nomeAnimal: nomeAnimal,
+                titulo: titulo,
+                valorArrecadado: valorArrecadado,
+                meta: meta,
+                imagemUrl: imagemUrl,
+              ),
+            );
+          }),
+        ],
+      ],
+    );
+  }
+
   Future<void> _abrirCampanha({
+    required String campanhaId,
     required String nomeAnimal,
     required String titulo,
     required double valorArrecadado,
@@ -44,6 +165,7 @@ class _DoacaoState extends State<Doacao> {
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => DetalhesDoacao(
+          campanhaId: campanhaId,
           nomeAnimal: nomeAnimal,
           titulo: titulo,
           valorArrecadado: valorArrecadado,
@@ -55,6 +177,8 @@ class _DoacaoState extends State<Doacao> {
     );
 
     if (!mounted) return;
+
+    await _carregarCampanhas();
 
     if (resultado == true) {
       widget.onDoacaoConcluida?.call();
@@ -268,8 +392,8 @@ class _DoacaoState extends State<Doacao> {
                           color: CoresApp.darkBlue.withAlpha(15),
                         ),
                       ),
-                      child: const Text(
-                        '2 campanhas',
+                      child: Text(
+                        '${_campanhas.length} ${_campanhas.length == 1 ? 'campanha' : 'campanhas'}',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -289,43 +413,7 @@ class _DoacaoState extends State<Doacao> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
                 ),
-                child: Column(
-                  children: [
-                    CartaoCampanha(
-                      nomeAnimal: 'Bobby',
-                      titulo: 'Cirurgia ortopédica de emergência',
-                      valorArrecadado: 1250,
-                      meta: 2000,
-                      urgente: true,
-                      imagemUrl: null,
-                      onTap: () => _abrirCampanha(
-                        nomeAnimal: 'Bobby',
-                        titulo: 'Cirurgia ortopédica de emergência',
-                        valorArrecadado: 1250,
-                        meta: 2000,
-                        urgente: true,
-                        imagemUrl: null,
-                      ),
-                    ),
-
-                    const SizedBox(height: EspacamentosApp.lg),
-
-                    CartaoCampanha(
-                      nomeAnimal: 'Luna',
-                      titulo: 'Tratamento veterinário',
-                      valorArrecadado: 400,
-                      meta: 850,
-                      imagemUrl: null,
-                      onTap: () => _abrirCampanha(
-                        nomeAnimal: 'Luna',
-                        titulo: 'Tratamento veterinário',
-                        valorArrecadado: 400,
-                        meta: 850,
-                        imagemUrl: null,
-                      ),
-                    ),
-                  ],
-                ),
+                child: _listaCampanhas(),
               ),
 
               const SizedBox(height: EspacamentosApp.xl),

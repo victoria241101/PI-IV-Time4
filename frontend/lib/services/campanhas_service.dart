@@ -1,74 +1,90 @@
 
 import 'dart:convert';
-
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
 
 class CampanhasService {
   final String baseUrl;
-  final String token;
+  final String? token;
 
   CampanhasService({
     required this.baseUrl,
-    required this.token,
+    this.token,
   });
 
-  factory CampanhasService.autenticado({
+  Map<String, String> get _headers => {
+    'Content-Type': 'application/json',
+    if (token != null && token!.isNotEmpty)
+      'Authorization': 'Bearer $token',
+  };
+
+  factory CampanhasService.criar({
     required String baseUrl,
   }) {
-    final token = SessaoUsuario.instancia.token;
-
-    if (token == null || token.isEmpty) {
-      throw StateError(
-        'Você precisa estar logado para consultar as campanhas.',
-      );
-    }
-
     return CampanhasService(
       baseUrl: baseUrl,
-      token: token,
+      token: SessaoUsuario.instancia.token,
     );
   }
 
-  Future<List<dynamic>> listarCampanhas() async {
-    final resposta = await http.get(
-      Uri.parse('$baseUrl/campanhas'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
-    );
+  dynamic _processarResposta(http.Response resposta) {
+    dynamic conteudo;
 
-    final dados = jsonDecode(resposta.body);
-
-    if (resposta.statusCode != 200) {
-      throw Exception(
-        dados is Map
-            ? dados['mensagem'] ?? 'Erro ao buscar campanhas.'
-            : 'Erro ao buscar campanhas.',
-      );
+    try {
+      conteudo = jsonDecode(utf8.decode(resposta.bodyBytes));
+    } catch (_) {
+      throw Exception('Resposta inválida do servidor.');
     }
 
-    return dados['campanhas'] as List<dynamic>;
+    if (resposta.statusCode >= 200 &&
+        resposta.statusCode < 300) {
+      return conteudo;
+    }
+
+    final mensagem = conteudo is Map
+        ? conteudo['mensagem']
+        : null;
+
+    throw Exception(
+      mensagem is String
+          ? mensagem
+          : 'Erro ao comunicar com o servidor.',
+    );
   }
 
-  Future<Map<String, dynamic>> buscarCampanha(String id) async {
-    final resposta = await http.get(
-      Uri.parse('$baseUrl/campanhas/$id'),
-      headers: {
-        'Authorization': 'Bearer $token',
-      },
+  Future<List<dynamic>> listarCampanhas({
+    String? status,
+  }) async {
+    final uri = Uri.parse(
+      '$baseUrl/campanhas',
+    ).replace(
+      queryParameters: status == null
+          ? null
+          : {'status': status},
     );
 
-    final dados = jsonDecode(resposta.body);
+    final resposta = await http.get(
+      uri,
+      headers: _headers,
+    );
 
-    if (resposta.statusCode != 200) {
-      throw Exception(
-        dados is Map
-            ? dados['mensagem'] ?? 'Erro ao buscar campanha.'
-            : 'Erro ao buscar campanha.',
-      );
-    }
+    final conteudo = _processarResposta(resposta);
 
-    return Map<String, dynamic>.from(dados['campanha'] as Map);
+    return conteudo['campanhas'] as List<dynamic>;
+  }
+
+  Future<Map<String, dynamic>> buscarCampanha({
+    required String campanhaId,
+  }) async {
+    final resposta = await http.get(
+      Uri.parse('$baseUrl/campanhas/$campanhaId'),
+      headers: _headers,
+    );
+
+    final conteudo = _processarResposta(resposta);
+
+    return Map<String, dynamic>.from(
+      conteudo['campanha'] as Map,
+    );
   }
 }

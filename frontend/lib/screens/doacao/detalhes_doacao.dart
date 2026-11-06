@@ -9,6 +9,7 @@ import 'package:pet_care/screens/doacao/doar.dart';
 class DetalhesDoacao extends StatelessWidget {
   const DetalhesDoacao({
     super.key,
+    required this.campanhaId,
     required this.nomeAnimal,
     required this.titulo,
     required this.valorArrecadado,
@@ -17,6 +18,7 @@ class DetalhesDoacao extends StatelessWidget {
     this.imagemUrl,
   });
 
+  final String campanhaId;
   final String nomeAnimal;
   final String titulo;
   final double valorArrecadado;
@@ -59,6 +61,7 @@ class DetalhesDoacao extends StatelessWidget {
   Future<void> _iniciarDoacao(BuildContext context) async {
     Widget criarTelaDoacao() {
       return Doar(
+        // O campanhaId será encaminhado ao Doar na próxima etapa.
         nomeAnimal: nomeAnimal,
         titulo: titulo,
         meta: meta,
