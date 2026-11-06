@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:pet_care/services/agendamentos_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
@@ -47,6 +49,7 @@ class InicioTutor extends StatefulWidget {
     this.consultas = const [],
     this.onAgendamentoConfirmado,
     this.onReagendamentoConfirmado,
+    this.onConsultasAtualizadas,
   });
 
   final String saudacao;
@@ -68,6 +71,7 @@ class InicioTutor extends StatefulWidget {
 
   final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
   final ConfirmarReagendamento? onReagendamentoConfirmado;
+  final VoidCallback? onConsultasAtualizadas;
 
   @override
   State<InicioTutor> createState() => _EstadoInicioTutor();
@@ -195,10 +199,49 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _abrirFluxoReagendamento() {
+    final consulta = _proximaConsulta;
+    if (consulta == null) return;
+
     setState(() {
-      _consultaIdParaReagendar = _proximaConsulta?.id;
+      _consultaIdParaReagendar = consulta.id;
       _currentNavIndex = 1;
     });
+  }
+
+  Future<void> _cancelarConsultaReal(ResumoConsulta consulta) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar consulta?'),
+        content: Text('Cancelar a consulta de ${consulta.petName} em ${consulta.date} às ${consulta.time}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancelar consulta')),
+        ],
+      ),
+    );
+    if (confirmado != true || !mounted) return;
+    try {
+      final token = SessaoUsuario.instancia.token;
+      if (token == null || token.isEmpty) throw StateError('Faça login novamente.');
+      await AgendamentosService(baseUrl: 'http://localhost:3000', token: token)
+          .cancelarAgendamento(consultaId: consulta.id);
+      if (!mounted) return;
+      setState(() {
+        _consultas = _consultas.map((item) => item.id == consulta.id
+            ? item.copyWith(status: 'Cancelada') : item).toList();
+        if (_proximaConsulta?.id == consulta.id) {
+          final candidatas = _consultas.where((item) => item.isConfirmed).toList();
+          candidatas.sort((a, b) => '${a.date.substring(6)}${a.date.substring(3, 5)}${a.date.substring(0, 2)}${a.time}'.compareTo('${b.date.substring(6)}${b.date.substring(3, 5)}${b.date.substring(0, 2)}${b.time}'));
+          _proximaConsulta = candidatas.isEmpty ? null : candidatas.first;
+        }
+      });
+      widget.onConsultasAtualizadas?.call();
+      ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Consulta cancelada com sucesso.')));
+    } catch (erro) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('Não foi possível cancelar: $erro')));
+    }
   }
 
   void _onReagendamentoConfirmado(
@@ -277,25 +320,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
         Navigator.of(context).pop();
         _abrirFluxoReagendamento();
       },
-      onCancel: widget.onCancelarConsulta == null
-          ? null
-          : () async {
+      onCancel: () async {
         Navigator.of(context).pop();
-
-        await widget.onCancelarConsulta!(
-          consulta.id,
-        );
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Solicitação de cancelamento enviada.',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        await _cancelarConsultaReal(consulta);
       },
     );
   }
@@ -480,6 +507,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           consultaIdParaReagendar: _consultaIdParaReagendar,
           onAgendamentoConfirmado: _onAgendamentoConfirmado,
           onReagendamentoConfirmado: _onReagendamentoConfirmado,
+          onConsultasAtualizadas: widget.onConsultasAtualizadas,
         );
 
       case 2:

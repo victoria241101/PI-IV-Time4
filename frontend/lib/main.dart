@@ -246,6 +246,7 @@ class _InicioTutorComDadosReaisState extends State<_InicioTutorComDadosReais> {
       banners: const [],
       onAgendamentoConfirmado: (_) => _atualizar(),
       onReagendamentoConfirmado: (_, __) => _atualizar(),
+      onConsultasAtualizadas: _atualizar,
       onConfirmarConsulta: (consultaId) async {
         // Não confirmar artificialmente: recarrega o registro real.
         await _atualizar();
