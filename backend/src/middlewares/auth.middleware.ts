@@ -81,3 +81,37 @@ export async function autenticar(
     next();
 
 }
+
+export async function autenticarOpcional(
+    req: Request,
+    res: Response,
+    next: NextFunction
+) {
+    const autorizacao = req.headers.authorization;
+
+    // Visitante sem token pode continuar
+    if (!autorizacao) {
+        next();
+        return;
+    }
+
+    // Se enviou autenticação, precisa ser válida
+    if (!autorizacao.startsWith("Bearer ")) {
+        res.status(401).json({
+            mensagem: "Formato de autenticação inválido."
+        });
+        return;
+    }
+
+    const token = autorizacao.slice(7);
+
+    if (!token) {
+        res.status(401).json({
+            mensagem: "Token de autenticação não informado."
+        });
+        return;
+    }
+
+    // Reaproveita a autenticação existente
+    await autenticar(req, res, next);
+}
