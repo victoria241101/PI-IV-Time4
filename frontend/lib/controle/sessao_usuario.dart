@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pet_care/screens/autenticacao/service/perfil_service.dart';
 
 class SessaoUsuario extends ChangeNotifier {
   SessaoUsuario._();
@@ -126,15 +127,18 @@ class SessaoUsuario extends ChangeNotifier {
       throw ArgumentError('Informe um e-mail válido.');
     }
 
-    final prefs = await SharedPreferences.getInstance();
+    final servico = PerfilService.autenticado(
+      baseUrl: 'http://localhost:3000',
+    );
 
-    await prefs.setString(_chaveNome, nomeNormalizado);
-    await prefs.setString(_chaveEmail, emailNormalizado);
+    final resposta = await servico.atualizarPerfil(
+      nome: nomeNormalizado,
+      email: emailNormalizado,
+    );
 
-    _nomeUsuario = nomeNormalizado;
-    _emailUsuario = emailNormalizado;
-
-    notifyListeners();
+    // A solicitação foi enviada, mas ainda depende da confirmação
+    // por e-mail. Não atualizamos os dados locais neste momento.
+    debugPrint(resposta['mensagem']?.toString());
   }
 
   Future<void> tornarTutor() async {
