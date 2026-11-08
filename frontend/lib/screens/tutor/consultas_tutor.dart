@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -180,15 +179,17 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
         '${data.year}';
   }
 
-  void _continuarAgendamento() {
+  Future<void> _continuarAgendamento() async {
     if (widget.consultaIdParaReagendar != null) {
       _abrirMinhasConsultas();
       return;
     }
+
     final data = _dataSelecionada;
     if (data == null) return;
 
     String? nomeVeterinario;
+
     for (final vet in _veterinarios) {
       if (vet['_id']?.toString() == _veterinarioSelecionado) {
         nomeVeterinario = vet['nome']?.toString();
@@ -196,8 +197,8 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
       }
     }
 
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => DetalhesAgendamentoTutor(
           dataSelecionada: data,
           nomesPets: widget.nomesPets,
@@ -221,20 +222,18 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
 
               callback(consultaId, dados);
             } else {
-              final callback = widget.onAgendamentoConfirmado;
-
-              // O POST /agendamentos já foi concluído na tela de confirmação.
-              // O callback é opcional no teste isolado.
-              callback?.call(dados);
+              widget.onAgendamentoConfirmado?.call(dados);
             }
-
-            // A navegação após salvar é responsabilidade da tela de
-            // confirmação. Não faça pop aqui: o callback é chamado enquanto
-            // a confirmação ainda está aberta.
           },
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    if (resultado == true) {
+      _abrirMinhasConsultas();
+    }
   }
 
   @override
