@@ -355,61 +355,169 @@ router.get("/perfil", autenticar, async (_req, res) => {
     }
 });
 
-// Edição de nome
+
+
+// Solicitação de alteração de nome e/ou e-mail.
 router.patch("/perfil", autenticar, async (req, res) => {
     try {
         const { nome, email, cpf, tipo, ativo, senhaHash } = req.body ?? {};
 
+        // Impede alterações em campos que não fazem parte desta operação.
         if (
-            email !== undefined || cpf !== undefined ||
-            tipo !== undefined || ativo !== undefined ||
+            cpf !== undefined ||
+            tipo !== undefined ||
+            ativo !== undefined ||
             senhaHash !== undefined
         ) {
             return res.status(400).json({
-                mensagem: "Nesta rota, somente o nome pode ser alterado."
+                mensagem: "Somente nome e e-mail podem ser alterados."
             });
         }
 
-        if (
-            typeof nome !== "string" ||
-            !nome.trim() ||
-            !NOME_REGEX.test(nome.trim())
-        ) {
+        if (nome === undefined && email === undefined) {
             return res.status(400).json({
-                mensagem: "Informe um nome válido."
+                mensagem: "Informe pelo menos uma alteração."
             });
         }
 
-        const usuarioId = new ObjectId(res.locals.usuarioId);
-        const banco = obterBanco();
-        const resultado = await banco.collection("usuarios").updateOne(
-            { _id: usuarioId, ativo: true },
-            { $set: { nome: nome.trim() } }
-        );
+        const alteracoes: { nome?: string; email?: string } = {};
 
-        if (resultado.matchedCount === 0) {
+        if (nome !== undefined) {
+            if (
+                typeof nome !== "string" ||
+                !nome.trim() ||
+                !NOME_REGEX.test(nome.trim())
+            ) {
+                return res.status(400).json({
+                    mensagem: "Informe um nome válido."
+                });
+            }
+
+            alteracoes.nome = nome.trim();
+        }
+
+        if (email !== undefined) {
+            if (typeof email !== "string") {
+                return res.status(400).json({
+                    mensagem: "Informe um e-mail válido."
+                });
+            }
+
+            const emailNormalizado = normalizarEmail(email);
+
+            if (!EMAIL_REGEX.test(emailNormalizado)) {
+                return res.status(400).json({
+                    mensagem: "Informe um e-mail válido."
+                });
+            }
+
+            alteracoes.email = emailNormalizado;
+        }
+
+        const banco = obterBanco();
+        const usuarios = banco.collection("usuarios");
+        const usuarioId = new ObjectId(res.locals.usuarioId);
+
+        const usuario = await usuarios.findOne({
+            _id: usuarioId,
+            ativo: true
+        });
+
+        if (!usuario) {
             return res.status(404).json({
                 mensagem: "Usuário ativo não encontrado."
             });
         }
 
-        // Registros legados de tutores podem possuir nome próprio.
-        await banco.collection("tutores").updateMany(
-            { usuarioId },
-            { $set: { nome: nome.trim() } }
-        );
+        // Evita solicitar um e-mail que já pertence a outra conta.
+        if (alteracoes.email) {
+            const emailExistente = await usuarios.findOne({
+                email: alteracoes.email,
+                _id: { $ne: usuarioId }
+            });
+
+            if (emailExistente) {
+                return res.status(409).json({
+                    mensagem: "Este e-mail já está cadastrado."
+                });
+            }
+
+            if (alteracoes.email === usuario.email) {
+                delete alteracoes.email;
+            }
+        }
+
+        if (
+            alteracoes.nome === usuario.nome &&
+            alteracoes.email === undefined
+        ) {
+            return res.status(400).json({
+                mensagem: "Nenhuma alteração foi identificada."
+            });
+        }
+
+        // Gera um token temporário para confirmação.
+        const token = randomBytes(32).toString("hex");
+        const tokenHash = hashToken(token);
+        const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
+
+        const pendentes = banco.collection("alteracoesPendentes");
+
+        // Uma nova solicitação invalida a anterior.
+        await pendentes.deleteMany({ usuarioId });
+
+        await pendentes.insertOne({
+            usuarioId,
+            tokenHash,
+            alteracoes,
+            expiraEm,
+            criadoEm: new Date()
+        });
+
+        const urlBase = process.env.FRONTEND_URL;
+
+        if (!urlBase || !/^https?:\/\//.test(urlBase)) {
+            await pendentes.deleteOne({ tokenHash });
+
+            return res.status(503).json({
+                mensagem: "Serviço de confirmação indisponível."
+            });
+        }
+
+        const link = new URL("/confirmar-alteracao", urlBase);
+        link.searchParams.set("token", token);
+
+        try {
+            const { transporte, remetente } = configurarEmail();
+
+            await transporte.sendMail({
+                from: remetente,
+                to: usuario.email,
+                subject: "PetCare - Confirmação de alteração do perfil",
+                text:
+                    "Recebemos uma solicitação de alteração no seu perfil.\n\n" +
+                    `Acesse o link para confirmar: ${link.toString()}\n\n` +
+                    "O link expira em 15 minutos e só pode ser usado uma vez.\n" +
+                    "Se você não solicitou essa alteração, ignore esta mensagem."
+            });
+        } catch (erro) {
+            await pendentes.deleteOne({ tokenHash });
+            throw erro;
+        }
 
         return res.status(200).json({
-            mensagem: "Perfil atualizado com sucesso!"
+            mensagem: "Enviamos um link de confirmação para seu e-mail cadastrado."
         });
-    } catch (erro) {
-        console.error("Erro ao editar perfil:", erro);
 
-        return res.status(500).json({
-            mensagem: "Erro ao editar perfil."
+    } catch (erro) {
+        console.error("Erro ao solicitar alteração de perfil:", erro);
+
+        return res.status(503).json({
+            mensagem: "Não foi possível solicitar a alteração do perfil."
         });
     }
 });
+);
 
 // Alteração de senha para quem ainda sabe a senha atual.
 router.patch("/alterar-senha", autenticar, async (req, res) => {
