@@ -3,10 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
-
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
-
 import 'package:pet_care/screens/autenticacao/cadastro.dart';
 import 'package:pet_care/screens/autenticacao/login.dart';
 import 'package:pet_care/screens/doacao/doacao.dart';
@@ -15,77 +13,34 @@ import 'package:pet_care/screens/gerais/splash_screen.dart';
 import 'package:pet_care/screens/publico/inicio_publico.dart';
 import 'package:pet_care/screens/publico/sobre.dart';
 import 'package:pet_care/screens/tutor/inicio_tutor.dart';
-
 import 'package:pet_care/services/agendamentos_service.dart';
 import 'package:pet_care/services/pets_service.dart';
 import 'package:pet_care/services/veterinarios_service.dart';
 
-void main() {
-  runApp(const AplicativoVeterinaria());
-}
+void main() => runApp(const AplicativoVeterinaria());
 
 class AplicativoVeterinaria extends StatelessWidget {
   const AplicativoVeterinaria({super.key});
 
-  // ============================================================
-  // CONSTRUÇÃO DA TELA DO TUTOR
-  // ============================================================
-
-  Widget _construirInicioTutor(BuildContext context) {
-    return const _InicioTutorComDadosReais();
-  }
-
-  // ============================================================
-  // DIRECIONAMENTO INICIAL
-  // ============================================================
-
   Future<void> _abrirInicio(BuildContext context) async {
     await SessaoUsuario.instancia.carregar();
-
     if (!context.mounted) return;
-
     final sessao = SessaoUsuario.instancia;
-
-    final Widget destino;
-
-    if (!sessao.estaLogado) {
-      destino = const InicioPublico();
-    } else if (sessao.ehEquipeClinica) {
-      destino = const AcessoProfissionalEmDesenvolvimento();
-    } else if (sessao.ehTutor) {
-      destino = _construirInicioTutor(context);
-    } else {
-      destino = InicioGeral(
-        construirInicioTutor: _construirInicioTutor,
-      );
-    }
-
+    final Widget destino = !sessao.estaLogado
+        ? const InicioPublico()
+        : sessao.ehTutor
+            ? const _InicioTutorComDadosReais()
+            : const InicioGeral();
     Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => destino,
-      ),
+      MaterialPageRoute<void>(builder: (_) => destino),
     );
   }
 
   Widget _construirDestinoAutenticado(BuildContext context) {
-    final sessao = SessaoUsuario.instancia;
-
-    if (sessao.ehEquipeClinica) {
-      return const AcessoProfissionalEmDesenvolvimento();
-    }
-
-    if (sessao.ehTutor) {
-      return _construirInicioTutor(context);
-    }
-
-    return InicioGeral(
-      construirInicioTutor: _construirInicioTutor,
-    );
+    return SessaoUsuario.instancia.ehTutor
+        ? const _InicioTutorComDadosReais()
+        : const InicioGeral();
   }
-
-  // ============================================================
-  // BUILD
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
@@ -95,21 +50,16 @@ class AplicativoVeterinaria extends StatelessWidget {
       scrollBehavior: const ComportamentoRolagemApp(),
       theme: TemaApp.light,
       home: Builder(
-        builder: (context) {
-          return SplashScreen(
-            onConcluida: () => _abrirInicio(context),
-          );
-        },
+        builder: (context) => SplashScreen(
+          onConcluida: () => _abrirInicio(context),
+        ),
       ),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
         '/inicio-publico': (context) => const InicioPublico(),
-        '/inicio-geral': (context) => InicioGeral(
-          construirInicioTutor: _construirInicioTutor,
-        ),
-        '/inicio-autenticado': (context) =>
-            _construirDestinoAutenticado(context),
+        '/inicio-geral': (context) => const InicioGeral(),
+        '/inicio-autenticado': (context) => _construirDestinoAutenticado(context),
         '/campanhas': (context) => const Doacao(publica: true),
         '/sobre': (context) => const Sobre(),
       },
@@ -117,36 +67,21 @@ class AplicativoVeterinaria extends StatelessWidget {
   }
 }
 
-// ================================================================
-// DADOS DA TELA INICIAL DO TUTOR
-// ================================================================
-
 class _DadosInicioTutor {
-  const _DadosInicioTutor({
-    required this.pets,
-    required this.consultas,
-    required this.proxima,
-  });
-
+  const _DadosInicioTutor({required this.pets, required this.consultas, required this.proxima});
   final List<ResumoPet> pets;
   final List<ResumoConsulta> consultas;
   final ResumoConsulta? proxima;
 }
 
-// ================================================================
-// TELA DO TUTOR COM DADOS REAIS
-// ================================================================
-
 class _InicioTutorComDadosReais extends StatefulWidget {
   const _InicioTutorComDadosReais();
 
   @override
-  State<_InicioTutorComDadosReais> createState() =>
-      _InicioTutorComDadosReaisState();
+  State<_InicioTutorComDadosReais> createState() => _InicioTutorComDadosReaisState();
 }
 
-class _InicioTutorComDadosReaisState
-    extends State<_InicioTutorComDadosReais> {
+class _InicioTutorComDadosReaisState extends State<_InicioTutorComDadosReais> {
   _DadosInicioTutor? _dados;
   bool _carregando = true;
   String? _erro;
@@ -157,9 +92,8 @@ class _InicioTutorComDadosReaisState
     _atualizar();
   }
 
-  String _texto(dynamic valor, [String padrao = '']) {
-    return valor == null ? padrao : valor.toString();
-  }
+  String _texto(dynamic valor, [String padrao = '']) =>
+      valor == null ? padrao : valor.toString();
 
   String _tipoLegivel(String tipo) {
     const nomes = {
@@ -170,7 +104,6 @@ class _InicioTutorComDadosReaisState
       'retorno': 'Retorno',
       'exames_laboratoriais': 'Exames laboratoriais',
     };
-
     return nomes[tipo] ?? tipo;
   }
 
@@ -185,237 +118,125 @@ class _InicioTutorComDadosReaisState
       'concluida': 'Concluída',
       'cancelada': 'Cancelada',
     };
-
     return nomes[status.toLowerCase()] ?? status;
   }
 
   DateTime? _lerDataHora(String texto) {
-    // Mantém o horário local informado pelo backend.
+    // O backend usa o horário local da clínica: AAAA-MM-DDTHH:mm:ss.
+    // Não convertemos para UTC para não deslocar a hora exibida.
     if (texto.length < 16) return null;
-
     return DateTime.tryParse(texto.substring(0, 16));
   }
 
-  // ============================================================
-  // CARREGAMENTO SEGURO DOS VETERINÁRIOS
-  // ============================================================
-
-  Future<List<dynamic>> _listarVeterinariosSeguro() async {
-    try {
-      final veterinarios = await VeterinariosService(
-        baseUrl: 'http://localhost:3000',
-      ).listarVeterinarios();
-
-      return veterinarios;
-    } catch (erro) {
-      debugPrint('ERRO AO CARREGAR VETERINÁRIOS: $erro');
-      return <dynamic>[];
-    }
-  }
-
-  // ============================================================
-  // CARREGAMENTO DOS DADOS
-  // ============================================================
-
   Future<void> _atualizar() async {
     if (!mounted) return;
-
-    setState(() {
-      _carregando = true;
-      _erro = null;
-    });
-
+    setState(() { _carregando = true; _erro = null; });
     try {
       final token = SessaoUsuario.instancia.token;
-
       if (token == null || token.isEmpty) {
         throw StateError('Sessão expirada. Entre novamente.');
       }
-
       final resultados = await Future.wait<dynamic>([
-        PetsService(
-          baseUrl: 'http://localhost:3000',
-        ).listarPets(),
-
-        AgendamentosService(
-          baseUrl: 'http://localhost:3000',
-          token: token,
-        ).listarAgendamentos(),
-
-        _listarVeterinariosSeguro(),
+        PetsService(baseUrl: 'http://localhost:3000').listarPets(),
+        AgendamentosService(baseUrl: 'http://localhost:3000', token: token)
+            .listarAgendamentos(),
+        VeterinariosService(baseUrl: 'http://localhost:3000')
+            .listarVeterinarios(),
       ]);
-
       final petsApi = resultados[0] as List;
       final agendamentosApi = resultados[1] as List;
       final vetsApi = resultados[2] as List;
 
-      // ----------------------------------------------------------
-      // PETS
-      // ----------------------------------------------------------
-
       final pets = <ResumoPet>[];
       final nomesPets = <String, String>{};
-
       for (final item in petsApi) {
         if (item is! Map) continue;
-
         final id = _texto(item['_id'] ?? item['id']);
         final nome = _texto(item['nome'], 'Pet');
-
         if (id.isEmpty) continue;
-
         nomesPets[id] = nome;
-
         final pesoRaw = item['peso'];
-
-        final peso = pesoRaw is num
-            ? pesoRaw.toDouble()
-            : double.tryParse(_texto(pesoRaw));
-
-        pets.add(
-          ResumoPet(
-            id: id,
-            name: nome,
-            species: _texto(item['especie'], 'Não informada'),
-            breed: item['raca']?.toString(),
-            age: item['idade']?.toString(),
-            weight: peso,
-            photoUrl: (item['urlFoto'] ?? item['fotoUrl'])?.toString(),
-          ),
-        );
+        final peso = pesoRaw is num ? pesoRaw.toDouble() : double.tryParse(_texto(pesoRaw));
+        pets.add(ResumoPet(
+          id: id,
+          name: nome,
+          species: _texto(item['especie'], 'Não informada'),
+          breed: item['raca']?.toString(),
+          age: item['idade']?.toString(),
+          weight: peso,
+          photoUrl: (item['urlFoto'] ?? item['fotoUrl'])?.toString(),
+        ));
       }
-
-      // ----------------------------------------------------------
-      // VETERINÁRIOS
-      // ----------------------------------------------------------
 
       final nomesVets = <String, String>{};
-
       for (final item in vetsApi) {
         if (item is! Map) continue;
-
         final id = _texto(item['_id'] ?? item['id']);
-
-        if (id.isNotEmpty) {
-          nomesVets[id] = _texto(item['nome'], 'Veterinário');
-        }
+        if (id.isNotEmpty) nomesVets[id] = _texto(item['nome'], 'Veterinário');
       }
 
-      // ----------------------------------------------------------
-      // CONSULTAS
-      // ----------------------------------------------------------
-
       final consultas = <ResumoConsulta>[];
-
       final futuras = <({DateTime quando, ResumoConsulta consulta})>[];
-
       final agora = DateTime.now();
-
       for (final item in agendamentosApi) {
         if (item is! Map) continue;
-
         final id = _texto(item['_id'] ?? item['id']);
         final dataHora = _lerDataHora(_texto(item['dataHora']));
-
         if (id.isEmpty || dataHora == null) continue;
-
         final statusApi = _texto(item['status'], 'agendada');
         final petId = _texto(item['petId']);
         final vetId = _texto(item['veterinarioId']);
-
         final consulta = ResumoConsulta(
           id: id,
-          type: _tipoLegivel(
-            _texto(item['tipo'], 'consulta_geral'),
-          ),
-          date:
-          '${dataHora.day.toString().padLeft(2, '0')}/'
-              '${dataHora.month.toString().padLeft(2, '0')}/'
-              '${dataHora.year}',
-          time:
-          '${dataHora.hour.toString().padLeft(2, '0')}:'
+          type: _tipoLegivel(_texto(item['tipo'], 'consulta_geral')),
+          date: '${dataHora.day.toString().padLeft(2, '0')}/'
+              '${dataHora.month.toString().padLeft(2, '0')}/${dataHora.year}',
+          time: '${dataHora.hour.toString().padLeft(2, '0')}:'
               '${dataHora.minute.toString().padLeft(2, '0')}',
           vetName: nomesVets[vetId] ?? 'Veterinário',
           petName: nomesPets[petId] ?? 'Pet',
           status: _statusLegivel(statusApi),
         );
-
         consultas.add(consulta);
-
-        final encerrada = {
-          'cancelada',
-          'realizada',
-          'concluida',
-          'concluída',
-        }.contains(statusApi.toLowerCase());
-
+        final encerrada = {'cancelada', 'realizada', 'concluida', 'concluída'}
+            .contains(statusApi.toLowerCase());
         if (!encerrada && !dataHora.isBefore(agora)) {
-          futuras.add((
-          quando: dataHora,
-          consulta: consulta,
-          ));
+          futuras.add((quando: dataHora, consulta: consulta));
         }
       }
-
       futuras.sort((a, b) => a.quando.compareTo(b.quando));
-
       if (!mounted) return;
-
       setState(() {
         _dados = _DadosInicioTutor(
           pets: pets,
           consultas: consultas,
           proxima: futuras.isEmpty ? null : futuras.first.consulta,
         );
-
         _carregando = false;
       });
     } catch (erro) {
       if (!mounted) return;
-
-      setState(() {
-        _carregando = false;
-        _erro = erro.toString();
-      });
+      setState(() { _carregando = false; _erro = erro.toString(); });
     }
   }
-
-  // ============================================================
-  // BUILD DA TELA
-  // ============================================================
 
   @override
   Widget build(BuildContext context) {
     if (_carregando && _dados == null) {
-      return const Scaffold(
-        body: Center(
-          child: CircularProgressIndicator(),
-        ),
-      );
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
-
     if (_erro != null && _dados == null) {
       return Scaffold(
-        body: Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                'Não foi possível carregar a tela inicial.\n$_erro',
-                textAlign: TextAlign.center,
-              ),
-              TextButton(
-                onPressed: _atualizar,
-                child: const Text('Tentar novamente'),
-              ),
-            ],
-          ),
-        ),
+        body: Center(child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text('Não foi possível carregar a tela inicial.\n$_erro', textAlign: TextAlign.center),
+            TextButton(onPressed: _atualizar, child: const Text('Tentar novamente')),
+          ],
+        )),
       );
     }
-
     final dados = _dados!;
-
     return InicioTutor(
       saudacao: 'Olá,',
       nomeTutor: SessaoUsuario.instancia.nomeUsuario ?? 'Tutor',
@@ -423,118 +244,24 @@ class _InicioTutorComDadosReaisState
       proximaConsulta: dados.proxima,
       consultas: dados.consultas,
       banners: const [],
-
       onAgendamentoConfirmado: (_) => _atualizar(),
-
       onReagendamentoConfirmado: (_, __) => _atualizar(),
-
-      onPetCadastrado: _atualizar,
-
       onConfirmarConsulta: (consultaId) async {
-        // Recarrega os dados reais, sem confirmar artificialmente.
+        // Não confirmar artificialmente: recarrega o registro real.
         await _atualizar();
-
-        for (final consulta
-        in _dados?.consultas ?? <ResumoConsulta>[]) {
-          if (consulta.id == consultaId) {
-            return consulta;
-          }
+        for (final consulta in _dados?.consultas ?? <ResumoConsulta>[]) {
+          if (consulta.id == consultaId) return consulta;
         }
-
         throw StateError('Consulta não encontrada no servidor.');
       },
-
       carregarDetalhesPet: (petId) async {
-        throw UnimplementedError(
-          'Detalhes do pet ainda não estão conectados ao backend.',
-        );
+        throw UnimplementedError('Detalhes do pet ainda não estão conectados ao backend.');
       },
-
       onNotificacoes: () {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Notificações ainda não estão disponíveis.',
-            ),
-          ),
+          const SnackBar(content: Text('Notificações ainda não estão disponíveis.')),
         );
       },
-    );
-  }
-}
-
-// ================================================================
-// ACESSO PROVISÓRIO DA EQUIPE CLÍNICA
-// ================================================================
-
-class AcessoProfissionalEmDesenvolvimento extends StatelessWidget {
-  const AcessoProfissionalEmDesenvolvimento({super.key});
-
-  String _nomePerfil(String tipo) {
-    switch (tipo) {
-      case 'VETERINARIO':
-        return 'Veterinário';
-      case 'ENFERMEIRO':
-        return 'Enfermeiro';
-      case 'SECRETARIA':
-        return 'Secretária';
-      default:
-        return 'Profissional';
-    }
-  }
-
-  Future<void> _sair(BuildContext context) async {
-    await SessaoUsuario.instancia.sair();
-
-    if (!context.mounted) return;
-
-    Navigator.of(context).pushNamedAndRemoveUntil(
-      '/inicio-publico',
-          (route) => false,
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final sessao = SessaoUsuario.instancia;
-
-    return Scaffold(
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.medical_services_outlined,
-                size: 64,
-              ),
-              const SizedBox(height: 20),
-              Text(
-                'Olá, ${sessao.nomeUsuario ?? 'Profissional'}!',
-                style: Theme.of(context).textTheme.headlineSmall,
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                'Perfil: ${_nomePerfil(sessao.tipoUsuario)}',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
-              const SizedBox(height: 12),
-              const Text(
-                'Sua conta foi identificada corretamente. '
-                    'A área profissional do PetCare ainda está em desenvolvimento.',
-                textAlign: TextAlign.center,
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: () => _sair(context),
-                child: const Text('Sair da conta'),
-              ),
-            ],
-          ),
-        ),
-      ),
     );
   }
 }

@@ -35,6 +35,7 @@ class ConsultasTutor extends StatefulWidget {
     this.consultaIdParaReagendar,
     this.onAgendamentoConfirmado,
     this.onReagendamentoConfirmado,
+    this.onConsultasAtualizadas,
   });
 
   final List<ResumoConsulta> consultas;
@@ -44,6 +45,7 @@ class ConsultasTutor extends StatefulWidget {
   final String? consultaIdParaReagendar;
   final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
   final ConfirmarReagendamento? onReagendamentoConfirmado;
+  final VoidCallback? onConsultasAtualizadas;
 
   @override
   State<ConsultasTutor> createState() => _ConsultasTutorState();
@@ -84,6 +86,27 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     _mesAtual = DateTime(hoje.year, hoje.month);
 
     _carregarVeterinarios();
+
+    // Quando a tela inicial solicita reagendamento, abrir a lista real
+    // de consultas, sem passar pelo fluxo de criação (POST).
+    if (widget.consultaIdParaReagendar != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _abrirMinhasConsultas();
+      });
+    }
+  }
+
+  void _abrirMinhasConsultas() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => _MinhasConsultasTutor(
+          consultas: widget.consultas,
+          onConsultaTap: widget.onConsultaTap,
+          onConsultasAtualizadas: widget.onConsultasAtualizadas,
+        ),
+      ),
+    );
   }
 
   Future<void> _carregarVeterinarios() async {
@@ -158,6 +181,10 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
   }
 
   void _continuarAgendamento() {
+    if (widget.consultaIdParaReagendar != null) {
+      _abrirMinhasConsultas();
+      return;
+    }
     final data = _dataSelecionada;
     if (data == null) return;
 
@@ -302,16 +329,7 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => _MinhasConsultasTutor(
-                          consultas: widget.consultas,
-                          onConsultaTap: widget.onConsultaTap,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _abrirMinhasConsultas,
                   icon: const Icon(Icons.calendar_month_outlined),
                   label: const Text('Minhas consultas'),
                   style: OutlinedButton.styleFrom(
@@ -956,10 +974,12 @@ class _MinhasConsultasTutor extends StatefulWidget {
   const _MinhasConsultasTutor({
     required this.consultas,
     this.onConsultaTap,
+    this.onConsultasAtualizadas,
   });
 
   final List<ResumoConsulta> consultas;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
+  final VoidCallback? onConsultasAtualizadas;
 
   @override
   State<_MinhasConsultasTutor> createState() =>
@@ -970,6 +990,8 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
   List<ResumoConsulta> _consultas = [];
+  final Map<String, Map<String, dynamic>> _dadosOriginais = {};
+  bool _operando = false;
   bool _carregando = true;
   String? _erro;
 
@@ -1012,6 +1034,126 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     return status[valor.toLowerCase()] ?? valor;
   }
 
+  AgendamentosService _servico() {
+    final token = SessaoUsuario.instancia.token;
+    if (token == null || token.isEmpty) {
+      throw StateError('Faça login novamente.');
+    }
+    return AgendamentosService(baseUrl: 'http://localhost:3000', token: token);
+  }
+
+  void _mensagem(String texto) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(texto)));
+  }
+
+  Future<void> _cancelar(ResumoConsulta consulta) async {
+    if (_operando) return;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar consulta?'),
+        content: Text('Deseja cancelar a consulta de ${consulta.petName} em ${consulta.date} às ${consulta.time}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancelar consulta')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _operando = true);
+    try {
+      await _servico().cancelarAgendamento(consultaId: consulta.id);
+      widget.onConsultasAtualizadas?.call();
+      await _carregarConsultas();
+      _mensagem('Consulta cancelada com sucesso.');
+    } catch (erro) {
+      _mensagem('Não foi possível cancelar: $erro');
+    } finally {
+      if (mounted) setState(() => _operando = false);
+    }
+  }
+
+  Future<void> _reagendar(ResumoConsulta consulta) async {
+    if (_operando) return;
+    final original = _dadosOriginais[consulta.id];
+    final veterinarioId = original?['veterinarioId']?.toString();
+    if (veterinarioId == null || veterinarioId.isEmpty) {
+      _mensagem('Veterinário da consulta não encontrado.');
+      return;
+    }
+    final hoje = DateTime.now();
+    final data = await showDatePicker(
+      context: context,
+      initialDate: hoje,
+      firstDate: DateTime(hoje.year, hoje.month, hoje.day),
+      lastDate: hoje.add(const Duration(days: 365)),
+    );
+    if (data == null || !mounted) return;
+    final duracao = (original?['duracaoMinutos'] as num?)?.toInt() ?? 30;
+    List<String> horarios;
+    try {
+      horarios = await _servico().consultarDisponibilidade(
+        veterinarioId: veterinarioId, data: data, duracaoMinutos: duracao,
+      );
+    } catch (erro) {
+      _mensagem('Erro ao consultar horários: $erro');
+      return;
+    }
+    if (!mounted) return;
+    if (horarios.isEmpty) {
+      _mensagem('Não há horários disponíveis nessa data.');
+      return;
+    }
+    final horario = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Escolha o novo horário'),
+        content: SizedBox(
+          width: 320,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: horarios.length,
+            itemBuilder: (context, index) => ListTile(
+              title: Text(horarios[index]),
+              onTap: () => Navigator.pop(context, horarios[index]),
+            ),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Voltar'))],
+      ),
+    );
+    if (horario == null || !mounted) return;
+    final dataHora = '${data.year}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}T$horario:00';
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar reagendamento?'),
+        content: Text('Nova data: ${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às $horario.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirmar')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _operando = true);
+    try {
+      await _servico().remarcarAgendamento(
+        consultaId: consulta.id, dataHora: dataHora, duracaoMinutos: duracao,
+      );
+      widget.onConsultasAtualizadas?.call();
+      await _carregarConsultas();
+      _mensagem('Consulta reagendada com sucesso!');
+    } catch (erro) {
+      _mensagem('Não foi possível reagendar: $erro');
+    } finally {
+      if (mounted) setState(() => _operando = false);
+    }
+  }
+
   Future<void> _carregarConsultas() async {
     setState(() {
       _carregando = true;
@@ -1019,9 +1161,8 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     });
 
     try {
-      final token = SessaoUsuario.instancia.token ??
-          const String.fromEnvironment('TOKEN_TESTE');
-      if (token.isEmpty) {
+      final token = SessaoUsuario.instancia.token;
+      if (token == null || token.isEmpty) {
         throw StateError('Token não encontrado. Faça login novamente.');
       }
 
@@ -1061,9 +1202,11 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
       }
 
       final lista = <ResumoConsulta>[];
+      final originais = <String, Map<String, dynamic>>{};
       for (final item in agendamentos) {
         if (item is! Map) continue;
         final id = (item['_id'] ?? item['id'] ?? '').toString();
+        originais[id] = Map<String, dynamic>.from(item);
         final petId = (item['petId'] ?? '').toString();
         final veterinarioId = (item['veterinarioId'] ?? '').toString();
         final dataHora = (item['dataHora'] ?? '').toString();
@@ -1097,6 +1240,7 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
       if (!mounted) return;
       setState(() {
         _consultas = lista;
+        _dadosOriginais..clear()..addAll(originais);
         _carregando = false;
       });
     } catch (erro) {
@@ -1181,6 +1325,8 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
                       consultas: proximas,
                       mensagemVazia: 'Você não tem consultas próximas.',
                       onConsultaTap: widget.onConsultaTap,
+                      onCancelar: _operando ? null : _cancelar,
+                      onReagendar: _operando ? null : _reagendar,
                     ),
                     _ListaConsultas(
                       consultas: historico,
@@ -1198,9 +1344,13 @@ class _ListaConsultas extends StatelessWidget {
     required this.consultas,
     required this.mensagemVazia,
     this.onConsultaTap,
+    this.onCancelar,
+    this.onReagendar,
   });
 
   final List<ResumoConsulta> consultas;
+  final ValueChanged<ResumoConsulta>? onCancelar;
+  final ValueChanged<ResumoConsulta>? onReagendar;
   final String mensagemVazia;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
 
@@ -1252,6 +1402,8 @@ class _ListaConsultas extends StatelessWidget {
 
         return _CartaoConsulta(
           consulta: consulta,
+          onCancelar: onCancelar == null ? null : () => onCancelar!(consulta),
+          onReagendar: onReagendar == null ? null : () => onReagendar!(consulta),
           onTap: onConsultaTap == null
               ? null
               : () => onConsultaTap!(consulta),
@@ -1265,10 +1417,14 @@ class _CartaoConsulta extends StatelessWidget {
   const _CartaoConsulta({
     required this.consulta,
     this.onTap,
+    this.onCancelar,
+    this.onReagendar,
   });
 
   final ResumoConsulta consulta;
   final VoidCallback? onTap;
+  final VoidCallback? onCancelar;
+  final VoidCallback? onReagendar;
 
   Color _corStatus() {
     final status = consulta.status.toLowerCase();

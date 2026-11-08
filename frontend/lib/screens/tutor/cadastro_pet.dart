@@ -1,17 +1,9 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
-
-const Color _azulPet = Color(0xFF172A46);
-const Color _turquesaPet = Color(0xFF27B8B0);
-const Color _laranjaPet = Color(0xFFFFA45B);
-const Color _fundoPet = Color(0xFFF5F7FA);
-const Color _bordaPet = Color(0xFFE5EBF1);
-const Color _textoSecundarioPet = Color(0xFF718096);
-const Color _fundoLaranjaPet = Color(0xFFFFF2E5);
 
 class CadastroPetScreen extends StatefulWidget {
   const CadastroPetScreen({super.key});
@@ -70,9 +62,9 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
         return Theme(
           data: Theme.of(context).copyWith(
             colorScheme: const ColorScheme.light(
-              primary: _turquesaPet,
-              onPrimary: Colors.white,
-              onSurface: _azulPet,
+              primary: CoresApp.primary,
+              onPrimary: CoresApp.textOnPrimary,
+              onSurface: CoresApp.textPrimary,
             ),
           ),
           child: child!,
@@ -123,7 +115,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
           content: Text(mensagem),
-          backgroundColor: _azulPet,
+          backgroundColor: CoresApp.darkBlue,
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(14),
@@ -146,32 +138,32 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     return InputDecoration(
       hintText: hintText,
       hintStyle: const TextStyle(
-        color: _textoSecundarioPet,
+        color: CoresApp.textSecondary,
         fontSize: 14,
       ),
       prefixIcon: Icon(
         icon,
-        color: _turquesaPet,
+        color: CoresApp.primary,
         size: 21,
       ),
       filled: true,
-      fillColor: _fundoPet,
+      fillColor: CoresApp.surfaceSoft,
       contentPadding: const EdgeInsets.symmetric(
         horizontal: 16,
         vertical: 17,
       ),
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: _bordaPet),
+        borderSide: const BorderSide(color: CoresApp.divider),
       ),
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
-        borderSide: const BorderSide(color: _bordaPet),
+        borderSide: const BorderSide(color: CoresApp.divider),
       ),
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(15),
         borderSide: const BorderSide(
-          color: _turquesaPet,
+          color: CoresApp.primary,
           width: 1.6,
         ),
       ),
@@ -197,7 +189,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
           Text(
             texto,
             style: const TextStyle(
-              color: _azulPet,
+              color: CoresApp.textPrimary,
               fontSize: 14,
               fontWeight: FontWeight.w800,
             ),
@@ -207,7 +199,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
             const Text(
               '*',
               style: TextStyle(
-                color: _laranjaPet,
+                color: CoresApp.accentOrange,
                 fontWeight: FontWeight.w900,
                 fontSize: 15,
               ),
@@ -242,7 +234,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   errorText: field.errorText,
                   suffixIcon: const Icon(
                     Icons.keyboard_arrow_down_rounded,
-                    color: _textoSecundarioPet,
+                    color: CoresApp.textSecondary,
                   ),
                 ),
                 child: Text(
@@ -251,8 +243,8 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                       : _dataExibicao(_dataNascimento!),
                   style: TextStyle(
                     color: _dataNascimento == null
-                        ? _textoSecundarioPet
-                        : _azulPet,
+                        ? CoresApp.textSecondary
+                        : CoresApp.textPrimary,
                     fontSize: 14,
                   ),
                 ),
@@ -270,7 +262,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
       isExpanded: true,
       icon: const Icon(
         Icons.keyboard_arrow_down_rounded,
-        color: _textoSecundarioPet,
+        color: CoresApp.textSecondary,
       ),
       decoration: _decoracaoCampo(
         hintText: 'Selecione a espécie',
@@ -317,7 +309,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
       isExpanded: true,
       icon: const Icon(
         Icons.keyboard_arrow_down_rounded,
-        color: _textoSecundarioPet,
+        color: CoresApp.textSecondary,
       ),
       decoration: _decoracaoCampo(
         hintText: 'Selecione o sexo',
@@ -354,12 +346,12 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: CoresApp.surface,
         borderRadius: BorderRadius.circular(22),
-        border: Border.all(color: _bordaPet),
+        border: Border.all(color: CoresApp.divider),
         boxShadow: [
           BoxShadow(
-            color: _azulPet.withAlpha(8),
+            color: CoresApp.darkBlue.withAlpha(8),
             blurRadius: 18,
             offset: const Offset(0, 5),
           ),
@@ -372,10 +364,10 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: _fundoPet,
+      backgroundColor: CoresApp.background,
       appBar: AppBar(
-        backgroundColor: _fundoPet,
-        foregroundColor: _azulPet,
+        backgroundColor: CoresApp.background,
+        foregroundColor: CoresApp.textPrimary,
         elevation: 0,
         scrolledUnderElevation: 0,
         leading: IconButton(
@@ -386,7 +378,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
         title: const Text(
           'Adicionar pet',
           style: TextStyle(
-            color: _azulPet,
+            color: CoresApp.textPrimary,
             fontSize: 19,
             fontWeight: FontWeight.w800,
           ),
@@ -408,7 +400,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
               const Text(
                 'Informações do pet',
                 style: TextStyle(
-                  color: _azulPet,
+                  color: CoresApp.textPrimary,
                   fontSize: 22,
                   fontWeight: FontWeight.w800,
                 ),
@@ -417,7 +409,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
               const Text(
                 'Preencha os dados básicos do seu companheiro.',
                 style: TextStyle(
-                  color: _textoSecundarioPet,
+                  color: CoresApp.textSecondary,
                   fontSize: 13,
                   height: 1.5,
                 ),
@@ -484,10 +476,10 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
               Container(
                 padding: const EdgeInsets.all(15),
                 decoration: BoxDecoration(
-                  color: _fundoLaranjaPet,
+                  color: CoresApp.surfaceSoft,
                   borderRadius: BorderRadius.circular(17),
                   border: Border.all(
-                    color: _laranjaPet.withAlpha(65),
+                    color: CoresApp.accentOrange.withAlpha(65),
                   ),
                 ),
                 child: const Row(
@@ -495,7 +487,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   children: [
                     Icon(
                       Icons.lightbulb_outline_rounded,
-                      color: Color(0xFFAD6928),
+                      color: CoresApp.accentOrangeDark,
                       size: 22,
                     ),
                     SizedBox(width: 11),
@@ -506,7 +498,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                           Text(
                             'Você pode completar a ficha depois',
                             style: TextStyle(
-                              color: Color(0xFF87541F),
+                              color: CoresApp.accentOrangeDark,
                               fontSize: 13,
                               fontWeight: FontWeight.w800,
                             ),
@@ -515,7 +507,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                           Text(
                             'Informações como peso e microchip podem ser adicionadas posteriormente.',
                             style: TextStyle(
-                              color: Color(0xFF87541F),
+                              color: CoresApp.accentOrangeDark,
                               fontSize: 12,
                               height: 1.5,
                             ),
@@ -532,9 +524,10 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                 child: ElevatedButton(
                   onPressed: _salvando ? null : _cadastrarPet,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: _turquesaPet,
-                    foregroundColor: Colors.white,
-                    disabledBackgroundColor: _turquesaPet.withAlpha(120),
+                    backgroundColor: CoresApp.primary,
+                    foregroundColor: CoresApp.textOnPrimary,
+                    disabledBackgroundColor:
+                    CoresApp.primary.withAlpha(120),
                     elevation: 0,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(17),
@@ -546,7 +539,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                     height: 23,
                     child: CircularProgressIndicator(
                       strokeWidth: 2.5,
-                      color: Colors.white,
+                      color: CoresApp.textOnPrimary,
                     ),
                   )
                       : const Row(
@@ -573,7 +566,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                 children: [
                   Icon(
                     Icons.lock_outline_rounded,
-                    color: _textoSecundarioPet,
+                    color: CoresApp.textSecondary,
                     size: 14,
                   ),
                   SizedBox(width: 6),
@@ -582,7 +575,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                       'Seus dados são utilizados para organizar os cuidados.',
                       textAlign: TextAlign.center,
                       style: TextStyle(
-                        color: _textoSecundarioPet,
+                        color: CoresApp.textSecondary,
                         fontSize: 11,
                         height: 1.4,
                       ),
@@ -604,8 +597,8 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
       decoration: BoxDecoration(
         gradient: const LinearGradient(
           colors: [
-            _azulPet,
-            Color(0xFF234367),
+            CoresApp.darkBlue,
+            CoresApp.primaryDark,
           ],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -613,7 +606,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
         borderRadius: BorderRadius.circular(24),
         boxShadow: [
           BoxShadow(
-            color: _azulPet.withAlpha(30),
+            color: CoresApp.darkBlue.withAlpha(30),
             blurRadius: 20,
             offset: const Offset(0, 8),
           ),
@@ -626,15 +619,15 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
             width: 59,
             height: 59,
             decoration: BoxDecoration(
-              color: Colors.white.withAlpha(18),
+              color: CoresApp.surface.withAlpha(18),
               borderRadius: BorderRadius.circular(18),
               border: Border.all(
-                color: Colors.white.withAlpha(25),
+                color: CoresApp.surface.withAlpha(25),
               ),
             ),
             child: const Icon(
               Icons.pets_rounded,
-              color: _laranjaPet,
+              color: CoresApp.accentOrange,
               size: 32,
             ),
           ),
@@ -646,7 +639,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                 Text(
                   'Vamos conhecer seu pet!',
                   style: TextStyle(
-                    color: Colors.white,
+                    color: CoresApp.textOnDarkBlue,
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
                   ),

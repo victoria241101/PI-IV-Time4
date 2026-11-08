@@ -1,4 +1,3 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -139,8 +138,8 @@ class ConfirmacaoDoacao extends StatelessWidget {
                       const SizedBox(height: EspacamentosApp.sm),
 
                       const Text(
-                        'Você percorreu todas as etapas do fluxo '
-                            'demonstrativo de doação do PetCare.',
+                        'Sua doação demonstrativa foi registrada e confirmada '
+                            'no sistema do PetCare.',
                         textAlign: TextAlign.center,
                         style: TextStyle(
                           fontSize: 14,
@@ -301,8 +300,8 @@ class ConfirmacaoDoacao extends StatelessWidget {
                                   Text(
                                     'Nenhum pagamento real foi processado '
                                         'e nenhuma cobrança foi realizada. '
-                                        'O valor acima representa apenas o '
-                                        'valor informado durante o teste.',
+                                        'O valor acima foi registrado na campanha '
+                                        'apenas para fins de demonstração.',
                                     style: TextStyle(
                                       fontSize: 12,
                                       height: 1.55,
