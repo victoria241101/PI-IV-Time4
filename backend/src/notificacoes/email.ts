@@ -1,10 +1,10 @@
 import nodemailer from "nodemailer";
-
+import type { Transporter } from "nodemailer";
 /**
  * Interface com os recursos de envio configurados para o serviço de e-mail.
  */
 export interface ConfiguracaoEmail {
-    transporte: nodemailer.Transporter;
+    transporte: Transporter;
     remetente: string;
 }
 

@@ -517,7 +517,133 @@ router.patch("/perfil", autenticar, async (req, res) => {
         });
     }
 });
-);
+
+// Confirmação de alteração de nome e/ou e-mail.
+router.post("/confirmar-alteracao", async (req, res) => {
+    try {
+        const { token } = req.body ?? {};
+
+        if (
+            typeof token !== "string" ||
+            !/^[a-f0-9]{64}$/.test(token)
+        ) {
+            return res.status(400).json({
+                mensagem: "Token inválido."
+            });
+        }
+
+        const banco = obterBanco();
+        const pendentes = banco.collection("alteracoesPendentes");
+        const usuarios = banco.collection("usuarios");
+
+        const tokenHash = hashToken(token);
+
+        // Localiza uma solicitação ainda válida.
+        const solicitacao = await pendentes.findOne({
+            tokenHash,
+            expiraEm: { $gt: new Date() }
+        });
+
+        if (
+            !solicitacao ||
+            !(solicitacao.usuarioId instanceof ObjectId)
+        ) {
+            return res.status(400).json({
+                mensagem: "Link inválido ou expirado."
+            });
+        }
+
+        const usuarioId = solicitacao.usuarioId;
+        const alteracoes = solicitacao.alteracoes as {
+            nome?: string;
+            email?: string;
+        };
+
+        // Confere novamente se o e-mail continua disponível.
+        if (alteracoes.email) {
+            const emailExistente = await usuarios.findOne({
+                email: alteracoes.email,
+                _id: { $ne: usuarioId }
+            });
+
+            if (emailExistente) {
+                return res.status(409).json({
+                    mensagem: "Este e-mail já está cadastrado."
+                });
+            }
+        }
+
+        // Consome o token de forma atômica para impedir reutilização.
+        const consumido = await pendentes.findOneAndDelete({
+            _id: solicitacao._id,
+            tokenHash,
+            expiraEm: { $gt: new Date() }
+        });
+
+        if (!consumido) {
+            return res.status(400).json({
+                mensagem: "Link inválido, expirado ou já utilizado."
+            });
+        }
+
+        // Prepara somente os campos permitidos para atualização.
+        const camposAtualizados: {
+            nome?: string;
+            email?: string;
+        } = {};
+
+        if (typeof alteracoes.nome === "string") {
+            camposAtualizados.nome = alteracoes.nome;
+        }
+
+        if (typeof alteracoes.email === "string") {
+            camposAtualizados.email = alteracoes.email;
+        }
+
+        if (Object.keys(camposAtualizados).length === 0) {
+            return res.status(400).json({
+                mensagem: "Nenhuma alteração válida foi encontrada."
+            });
+        }
+
+        const resultado = await usuarios.updateOne(
+            { _id: usuarioId, ativo: true },
+            { $set: camposAtualizados }
+        );
+
+        if (resultado.matchedCount !== 1) {
+            return res.status(404).json({
+                mensagem: "Usuário ativo não encontrado."
+            });
+        }
+
+        // Atualiza também o nome de registros legados de tutores.
+        if (camposAtualizados.nome) {
+            await banco.collection("tutores").updateMany(
+                { usuarioId },
+                { $set: { nome: camposAtualizados.nome } }
+            );
+        }
+
+        return res.status(200).json({
+            mensagem: "Perfil atualizado com sucesso!"
+        });
+
+    } catch (erro) {
+        if (erro instanceof MongoServerError && erro.code === 11000) {
+            return res.status(409).json({
+                mensagem: "Este e-mail já está cadastrado."
+            });
+        }
+
+        console.error("Erro ao confirmar alteração de perfil:", erro);
+
+        return res.status(500).json({
+            mensagem: "Não foi possível confirmar a alteração do perfil."
+        });
+    }
+});
+
 
 // Alteração de senha para quem ainda sabe a senha atual.
 router.patch("/alterar-senha", autenticar, async (req, res) => {
