@@ -76,8 +76,6 @@ class _LoginScreenState extends State<LoginScreen> {
 
 
   Future<void> _entrar() async {
-    if (_carregando) return;
-
     if (!_formKey.currentState!.validate()) return;
 
     setState(() {
@@ -95,16 +93,16 @@ class _LoginScreenState extends State<LoginScreen> {
       final destino = widget.destinoAposLogin;
 
       if (destino != null) {
-        Navigator.pushAndRemoveUntil(
+        Navigator.pushReplacement(
           context,
           MaterialPageRoute(
             builder: (_) => destino(),
           ),
-              (route) => false,
         );
         return;
       }
 
+      // Redireciona conforme o perfil autenticado.
       Navigator.pushNamedAndRemoveUntil(
         context,
         '/inicio-autenticado',
@@ -112,10 +110,6 @@ class _LoginScreenState extends State<LoginScreen> {
       );
     } catch (erro) {
       if (!mounted) return;
-
-      setState(() {
-        _carregando = false;
-      });
 
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
@@ -125,6 +119,12 @@ class _LoginScreenState extends State<LoginScreen> {
           behavior: SnackBarBehavior.floating,
         ),
       );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _carregando = false;
+        });
+      }
     }
   }
 

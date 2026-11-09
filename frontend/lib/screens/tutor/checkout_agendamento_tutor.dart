@@ -19,15 +19,21 @@ class CheckoutAgendamentoTutor extends StatelessWidget {
           '${dados.data.month.toString().padLeft(2, '0')}/'
           '${dados.data.year}';
 
-  void _irParaConfirmacao(BuildContext context) {
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
+  Future<void> _irParaConfirmacao(BuildContext context) async {
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => ConfirmacaoAgendamentoTutor(
           dados: dados,
           onConfirmar: onConfirmar,
         ),
       ),
     );
+
+    if (!context.mounted) return;
+
+    if (resultado == true) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override

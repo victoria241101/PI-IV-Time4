@@ -102,12 +102,14 @@ class _ConfirmacaoAgendamentoTutorState
       }
 
       if (!mounted) return;
+
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Agendamento salvo com sucesso!')),
+        const SnackBar(
+          content: Text('Agendamento salvo com sucesso!'),
+        ),
       );
-      // Volta para a primeira tela do fluxo sem remover rotas às cegas.
-      // O callback acima pode ter alterado a pilha de navegação.
-      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      Navigator.of(context).pop(true);
     } catch (erro) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(

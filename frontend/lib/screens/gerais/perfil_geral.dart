@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-
+import 'package:pet_care/screens/autenticacao/service/perfil_service.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 
 class PerfilGeral extends StatefulWidget {
@@ -20,24 +20,352 @@ class _PerfilGeralState extends State<PerfilGeral> {
   // AÇÕES DO PERFIL
   // =====================================================
 
-  void _editarPerfil() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'A edição do perfil será implementada em seguida.',
+  void _mensagem(String mensagem) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(mensagem),
+          behavior: SnackBarBehavior.floating,
         ),
-      ),
-    );
+      );
   }
 
-  void _alterarSenha() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'A alteração de senha será implementada em seguida.',
-        ),
-      ),
+  Future<void> _editarPerfil() async {
+    final formKey = GlobalKey<FormState>();
+
+    final nomeController = TextEditingController(
+      text: SessaoUsuario.instancia.nomeUsuario ?? '',
     );
+
+    final emailController = TextEditingController(
+      text: SessaoUsuario.instancia.emailUsuario ?? '',
+    );
+
+    try {
+      final resultado = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          bool salvando = false;
+
+          return StatefulBuilder(
+            builder: (contextDialogo, atualizarDialogo) {
+              return AlertDialog(
+                backgroundColor: CoresApp.surface,
+                title: const Text('Editar perfil'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: nomeController,
+                          enabled: !salvando,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome completo',
+                            prefixIcon: Icon(Icons.person_outline),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.trim().length < 2) {
+                              return 'Informe seu nome completo.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: emailController,
+                          enabled: !salvando,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail',
+                            prefixIcon: Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            final email = valor?.trim() ?? '';
+                            if (!RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(email)) {
+                              return 'Informe um e-mail válido.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: salvando
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: salvando
+                        ? null
+                        : () async {
+                      if (!formKey.currentState!.validate()) return;
+
+                      atualizarDialogo(() => salvando = true);
+
+                      try {
+                        await SessaoUsuario.instancia.atualizarPerfil(
+                          nome: nomeController.text,
+                          email: emailController.text,
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop(true);
+                      } catch (erro) {
+                        if (!dialogContext.mounted) return;
+
+                        atualizarDialogo(() => salvando = false);
+
+                        ScaffoldMessenger.of(dialogContext)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Não foi possível solicitar a alteração: $erro',
+                              ),
+                            ),
+                          );
+                      }
+                    },
+                    child: salvando
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                        : const Text('Solicitar alteração'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (resultado == true && mounted) {
+        _mensagem(
+          'Solicitação enviada! Verifique seu e-mail para confirmar as alterações.',
+        );
+      }
+    } finally {
+      nomeController.dispose();
+      emailController.dispose();
+    }
+  }
+
+  Future<void> _alterarSenha() async {
+    final formKey = GlobalKey<FormState>();
+
+    final senhaAtualController = TextEditingController();
+    final novaSenhaController = TextEditingController();
+    final confirmarSenhaController = TextEditingController();
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          bool salvando = false;
+          bool mostrarSenhaAtual = false;
+          bool mostrarNovaSenha = false;
+          bool mostrarConfirmacao = false;
+
+          return StatefulBuilder(
+            builder: (contextDialogo, atualizarDialogo) {
+              return AlertDialog(
+                backgroundColor: CoresApp.surface,
+                title: const Text('Alterar senha'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: senhaAtualController,
+                          enabled: !salvando,
+                          obscureText: !mostrarSenhaAtual,
+                          decoration: InputDecoration(
+                            labelText: 'Senha atual',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(
+                                      () => mostrarSenhaAtual = !mostrarSenhaAtual,
+                                );
+                              },
+                              icon: Icon(
+                                mostrarSenhaAtual
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
+                              return 'Informe sua senha atual.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: novaSenhaController,
+                          enabled: !salvando,
+                          obscureText: !mostrarNovaSenha,
+                          decoration: InputDecoration(
+                            labelText: 'Nova senha',
+                            prefixIcon: const Icon(Icons.lock_reset),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(
+                                      () => mostrarNovaSenha = !mostrarNovaSenha,
+                                );
+                              },
+                              icon: Icon(
+                                mostrarNovaSenha
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
+                              return 'Informe a nova senha.';
+                            }
+                            if (valor.length < 8) {
+                              return 'Use pelo menos 8 caracteres.';
+                            }
+                            if (valor == senhaAtualController.text) {
+                              return 'Escolha uma senha diferente.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: confirmarSenhaController,
+                          enabled: !salvando,
+                          obscureText: !mostrarConfirmacao,
+                          decoration: InputDecoration(
+                            labelText: 'Confirmar nova senha',
+                            prefixIcon: const Icon(Icons.verified_user_outlined),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(
+                                      () => mostrarConfirmacao = !mostrarConfirmacao,
+                                );
+                              },
+                              icon: Icon(
+                                mostrarConfirmacao
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor != novaSenhaController.text) {
+                              return 'As senhas não coincidem.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Você receberá um e-mail para confirmar a alteração. '
+                              'Sua senha atual continuará válida até a confirmação.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: CoresApp.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: salvando
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: salvando
+                        ? null
+                        : () async {
+                      if (!formKey.currentState!.validate()) return;
+
+                      atualizarDialogo(() => salvando = true);
+
+                      try {
+                        final servico = PerfilService.autenticado(
+                          baseUrl: 'http://localhost:3000',
+                        );
+
+                        await servico.alterarSenha(
+                          senhaAtual: senhaAtualController.text,
+                          novaSenha: novaSenhaController.text,
+                          confirmarSenha: confirmarSenhaController.text,
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop();
+
+                        _mensagem(
+                          'Solicitação enviada! Verifique seu e-mail '
+                              'para confirmar a nova senha.',
+                        );
+                      } catch (erro) {
+                        if (!dialogContext.mounted) return;
+
+                        atualizarDialogo(() => salvando = false);
+
+                        ScaffoldMessenger.of(dialogContext)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Não foi possível solicitar a alteração: $erro',
+                              ),
+                            ),
+                          );
+                      }
+                    },
+                    child: salvando
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                        : const Text('Solicitar alteração'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      senhaAtualController.dispose();
+      novaSenhaController.dispose();
+      confirmarSenhaController.dispose();
+    }
   }
 
   Future<void> _sair() async {

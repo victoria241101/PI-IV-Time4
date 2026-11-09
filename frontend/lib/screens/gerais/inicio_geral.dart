@@ -9,9 +9,15 @@ import 'package:pet_care/screens/gerais/perfil_geral.dart';
 import 'package:pet_care/screens/tutor/cadastro_pet.dart';
 import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
+import 'package:pet_care/screens/tutor/inicio_tutor.dart';
 
 class InicioGeral extends StatefulWidget {
-  const InicioGeral({super.key});
+  const InicioGeral({
+    super.key,
+    this.construirInicioTutor,
+  });
+
+  final WidgetBuilder? construirInicioTutor;
 
   @override
   State<InicioGeral> createState() => _InicioGeralState();
@@ -393,11 +399,16 @@ class _InicioGeralState extends State<InicioGeral> {
 
     if (!mounted || cadastrado != true) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Pet cadastrado com sucesso!'),
-        behavior: SnackBarBehavior.floating,
+    final construirTutor = widget.construirInicioTutor;
+
+    if (construirTutor == null) return;
+
+    Navigator.pushAndRemoveUntil(
+      context,
+      MaterialPageRoute(
+        builder: construirTutor,
       ),
+          (route) => false,
     );
   }
 

@@ -295,7 +295,7 @@ class _DetalhesAgendamentoTutorState
     }
   }
 
-  void _continuar() {
+  Future<void> _continuar() async {
     if (_carregandoPets || _carregandoVeterinarios || _carregandoHorarios) {
       return;
     }
@@ -343,8 +343,8 @@ class _DetalhesAgendamentoTutorState
       urgente: _urgente,
     );
 
-    Navigator.of(context).push(
-      MaterialPageRoute(
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => CheckoutAgendamentoTutor(
           dados: dados,
           onConfirmar: (dadosConfirmados) {
@@ -353,6 +353,12 @@ class _DetalhesAgendamentoTutorState
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    if (resultado == true) {
+      Navigator.of(context).pop(true);
+    }
   }
 
   @override

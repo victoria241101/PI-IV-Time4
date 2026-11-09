@@ -1,9 +1,9 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/screens/autenticacao/service//perfil_service.dart';
 
 class PerfilTutor extends StatefulWidget {
   const PerfilTutor({super.key});
@@ -186,7 +186,9 @@ class _PerfilTutorState extends State<PerfilTutor> {
       );
 
       if (resultado == true && mounted) {
-        _mensagem('Perfil atualizado com sucesso.');
+        _mensagem(
+          'Solicitação enviada! Verifique seu e-mail para confirmar as alterações.',
+        );
       }
     } finally {
       nomeController.dispose();
@@ -338,8 +340,8 @@ class _PerfilTutorState extends State<PerfilTutor> {
                         ),
                         const SizedBox(height: 12),
                         const Text(
-                          'A alteração efetiva depende da integração '
-                              'com o serviço de autenticação.',
+                          'Você receberá um e-mail para confirmar a alteração. '
+                              'Sua senha atual continuará válida até a confirmação.',
                           style: TextStyle(
                             fontSize: 12,
                             color: CoresApp.textSecondary,
@@ -357,20 +359,50 @@ class _PerfilTutorState extends State<PerfilTutor> {
                     child: const Text('Fechar'),
                   ),
                   FilledButton(
-                    onPressed: () {
+                    onPressed: () async {
                       if (!formKey.currentState!.validate()) {
                         return;
                       }
 
-                      Navigator.of(dialogContext).pop();
+                      atualizarDialogo(() {
+                        _salvandoPerfil = true;
+                      });
 
-                      _mensagem(
-                        'Formulário validado. A senha não foi '
-                            'alterada porque o serviço de autenticação '
-                            'ainda não está conectado.',
-                      );
+                      try {
+                        final servico = PerfilService.autenticado(
+                          baseUrl: 'http://localhost:3000',
+                        );
+
+                        await servico.alterarSenha(
+                          senhaAtual: senhaAtualController.text,
+                          novaSenha: novaSenhaController.text,
+                          confirmarSenha: confirmarSenhaController.text,
+                        );
+
+                        if (!dialogContext.mounted) return;
+
+                        Navigator.of(dialogContext).pop();
+
+                        _mensagem(
+                          'Solicitação enviada! Verifique seu e-mail para confirmar a nova senha.',
+                        );
+                      } catch (erro) {
+                        if (!dialogContext.mounted) return;
+
+                        atualizarDialogo(() {
+                          _salvandoPerfil = false;
+                        });
+
+                        ScaffoldMessenger.of(dialogContext)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text('Não foi possível solicitar a alteração: $erro'),
+                            ),
+                          );
+                      }
                     },
-                    child: const Text('Validar'),
+                    child: const Text('Solicitar alteração'),
                   ),
                 ],
               );

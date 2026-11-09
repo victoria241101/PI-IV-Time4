@@ -71,16 +71,30 @@ class AuthService {
 
       final nome = usuario['nome']?.toString();
       final emailUsuario = usuario['email']?.toString();
+      final tipoUsuario = usuario['tipo']?.toString().toUpperCase();
 
-      if (nome == null || emailUsuario == null) {
+      if (nome == null || emailUsuario == null || tipoUsuario == null) {
         throw Exception('Os dados do perfil estão incompletos.');
+      }
+
+      const tiposPermitidos = {
+        'USUARIO',
+        'VETERINARIO',
+        'ENFERMEIRO',
+        'SECRETARIA',
+      };
+
+      if (!tiposPermitidos.contains(tipoUsuario)) {
+        throw Exception('Tipo de usuário não reconhecido: $tipoUsuario');
       }
 
       await _sessao.entrar(
         nome: nome,
         email: emailUsuario,
         token: token.toString(),
-        ehTutor: dadosPerfil['ehTutor'] == true,
+        tipoUsuario: tipoUsuario,
+        ehTutor: tipoUsuario == 'USUARIO' &&
+            dadosPerfil['ehTutor'] == true,
       );
     } on http.ClientException catch (e) {
       debugPrint('ERRO DE CONEXÃO: ${e.message}');
@@ -133,6 +147,59 @@ class AuthService {
       throw Exception('Falha na comunicação com o servidor.');
     } on FormatException catch (e) {
       debugPrint('ERRO DE FORMATO NO CADASTRO: $e');
+      throw Exception('O servidor retornou uma resposta inválida.');
+    } on TimeoutException {
+      throw Exception('O servidor demorou demais para responder.');
+    }
+  }
+
+  // =====================================================
+  // CADASTRAR PET
+  // =====================================================
+
+  Future<void> cadastrarPet({
+    required String nome,
+    required String especie,
+    required String raca,
+    required String sexo,
+    required String dataNascimento,
+  }) async {
+    try {
+      final token = _sessao.token;
+
+      if (token == null || token.isEmpty) {
+        throw Exception('Sua sessão expirou. Faça login novamente.');
+      }
+
+      final resposta = await http
+          .post(
+        Uri.parse('$_baseUrl/pets'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'nome': nome.trim(),
+          'especie': especie.trim(),
+          'raca': raca.trim(),
+          'sexo': sexo.trim(),
+          'dataNascimento': dataNascimento,
+        }),
+      )
+          .timeout(const Duration(seconds: 20));
+
+      final dados = _decodificarResposta(resposta);
+
+      if (resposta.statusCode != 201) {
+        throw Exception(
+          dados['mensagem'] ?? 'Não foi possível cadastrar o pet.',
+        );
+      }
+    } on http.ClientException catch (e) {
+      debugPrint('ERRO DE CONEXÃO AO CADASTRAR PET: ${e.message}');
+      throw Exception('Falha na comunicação com o servidor.');
+    } on FormatException catch (e) {
+      debugPrint('ERRO DE FORMATO AO CADASTRAR PET: $e');
       throw Exception('O servidor retornou uma resposta inválida.');
     } on TimeoutException {
       throw Exception('O servidor demorou demais para responder.');
