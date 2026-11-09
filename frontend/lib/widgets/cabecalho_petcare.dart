@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/widgets/sino_notificacoes.dart';
 
 class CabecalhoPetCare extends StatelessWidget {
   const CabecalhoPetCare({
@@ -104,18 +105,11 @@ class CabecalhoPetCare extends StatelessWidget {
             if (onNotificationTap != null)
               Positioned(
                 right: 0,
-                child: Semantics(
-                  label: 'Notificações',
-                  button: true,
-                  child: IconButton(
-                    onPressed: onNotificationTap,
-                    tooltip: 'Notificações',
-                    icon: const Icon(
-                      Icons.notifications_none_rounded,
-                    ),
-                    color: CoresApp.darkBlue,
-                    iconSize: 25,
-                  ),
+                child: SinoNotificacoes(
+                  onPressed: onNotificationTap,
+                  cor: CoresApp.darkBlue,
+                  tamanhoIcone: 25,
+                  icone: Icons.notifications_none_rounded,
                 ),
               ),
             if (onLoginTap != null)
