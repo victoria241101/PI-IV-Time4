@@ -3,19 +3,11 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/api_exception.dart';
 import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/modelos/notificacao_modelo.dart';
 
-/// Exceção padronizada para erros de comunicação com a API do PetCare.
-class ApiException implements Exception {
-  final int statusCode;
-  final String mensagem;
-
-  const ApiException(this.statusCode, this.mensagem);
-
-  @override
-  String toString() => 'ApiException($statusCode): $mensagem';
-}
+export 'package:pet_care/core/api_exception.dart';
 
 /// Estrutura de retorno para a listagem paginada de notificações.
 class ResultadoNotificacoes {
