@@ -355,61 +355,298 @@ router.get("/perfil", autenticar, async (_req, res) => {
     }
 });
 
-// Edição de nome
+
+
+// Solicitação de alteração de nome e/ou e-mail.
 router.patch("/perfil", autenticar, async (req, res) => {
     try {
         const { nome, email, cpf, tipo, ativo, senhaHash } = req.body ?? {};
 
+        // Impede alterações em campos que não fazem parte desta operação.
         if (
-            email !== undefined || cpf !== undefined ||
-            tipo !== undefined || ativo !== undefined ||
+            cpf !== undefined ||
+            tipo !== undefined ||
+            ativo !== undefined ||
             senhaHash !== undefined
         ) {
             return res.status(400).json({
-                mensagem: "Nesta rota, somente o nome pode ser alterado."
+                mensagem: "Somente nome e e-mail podem ser alterados."
             });
         }
 
-        if (
-            typeof nome !== "string" ||
-            !nome.trim() ||
-            !NOME_REGEX.test(nome.trim())
-        ) {
+        if (nome === undefined && email === undefined) {
             return res.status(400).json({
-                mensagem: "Informe um nome válido."
+                mensagem: "Informe pelo menos uma alteração."
             });
         }
 
-        const usuarioId = new ObjectId(res.locals.usuarioId);
-        const banco = obterBanco();
-        const resultado = await banco.collection("usuarios").updateOne(
-            { _id: usuarioId, ativo: true },
-            { $set: { nome: nome.trim() } }
-        );
+        const alteracoes: { nome?: string; email?: string } = {};
 
-        if (resultado.matchedCount === 0) {
+        if (nome !== undefined) {
+            if (
+                typeof nome !== "string" ||
+                !nome.trim() ||
+                !NOME_REGEX.test(nome.trim())
+            ) {
+                return res.status(400).json({
+                    mensagem: "Informe um nome válido."
+                });
+            }
+
+            alteracoes.nome = nome.trim();
+        }
+
+        if (email !== undefined) {
+            if (typeof email !== "string") {
+                return res.status(400).json({
+                    mensagem: "Informe um e-mail válido."
+                });
+            }
+
+            const emailNormalizado = normalizarEmail(email);
+
+            if (!EMAIL_REGEX.test(emailNormalizado)) {
+                return res.status(400).json({
+                    mensagem: "Informe um e-mail válido."
+                });
+            }
+
+            alteracoes.email = emailNormalizado;
+        }
+
+        const banco = obterBanco();
+        const usuarios = banco.collection("usuarios");
+        const usuarioId = new ObjectId(res.locals.usuarioId);
+
+        const usuario = await usuarios.findOne({
+            _id: usuarioId,
+            ativo: true
+        });
+
+        if (!usuario) {
             return res.status(404).json({
                 mensagem: "Usuário ativo não encontrado."
             });
         }
 
-        // Registros legados de tutores podem possuir nome próprio.
-        await banco.collection("tutores").updateMany(
-            { usuarioId },
-            { $set: { nome: nome.trim() } }
+        // Evita solicitar um e-mail que já pertence a outra conta.
+        if (alteracoes.email) {
+            const emailExistente = await usuarios.findOne({
+                email: alteracoes.email,
+                _id: { $ne: usuarioId }
+            });
+
+            if (emailExistente) {
+                return res.status(409).json({
+                    mensagem: "Este e-mail já está cadastrado."
+                });
+            }
+
+            if (alteracoes.email === usuario.email) {
+                delete alteracoes.email;
+            }
+        }
+
+        if (
+            alteracoes.nome === usuario.nome &&
+            alteracoes.email === undefined
+        ) {
+            return res.status(400).json({
+                mensagem: "Nenhuma alteração foi identificada."
+            });
+        }
+
+        // Gera um token temporário para confirmação.
+        const token = randomBytes(32).toString("hex");
+        const tokenHash = hashToken(token);
+        const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
+
+        const pendentes = banco.collection("alteracoesPendentes");
+
+        // Uma nova solicitação invalida a anterior.
+        await pendentes.deleteMany({ usuarioId, tipo: "PERFIL" });
+
+        await pendentes.insertOne({
+            usuarioId,
+            tipo: "PERFIL",
+            tokenHash,
+            alteracoes,
+            expiraEm,
+            criadoEm: new Date()
+        });
+
+        const urlBase = process.env.FRONTEND_URL;
+
+        if (!urlBase || !/^https?:\/\//.test(urlBase)) {
+            await pendentes.deleteOne({ tokenHash });
+
+            return res.status(503).json({
+                mensagem: "Serviço de confirmação indisponível."
+            });
+        }
+
+        const link = new URL("/confirmar-alteracao", urlBase);
+        link.searchParams.set("token", token);
+
+        try {
+            const { transporte, remetente } = configurarEmail();
+
+            await transporte.sendMail({
+                from: remetente,
+                to: usuario.email,
+                subject: "PetCare - Confirmação de alteração do perfil",
+                text:
+                    "Recebemos uma solicitação de alteração no seu perfil.\n\n" +
+                    `Acesse o link para confirmar: ${link.toString()}\n\n` +
+                    "O link expira em 15 minutos e só pode ser usado uma vez.\n" +
+                    "Se você não solicitou essa alteração, ignore esta mensagem."
+            });
+        } catch (erro) {
+            await pendentes.deleteOne({ tokenHash });
+            throw erro;
+        }
+
+        return res.status(200).json({
+            mensagem: "Enviamos um link de confirmação para seu e-mail cadastrado."
+        });
+
+    } catch (erro) {
+        console.error("Erro ao solicitar alteração de perfil:", erro);
+
+        return res.status(503).json({
+            mensagem: "Não foi possível solicitar a alteração do perfil."
+        });
+    }
+});
+
+// Confirmação de alteração de nome e/ou e-mail.
+router.post("/confirmar-alteracao", async (req, res) => {
+    try {
+        const { token } = req.body ?? {};
+
+        if (
+            typeof token !== "string" ||
+            !/^[a-f0-9]{64}$/.test(token)
+        ) {
+            return res.status(400).json({
+                mensagem: "Token inválido."
+            });
+        }
+
+        const banco = obterBanco();
+        const pendentes = banco.collection("alteracoesPendentes");
+        const usuarios = banco.collection("usuarios");
+
+        const tokenHash = hashToken(token);
+
+        // Localiza uma solicitação ainda válida.
+        const solicitacao = await pendentes.findOne({
+            tokenHash,
+            tipo: "PERFIL",
+            expiraEm: { $gt: new Date() }
+        });
+
+        if (
+            !solicitacao ||
+            !(solicitacao.usuarioId instanceof ObjectId)
+        ) {
+            return res.status(400).json({
+                mensagem: "Link inválido ou expirado."
+            });
+        }
+
+        const usuarioId = solicitacao.usuarioId;
+        const alteracoes = solicitacao.alteracoes as {
+            nome?: string;
+            email?: string;
+        };
+
+        // Confere novamente se o e-mail continua disponível.
+        if (alteracoes.email) {
+            const emailExistente = await usuarios.findOne({
+                email: alteracoes.email,
+                _id: { $ne: usuarioId }
+            });
+
+            if (emailExistente) {
+                return res.status(409).json({
+                    mensagem: "Este e-mail já está cadastrado."
+                });
+            }
+        }
+
+        // Consome o token de forma atômica para impedir reutilização.
+        const consumido = await pendentes.findOneAndDelete({
+            _id: solicitacao._id,
+            tokenHash,
+            tipo: "PERFIL",
+            expiraEm: { $gt: new Date() }
+        });
+
+        if (!consumido) {
+            return res.status(400).json({
+                mensagem: "Link inválido, expirado ou já utilizado."
+            });
+        }
+
+        // Prepara somente os campos permitidos para atualização.
+        const camposAtualizados: {
+            nome?: string;
+            email?: string;
+        } = {};
+
+        if (typeof alteracoes.nome === "string") {
+            camposAtualizados.nome = alteracoes.nome;
+        }
+
+        if (typeof alteracoes.email === "string") {
+            camposAtualizados.email = alteracoes.email;
+        }
+
+        if (Object.keys(camposAtualizados).length === 0) {
+            return res.status(400).json({
+                mensagem: "Nenhuma alteração válida foi encontrada."
+            });
+        }
+
+        const resultado = await usuarios.updateOne(
+            { _id: usuarioId, ativo: true },
+            { $set: camposAtualizados }
         );
+
+        if (resultado.matchedCount !== 1) {
+            return res.status(404).json({
+                mensagem: "Usuário ativo não encontrado."
+            });
+        }
+
+        // Atualiza também o nome de registros legados de tutores.
+        if (camposAtualizados.nome) {
+            await banco.collection("tutores").updateMany(
+                { usuarioId },
+                { $set: { nome: camposAtualizados.nome } }
+            );
+        }
 
         return res.status(200).json({
             mensagem: "Perfil atualizado com sucesso!"
         });
+
     } catch (erro) {
-        console.error("Erro ao editar perfil:", erro);
+        if (erro instanceof MongoServerError && erro.code === 11000) {
+            return res.status(409).json({
+                mensagem: "Este e-mail já está cadastrado."
+            });
+        }
+
+        console.error("Erro ao confirmar alteração de perfil:", erro);
 
         return res.status(500).json({
-            mensagem: "Erro ao editar perfil."
+            mensagem: "Não foi possível confirmar a alteração do perfil."
         });
     }
 });
+
 
 // Alteração de senha para quem ainda sabe a senha atual.
 router.patch("/alterar-senha", autenticar, async (req, res) => {
@@ -426,7 +663,8 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             });
         }
 
-        const usuarios = obterBanco().collection("usuarios");
+        const banco = obterBanco();
+        const usuarios = banco.collection("usuarios");
         const usuarioId = new ObjectId(res.locals.usuarioId);
         const usuario = await usuarios.findOne({
             _id: usuarioId,
@@ -451,23 +689,67 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             });
         }
 
-        const novoHash = await gerarHashSenha(novaSenha);
 
-        // Comparação com o hash anterior evita sobrescrever outra alteração.
-        const resultado = await usuarios.updateOne(
-            { _id: usuarioId, senhaHash: usuario.senhaHash, ativo: true },
-            { $set: { senhaHash: novoHash } }
-        );
+    const novoHash = await gerarHashSenha(novaSenha);
 
-        if (resultado.modifiedCount !== 1) {
-            return res.status(409).json({
-                mensagem: "A senha foi alterada em outra operação. Tente novamente."
-            });
-        }
+    // Gera um token temporário para confirmação.
+    const token = randomBytes(32).toString("hex");
+    const tokenHash = hashToken(token);
+    const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
 
-        return res.status(200).json({
-            mensagem: "Senha alterada com sucesso!"
+    const pendentes = banco.collection("alteracoesPendentes");
+
+    // Invalida apenas solicitações anteriores de alteração de senha.
+    await pendentes.deleteMany({
+        usuarioId,
+        tipo: "SENHA"
+    });
+
+    await pendentes.insertOne({
+        usuarioId,
+        tipo: "SENHA",
+        senhaHash: novoHash,
+        senhaHashAnterior: usuario.senhaHash,
+        tokenHash,
+        expiraEm,
+        criadoEm: new Date()
+    });
+
+    const urlBase = process.env.FRONTEND_URL;
+
+    if (!urlBase || !/^https?:\/\//.test(urlBase)) {
+        await pendentes.deleteOne({ tokenHash });
+
+    return res.status(503).json({
+        mensagem: "Serviço de confirmação indisponível."
+    });
+}
+
+    const link = new URL("/confirmar-alteracao-senha", urlBase);
+    link.searchParams.set("token", token);
+
+    try {
+        const { transporte, remetente } = configurarEmail();
+
+        await transporte.sendMail({
+            from: remetente,
+            to: usuario.email,
+            subject: "PetCare - Confirmação de alteração de senha",
+            text:
+                "Recebemos uma solicitação de alteração da sua senha.\n\n" +
+                `Acesse o link para confirmar: ${link.toString()}\n\n` +
+                "O link expira em 15 minutos e só pode ser usado uma vez.\n" +
+                "Se você não solicitou essa alteração, ignore esta mensagem."
         });
+    } catch (erro) {
+        await pendentes.deleteOne({ tokenHash });
+        throw erro;
+    }
+
+    return res.status(200).json({
+        mensagem: "Enviamos um link de confirmação para seu e-mail cadastrado. Sua senha ainda não foi alterada."
+    });
+
     } catch (erro) {
         console.error("Erro ao alterar senha:", erro);
 
@@ -475,6 +757,88 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             mensagem: "Não foi possível alterar a senha."
         });
     }
+});
+
+// Confirma a alteração de senha por e-mail.
+router.post("/confirmar-alteracao-senha", async (req, res) => {
+  try {
+    const { token } = req.body ?? {};
+
+    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
+      return res.status(400).json({
+        mensagem: "Token inválido ou expirado."
+      });
+    }
+
+    const banco = obterBanco();
+    const pendentes = banco.collection("alteracoesPendentes");
+    const usuarios = banco.collection("usuarios");
+
+    const tokenHash = hashToken(token);
+
+    const solicitacao = await pendentes.findOne({
+      tokenHash,
+      tipo: "SENHA",
+      expiraEm: { $gt: new Date() }
+    });
+
+    if (
+      !solicitacao ||
+      !(solicitacao.usuarioId instanceof ObjectId) ||
+      typeof solicitacao.senhaHash !== "string" ||
+      typeof solicitacao.senhaHashAnterior !== "string"
+    ) {
+      return res.status(400).json({
+        mensagem: "Token inválido ou expirado."
+      });
+    }
+
+    const consumido = await pendentes.findOneAndDelete({
+      _id: solicitacao._id,
+      tokenHash,
+      tipo: "SENHA",
+      expiraEm: { $gt: new Date() }
+    });
+
+    if (!consumido) {
+      return res.status(400).json({
+        mensagem: "Token inválido ou expirado."
+      });
+    }
+
+    const resultado = await usuarios.updateOne(
+      {
+        _id: solicitacao.usuarioId,
+        senhaHash: solicitacao.senhaHashAnterior,
+        ativo: true
+      },
+      {
+        $set: { senhaHash: solicitacao.senhaHash }
+      }
+    );
+
+    if (resultado.matchedCount !== 1) {
+      return res.status(409).json({
+        mensagem: "A senha foi alterada em outra operação. Solicite uma nova alteração."
+      });
+    }
+
+    await pendentes.deleteMany({
+      usuarioId: solicitacao.usuarioId,
+      tipo: "SENHA"
+    });
+
+    return res.status(200).json({
+      mensagem: "Senha alterada com sucesso! Faça login novamente."
+    });
+
+  } catch (erro) {
+    console.error("Erro ao confirmar alteração de senha:", erro);
+
+    return res.status(500).json({
+      mensagem: "Erro interno ao confirmar alteração de senha."
+    });
+  }
 });
 
 // Solicitação pública de recuperação de senha.

@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarAlta } from "../notificacoes/eventos.js";
 
 const router = Router();
 
@@ -194,6 +195,21 @@ router.patch(
                 return res.status(409).json({
                     mensagem:
                         "Internação não está ativa, não existe ou pertence a outro veterinário."
+                });
+            }
+
+            const internacao = await banco.collection<{
+                _id: string | ObjectId;
+                petId: unknown;
+            }>("internacoes").findOne({
+                _id: { $in: idsInternacao }
+            });
+
+            if (internacao) {
+                await notificarAlta(banco, {
+                    petId: internacao.petId,
+                    veterinarioUsuarioId: new ObjectId(res.locals.usuarioId),
+                    referenciaId: id
                 });
             }
 

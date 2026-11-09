@@ -1,18 +1,14 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-
-import 'package:pet_care/widgets/barra_nav_tutor.dart';
-import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
-import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
 
 import 'package:pet_care/widgets/cabecalho_app.dart';
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 
 import 'package:pet_care/widgets/cartao_campanha.dart';
+import 'package:pet_care/services/campanhas_service.dart';
 
 import 'detalhes_doacao.dart';
 
@@ -22,7 +18,6 @@ class Doacao extends StatefulWidget {
     this.publica = false,
     this.geral = false,
     this.onDoacaoConcluida,
-
   }) : assert(
   !(publica && geral),
   'A tela não pode pertencer aos contextos público e geral ao mesmo tempo.',
@@ -39,50 +34,138 @@ class Doacao extends StatefulWidget {
 }
 
 class _DoacaoState extends State<Doacao> {
-  int get _currentNavIndex {
-    if (widget.publica) return 1;
-    return 1;
+  final CampanhasService _campanhasService = CampanhasService.criar(
+    baseUrl: 'http://localhost:3000',
+  );
+
+  List<Map<String, dynamic>> _campanhas = [];
+  bool _carregando = true;
+  String? _erro;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregarCampanhas();
   }
 
-  // =====================================================
-  // NAVEGAÇÃO PÚBLICA
-  // =====================================================
+  Future<void> _carregarCampanhas() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
 
-  void _onNavTapPublica(int index) {
-    switch (index) {
-      case 0:
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        break;
+    try {
+      final resultado = await _campanhasService.listarCampanhas();
+      if (!mounted) return;
 
-      case 1:
-        break;
-
-      case 2:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/sobre',
-              (route) => route.isFirst,
-        );
-        break;
+      setState(() {
+        _campanhas = resultado
+            .map((item) => Map<String, dynamic>.from(item as Map))
+            .where((campanha) => campanha['status'] == 'ativa')
+            .toList();
+        _carregando = false;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+      setState(() {
+        _erro = erro.toString().replaceFirst('Exception: ', '');
+        _carregando = false;
+      });
     }
   }
 
-  // =====================================================
-  // NAVEGAÇÃO GERAL
-  // =====================================================
-
-  void _onNavTapGeral(int index) {
-    if (index == 1) return;
-
-    // Devolve o controle ao InicioGeral.
-    // Ele será responsável por abrir a aba solicitada.
-    Navigator.of(context).pop(index);
+  double _numero(dynamic valor) {
+    if (valor is num) return valor.toDouble();
+    return double.tryParse(valor?.toString() ?? '') ?? 0;
   }
 
-  // =====================================================
-  // DETALHES DA CAMPANHA
-  // =====================================================
+  String? _imagem(dynamic valor) {
+    if (valor is String && valor.trim().isNotEmpty) return valor;
+    return null;
+  }
+
+  Widget _listaCampanhas() {
+    if (_carregando) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (_erro != null) {
+      return Column(
+        children: [
+          Text(
+            'Não foi possível carregar as campanhas. $_erro',
+            textAlign: TextAlign.center,
+            style: const TextStyle(color: CoresApp.textSecondary),
+          ),
+          const SizedBox(height: EspacamentosApp.sm),
+          TextButton(
+            onPressed: _carregarCampanhas,
+            child: const Text('Tentar novamente'),
+          ),
+        ],
+      );
+    }
+
+    if (_campanhas.isEmpty) {
+      return const Center(
+        child: Text(
+          'Nenhuma campanha ativa no momento.',
+          style: TextStyle(color: CoresApp.textSecondary),
+        ),
+      );
+    }
+
+    return Column(
+      children: [
+        for (int i = 0; i < _campanhas.length; i++) ...[
+          if (i > 0) const SizedBox(height: EspacamentosApp.lg),
+          Builder(builder: (context) {
+            final campanha = _campanhas[i];
+            final campanhaId = campanha['_id']?.toString() ?? '';
+            final idValido = RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(campanhaId);
+            final nomeAnimal = (campanha['nomeAnimal'] as String?)
+                    ?.trim()
+                    .isNotEmpty == true
+                ? campanha['nomeAnimal'] as String
+                : 'Campanha';
+            final titulo = campanha['titulo']?.toString() ?? 'Campanha';
+            final valorArrecadado = _numero(campanha['valorArrecadado']);
+            final meta = _numero(campanha['metaValor']);
+            final imagemUrl = _imagem(campanha['imagemCapa']);
+
+            return CartaoCampanha(
+              nomeAnimal: nomeAnimal,
+              titulo: titulo,
+              valorArrecadado: valorArrecadado,
+              meta: meta,
+              imagemUrl: imagemUrl,
+              onTap: () {
+                if (!idValido) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Esta campanha não possui um ID válido no MongoDB.'),
+                    ),
+                  );
+                  return;
+                }
+                _abrirCampanha(
+                campanhaId: campanhaId,
+                nomeAnimal: nomeAnimal,
+                titulo: titulo,
+                valorArrecadado: valorArrecadado,
+                meta: meta,
+                imagemUrl: imagemUrl,
+                );
+              },
+            );
+          }),
+        ],
+      ],
+    );
+  }
 
   Future<void> _abrirCampanha({
+    required String campanhaId,
     required String nomeAnimal,
     required String titulo,
     required double valorArrecadado,
@@ -93,6 +176,7 @@ class _DoacaoState extends State<Doacao> {
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => DetalhesDoacao(
+          campanhaId: campanhaId,
           nomeAnimal: nomeAnimal,
           titulo: titulo,
           valorArrecadado: valorArrecadado,
@@ -105,30 +189,20 @@ class _DoacaoState extends State<Doacao> {
 
     if (!mounted) return;
 
+    await _carregarCampanhas();
+
     if (resultado == true) {
       widget.onDoacaoConcluida?.call();
     }
   }
 
-  // =====================================================
-  // CABEÇALHO
-  // =====================================================
-
   Widget _construirCabecalho() {
     if (widget.publica) {
-      return CabecalhoPublico(
-        onBackTap: () {
-          Navigator.of(context).pop();
-        },
-      );
+      return const CabecalhoPublico();
     }
 
     if (widget.geral) {
-      return CabecalhoGeral(
-        onPerfilTap: () {
-          Navigator.of(context).pop(3);
-        },
-      );
+      return const CabecalhoGeral();
     }
 
     return const CabecalhoApp(
@@ -136,10 +210,6 @@ class _DoacaoState extends State<Doacao> {
       name: '',
     );
   }
-
-  // =====================================================
-  // FORMATAÇÃO
-  // =====================================================
 
   String _formatarMoeda(double valor) {
     final partes = valor.toStringAsFixed(2).split('.');
@@ -157,29 +227,6 @@ class _DoacaoState extends State<Doacao> {
     }
 
     return 'R\$ ${buffer.toString()},${partes[1]}';
-  }
-
-  // =====================================================
-  // NAVEGAÇÃO INFERIOR
-  // =====================================================
-
-  Widget? _construirNavegacao() {
-    if (widget.publica) {
-      return BarraNavPublica(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTapPublica,
-      );
-    }
-
-    if (widget.geral) {
-      return BarraNavGeral(
-        currentIndex: _currentNavIndex,
-        onTap: _onNavTapGeral,
-      );
-    }
-
-    // No tutor, a navegação pertence ao InicioTutor.
-    return null;
   }
 
   @override
@@ -356,8 +403,8 @@ class _DoacaoState extends State<Doacao> {
                           color: CoresApp.darkBlue.withAlpha(15),
                         ),
                       ),
-                      child: const Text(
-                        '2 campanhas',
+                      child: Text(
+                        '${_campanhas.length} ${_campanhas.length == 1 ? 'campanha' : 'campanhas'}',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.w700,
@@ -377,43 +424,7 @@ class _DoacaoState extends State<Doacao> {
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
                 ),
-                child: Column(
-                  children: [
-                    CartaoCampanha(
-                      nomeAnimal: 'Bobby',
-                      titulo: 'Cirurgia ortopédica de emergência',
-                      valorArrecadado: 1250,
-                      meta: 2000,
-                      urgente: true,
-                      imagemUrl: null,
-                      onTap: () => _abrirCampanha(
-                        nomeAnimal: 'Bobby',
-                        titulo: 'Cirurgia ortopédica de emergência',
-                        valorArrecadado: 1250,
-                        meta: 2000,
-                        urgente: true,
-                        imagemUrl: null,
-                      ),
-                    ),
-
-                    const SizedBox(height: EspacamentosApp.lg),
-
-                    CartaoCampanha(
-                      nomeAnimal: 'Luna',
-                      titulo: 'Tratamento veterinário',
-                      valorArrecadado: 400,
-                      meta: 850,
-                      imagemUrl: null,
-                      onTap: () => _abrirCampanha(
-                        nomeAnimal: 'Luna',
-                        titulo: 'Tratamento veterinário',
-                        valorArrecadado: 400,
-                        meta: 850,
-                        imagemUrl: null,
-                      ),
-                    ),
-                  ],
-                ),
+                child: _listaCampanhas(),
               ),
 
               const SizedBox(height: EspacamentosApp.xl),
@@ -483,7 +494,6 @@ class _DoacaoState extends State<Doacao> {
           ),
         ),
       ),
-      bottomNavigationBar: _construirNavegacao(),
     );
   }
 }

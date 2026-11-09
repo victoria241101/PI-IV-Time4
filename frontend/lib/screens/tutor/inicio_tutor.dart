@@ -1,11 +1,15 @@
 import 'package:flutter/material.dart';
+import 'package:pet_care/services/agendamentos_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+
 import 'package:pet_care/modelos/dados_banner.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/modelos/resumo_pet.dart';
 
+import 'package:pet_care/screens/tutor/cadastro_pet.dart';
 import 'package:pet_care/screens/tutor/pagina_detalhes_pet.dart';
 import 'package:pet_care/screens/tutor/perfil_tutor.dart';
 import 'package:pet_care/screens/tutor/consultas_tutor.dart';
@@ -30,13 +34,15 @@ typedef ConfirmarConsulta = Future<ResumoConsulta> Function(
 
 typedef AcaoConsulta = Future<void> Function(String consultaId);
 
+typedef AtualizarPets = Future<void> Function();
+
 class InicioTutor extends StatefulWidget {
   const InicioTutor({
     super.key,
     required this.saudacao,
     required this.nomeTutor,
     required this.pets,
-    required this.proximaConsulta,
+    this.proximaConsulta,
     required this.banners,
     required this.onConfirmarConsulta,
     required this.carregarDetalhesPet,
@@ -47,12 +53,14 @@ class InicioTutor extends StatefulWidget {
     this.consultas = const [],
     this.onAgendamentoConfirmado,
     this.onReagendamentoConfirmado,
+    this.onPetCadastrado,
+    this.onConsultasAtualizadas,
   });
 
   final String saudacao;
   final String nomeTutor;
   final List<ResumoPet> pets;
-  final ResumoConsulta proximaConsulta;
+  final ResumoConsulta? proximaConsulta;
   final List<DadosBanner> banners;
 
   final ConfirmarConsulta onConfirmarConsulta;
@@ -69,6 +77,9 @@ class InicioTutor extends StatefulWidget {
   final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
   final ConfirmarReagendamento? onReagendamentoConfirmado;
 
+  final AtualizarPets? onPetCadastrado;
+  final VoidCallback? onConsultasAtualizadas;
+
   @override
   State<InicioTutor> createState() => _EstadoInicioTutor();
 }
@@ -78,8 +89,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
   bool _confirmandoConsulta = false;
 
-  late ResumoConsulta _proximaConsulta;
+  ResumoConsulta? _proximaConsulta;
   late List<ResumoConsulta> _consultas;
+  late List<ResumoPet> _pets;
 
   String? _consultaIdParaReagendar;
 
@@ -89,8 +101,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
     _proximaConsulta = widget.proximaConsulta;
     _consultas = List<ResumoConsulta>.from(widget.consultas);
-
-    _sincronizarProximaConsulta();
+    _pets = List<ResumoPet>.from(widget.pets);
   }
 
   @override
@@ -103,7 +114,10 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
     if (oldWidget.consultas != widget.consultas) {
       _consultas = List<ResumoConsulta>.from(widget.consultas);
-      _sincronizarProximaConsulta();
+    }
+
+    if (oldWidget.pets != widget.pets) {
+      _pets = List<ResumoPet>.from(widget.pets);
     }
   }
 
@@ -116,16 +130,28 @@ class _EstadoInicioTutor extends State<InicioTutor> {
     });
   }
 
-  void _sincronizarProximaConsulta() {
-    final indice = _consultas.indexWhere(
-          (consulta) => consulta.id == _proximaConsulta.id,
+  // ============================================================
+  // CADASTRO DE PET
+  // ============================================================
+
+  Future<void> _abrirCadastroPet() async {
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => const CadastroPetScreen(),
+      ),
     );
 
-    if (indice >= 0) {
-      _consultas[indice] = _proximaConsulta;
-    } else {
-      _consultas.insert(0, _proximaConsulta);
-    }
+    if (!mounted || resultado != true) return;
+
+    // Recarrega a lista de pets pela API.
+    await widget.onPetCadastrado?.call();
+
+    if (!mounted) return;
+
+    setState(() {
+      _currentNavIndex = 0;
+      _consultaIdParaReagendar = null;
+    });
   }
 
   String _formatarData(DateTime data) {
@@ -175,10 +201,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
         break;
 
       default:
-        setState(() {
-          _currentNavIndex = 0;
-          _consultaIdParaReagendar = null;
-        });
+        _voltarParaInicio();
         break;
     }
   }
@@ -195,36 +218,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _onAgendamentoConfirmado(DadosAgendamento dados) {
-    final consulta = ResumoConsulta(
-      id: 'consulta-${DateTime.now().microsecondsSinceEpoch}',
-      type: dados.tipoAtendimento,
-      date: _formatarData(dados.data),
-      time: dados.horario,
-      vetName: dados.veterinario,
-      petName: dados.nomePet,
-      status: 'Agendada',
-      instructions: dados.urgente
-          ? 'Atendimento marcado como urgente.'
-          : 'Consulte as orientações da clínica antes do atendimento.',
-      clinicAddress: 'Endereço a confirmar',
-    );
-
-    setState(() {
-      _consultas = [..._consultas, consulta];
-    });
-
+    // O cadastro do agendamento é realizado pela tela de confirmação.
+    // O pai atualiza os dados reais da API.
     widget.onAgendamentoConfirmado?.call(dados);
-
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Agendamento adicionado à lista de consultas.',
-          ),
-          behavior: SnackBarBehavior.floating,
-        ),
-      );
   }
 
   // ============================================================
@@ -232,10 +228,97 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _abrirFluxoReagendamento() {
+    final consulta = _proximaConsulta;
+
+    if (consulta == null) return;
+
     setState(() {
-      _consultaIdParaReagendar = _proximaConsulta.id;
+      _consultaIdParaReagendar = consulta.id;
       _currentNavIndex = 1;
     });
+  }
+
+  Future<void> _cancelarConsultaReal(ResumoConsulta consulta) async {
+    final confirmado = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar consulta?'),
+        content: Text(
+          'Cancelar a consulta de ${consulta.petName} em '
+              '${consulta.date} às ${consulta.time}?',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Voltar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Cancelar consulta'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmado != true || !mounted) return;
+
+    try {
+      final token = SessaoUsuario.instancia.token;
+      if (token == null || token.isEmpty) {
+        throw StateError('Faça login novamente.');
+      }
+
+      await AgendamentosService(
+        baseUrl: 'http://localhost:3000',
+        token: token,
+      ).cancelarAgendamento(consultaId: consulta.id);
+
+      if (!mounted) return;
+
+      setState(() {
+        _consultas = _consultas
+            .map(
+              (item) => item.id == consulta.id
+              ? item.copyWith(status: 'Cancelada')
+              : item,
+        )
+            .toList();
+
+        if (_proximaConsulta?.id == consulta.id) {
+          final candidatas =
+          _consultas.where((item) => item.isConfirmed).toList();
+
+          candidatas.sort((a, b) {
+            final dataA =
+                '${a.date.substring(6)}${a.date.substring(3, 5)}'
+                '${a.date.substring(0, 2)}${a.time}';
+            final dataB =
+                '${b.date.substring(6)}${b.date.substring(3, 5)}'
+                '${b.date.substring(0, 2)}${b.time}';
+            return dataA.compareTo(dataB);
+          });
+
+          _proximaConsulta =
+          candidatas.isEmpty ? null : candidatas.first;
+        }
+      });
+
+      widget.onConsultasAtualizadas?.call();
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Consulta cancelada com sucesso.'),
+        ),
+      );
+    } catch (erro) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Não foi possível cancelar: $erro'),
+        ),
+      );
+    }
   }
 
   void _onReagendamentoConfirmado(
@@ -278,7 +361,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       _consultas = List<ResumoConsulta>.from(_consultas);
       _consultas[indice] = consultaAtualizada;
 
-      if (_proximaConsulta.id == consultaId) {
+      if (_proximaConsulta?.id == consultaId) {
         _proximaConsulta = consultaAtualizada;
       }
 
@@ -305,32 +388,20 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   void _onAppointmentDetails() {
+    final consulta = _proximaConsulta;
+
+    if (consulta == null) return;
+
     ModalDetalhesConsulta.show(
       context,
-      appointment: _proximaConsulta,
+      appointment: consulta,
       onReschedule: () {
         Navigator.of(context).pop();
         _abrirFluxoReagendamento();
       },
-      onCancel: widget.onCancelarConsulta == null
-          ? null
-          : () async {
+      onCancel: () async {
         Navigator.of(context).pop();
-
-        await widget.onCancelarConsulta!(
-          _proximaConsulta.id,
-        );
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Solicitação de cancelamento enviada.',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
+        await _cancelarConsultaReal(consulta);
       },
     );
   }
@@ -355,7 +426,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   // ============================================================
 
   Future<void> _onConfirmAppointment() async {
-    if (_confirmandoConsulta) return;
+    final consulta = _proximaConsulta;
+
+    if (consulta == null || _confirmandoConsulta) return;
 
     setState(() {
       _confirmandoConsulta = true;
@@ -363,7 +436,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
     try {
       final consultaAtualizada = await widget.onConfirmarConsulta(
-        _proximaConsulta.id,
+        consulta.id,
       );
 
       if (!mounted) return;
@@ -447,8 +520,9 @@ class _EstadoInicioTutor extends State<InicioTutor> {
           const SizedBox(height: EspacamentosApp.md),
 
           ListaHorizontalPets(
-            pets: widget.pets,
+            pets: _pets,
             onPetTap: _abrirDetalhesPet,
+            onAdicionarTap: _abrirCadastroPet,
           ),
 
           const SizedBox(height: EspacamentosApp.xl),
@@ -457,12 +531,22 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
           const SizedBox(height: EspacamentosApp.md),
 
-          CartaoProximaConsulta(
-            appointment: _proximaConsulta,
-            onDetailsTap: _onAppointmentDetails,
-            onConfirmTap: _onConfirmAppointment,
-            isConfirming: _confirmandoConsulta,
-          ),
+          if (_proximaConsulta != null)
+            CartaoProximaConsulta(
+              appointment: _proximaConsulta!,
+              onDetailsTap: _onAppointmentDetails,
+              onConfirmTap: _onConfirmAppointment,
+              isConfirming: _confirmandoConsulta,
+            )
+          else
+            const Padding(
+              padding: EdgeInsets.symmetric(
+                horizontal: EspacamentosApp.pagePadding,
+              ),
+              child: Text(
+                'Você não possui consultas futuras agendadas.',
+              ),
+            ),
 
           const SizedBox(height: EspacamentosApp.xl),
 
@@ -504,10 +588,11 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       case 1:
         return ConsultasTutor(
           consultas: _consultas,
-          nomesPets: widget.pets.map((pet) => pet.name).toList(),
+          nomesPets: _pets.map((pet) => pet.name).toList(),
           consultaIdParaReagendar: _consultaIdParaReagendar,
           onAgendamentoConfirmado: _onAgendamentoConfirmado,
           onReagendamentoConfirmado: _onReagendamentoConfirmado,
+          onConsultasAtualizadas: widget.onConsultasAtualizadas,
         );
 
       case 2:
@@ -515,12 +600,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
 
       case 3:
         return Doacao(
-          onDoacaoConcluida: () {
-            setState(() {
-              _currentNavIndex = 0;
-              _consultaIdParaReagendar = null;
-            });
-          },
+          onDoacaoConcluida: _voltarParaInicio,
         );
 
       case 4:

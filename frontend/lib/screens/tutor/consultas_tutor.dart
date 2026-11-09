@@ -1,10 +1,13 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
+import 'package:pet_care/services/veterinarios_service.dart';
+import 'package:pet_care/services/agendamentos_service.dart';
+import 'package:pet_care/services/pets_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 typedef ConfirmarNovoAgendamento = void Function(
     DadosAgendamento dados,
@@ -20,18 +23,6 @@ const Color _laranjaConsultas = Color(0xFFFFA45B);
 const Color _azulConsultas = Color(0xFF172A46);
 const Color _fundoSuaveConsultas = Color(0xFFEAF8F6);
 
-const List<String> profissionaisDisponiveis = [
-  'Dra. Ana Silva',
-  'Dr. Bruno Costa',
-  'Dra. Mariana Oliveira',
-];
-
-const List<String> especialidadesDisponiveis = [
-  'Clínica geral',
-  'Dermatologia',
-  'Odontologia',
-  'Vacinação',
-];
 
 class ConsultasTutor extends StatefulWidget {
   const ConsultasTutor({
@@ -43,6 +34,7 @@ class ConsultasTutor extends StatefulWidget {
     this.consultaIdParaReagendar,
     this.onAgendamentoConfirmado,
     this.onReagendamentoConfirmado,
+    this.onConsultasAtualizadas,
   });
 
   final List<ResumoConsulta> consultas;
@@ -52,6 +44,7 @@ class ConsultasTutor extends StatefulWidget {
   final String? consultaIdParaReagendar;
   final ConfirmarNovoAgendamento? onAgendamentoConfirmado;
   final ConfirmarReagendamento? onReagendamentoConfirmado;
+  final VoidCallback? onConsultasAtualizadas;
 
   @override
   State<ConsultasTutor> createState() => _ConsultasTutorState();
@@ -63,6 +56,11 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
 
   String? _veterinarioSelecionado;
   String? _especialidadeSelecionada;
+
+  List<Map<String, dynamic>> _veterinarios = [];
+
+  bool _carregandoVeterinarios = true;
+  String? _erroVeterinarios;
 
   static const List<String> _meses = [
     'Janeiro',
@@ -85,6 +83,59 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
 
     final hoje = DateTime.now();
     _mesAtual = DateTime(hoje.year, hoje.month);
+
+    _carregarVeterinarios();
+
+    // Quando a tela inicial solicita reagendamento, abrir a lista real
+    // de consultas, sem passar pelo fluxo de criação (POST).
+    if (widget.consultaIdParaReagendar != null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        _abrirMinhasConsultas();
+      });
+    }
+  }
+
+  void _abrirMinhasConsultas() {
+    Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        builder: (_) => _MinhasConsultasTutor(
+          consultas: widget.consultas,
+          onConsultaTap: widget.onConsultaTap,
+          onConsultasAtualizadas: widget.onConsultasAtualizadas,
+        ),
+      ),
+    );
+  }
+
+  Future<void> _carregarVeterinarios() async {
+    setState(() {
+      _carregandoVeterinarios = true;
+      _erroVeterinarios = null;
+    });
+
+    try {
+      final service = VeterinariosService(
+        baseUrl: 'http://localhost:3000',
+      );
+
+      final veterinarios = await service.listarVeterinarios();
+
+      if (!mounted) return;
+
+      setState(() {
+        _veterinarios = veterinarios;
+        _carregandoVeterinarios = false;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+
+      setState(() {
+        _carregandoVeterinarios = false;
+        _erroVeterinarios =
+            'Não foi possível carregar os veterinários.';
+      });
+    }
   }
 
   bool _ehDataPassada(DateTime data) {
@@ -128,16 +179,30 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
         '${data.year}';
   }
 
-  void _continuarAgendamento() {
+  Future<void> _continuarAgendamento() async {
+    if (widget.consultaIdParaReagendar != null) {
+      _abrirMinhasConsultas();
+      return;
+    }
+
     final data = _dataSelecionada;
     if (data == null) return;
 
-    Navigator.of(context).push<void>(
-      MaterialPageRoute<void>(
+    String? nomeVeterinario;
+
+    for (final vet in _veterinarios) {
+      if (vet['_id']?.toString() == _veterinarioSelecionado) {
+        nomeVeterinario = vet['nome']?.toString();
+        break;
+      }
+    }
+
+    final resultado = await Navigator.of(context).push<bool>(
+      MaterialPageRoute<bool>(
         builder: (_) => DetalhesAgendamentoTutor(
           dataSelecionada: data,
           nomesPets: widget.nomesPets,
-          veterinarioInicial: _veterinarioSelecionado,
+          veterinarioInicial: nomeVeterinario,
           onContinuar: (dados) {
             final consultaId = widget.consultaIdParaReagendar;
 
@@ -157,27 +222,18 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
 
               callback(consultaId, dados);
             } else {
-              final callback = widget.onAgendamentoConfirmado;
-
-              if (callback == null) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text(
-                      'O agendamento ainda não está conectado.',
-                    ),
-                  ),
-                );
-                return;
-              }
-
-              callback(dados);
+              widget.onAgendamentoConfirmado?.call(dados);
             }
-
-            Navigator.of(context).pop();
           },
         ),
       ),
     );
+
+    if (!mounted) return;
+
+    if (resultado == true) {
+      _abrirMinhasConsultas();
+    }
   }
 
   @override
@@ -272,16 +328,7 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
               SizedBox(
                 width: double.infinity,
                 child: OutlinedButton.icon(
-                  onPressed: () {
-                    Navigator.of(context).push<void>(
-                      MaterialPageRoute<void>(
-                        builder: (_) => _MinhasConsultasTutor(
-                          consultas: widget.consultas,
-                          onConsultaTap: widget.onConsultaTap,
-                        ),
-                      ),
-                    );
-                  },
+                  onPressed: _abrirMinhasConsultas,
                   icon: const Icon(Icons.calendar_month_outlined),
                   label: const Text('Minhas consultas'),
                   style: OutlinedButton.styleFrom(
@@ -307,36 +354,75 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
   }
 
   Widget _campoVeterinario() {
-    return DropdownButtonFormField<String>(
-      initialValue: _veterinarioSelecionado,
-      isExpanded: true,
-      decoration: _decoracaoFiltro(
-        rotulo: 'Nome do veterinário',
-        icone: Icons.person_search_outlined,
-      ),
-      hint: const Text('Todos os veterinários'),
-      items: [
-        const DropdownMenuItem<String>(
-          value: null,
-          child: Text('Todos os veterinários'),
-        ),
-        ...profissionaisDisponiveis.map(
-              (nome) => DropdownMenuItem<String>(
-            value: nome,
-            child: Text(
-              nome,
-              overflow: TextOverflow.ellipsis,
-            ),
+    final veterinariosFiltrados = _veterinarios.where((vet) {
+      if (_especialidadeSelecionada == null) return true;
+
+      return vet['especialidade'] ==
+          _especialidadeSelecionada;
+    }).toList();
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        DropdownButtonFormField<String>(
+          key: ValueKey(_especialidadeSelecionada),
+          initialValue: _veterinarioSelecionado,
+          isExpanded: true,
+          decoration: _decoracaoFiltro(
+            rotulo: 'Nome do veterinário',
+            icone: Icons.person_search_outlined,
           ),
+          hint: Text(
+            _carregandoVeterinarios
+                ? 'Carregando veterinários...'
+                : 'Todos os veterinários',
+          ),
+          items: [
+            const DropdownMenuItem<String>(
+              value: null,
+              child: Text('Todos os veterinários'),
+            ),
+            ...veterinariosFiltrados.map(
+              (vet) => DropdownMenuItem<String>(
+                value: vet['_id'].toString(),
+                child: Text(
+                  vet['nome'].toString(),
+                  overflow: TextOverflow.ellipsis,
+                ),
+              ),
+            ),
+          ],
+          onChanged: _carregandoVeterinarios ||
+                  _erroVeterinarios != null
+              ? null
+              : (valor) {
+                  setState(() {
+                    _veterinarioSelecionado = valor;
+                  });
+                },
         ),
+        if (_erroVeterinarios != null) ...[
+          const SizedBox(height: 8),
+          Text(
+            _erroVeterinarios!,
+            style: const TextStyle(color: Colors.red),
+          ),
+          TextButton(
+            onPressed: _carregarVeterinarios,
+            child: const Text('Tentar novamente'),
+          ),
+        ],
       ],
-      onChanged: (valor) {
-        setState(() => _veterinarioSelecionado = valor);
-      },
     );
   }
 
   Widget _campoEspecialidade() {
+    final especialidades = _veterinarios
+        .map((vet) => vet['especialidade'].toString())
+        .toSet()
+        .toList()
+      ..sort();
+
     return DropdownButtonFormField<String>(
       initialValue: _especialidadeSelecionada,
       isExpanded: true,
@@ -350,19 +436,22 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
           value: null,
           child: Text('Todas as especialidades'),
         ),
-        ...especialidadesDisponiveis.map(
-              (especialidade) => DropdownMenuItem<String>(
+        ...especialidades.map(
+          (especialidade) => DropdownMenuItem<String>(
             value: especialidade,
-            child: Text(
-              especialidade,
-              overflow: TextOverflow.ellipsis,
-            ),
+            child: Text(especialidade),
           ),
         ),
       ],
-      onChanged: (valor) {
-        setState(() => _especialidadeSelecionada = valor);
-      },
+      onChanged: _carregandoVeterinarios ||
+              _erroVeterinarios != null
+          ? null
+          : (valor) {
+              setState(() {
+                _especialidadeSelecionada = valor;
+                _veterinarioSelecionado = null;
+              });
+            },
     );
   }
 
@@ -739,11 +828,12 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
                 if (_veterinarioSelecionado != null) ...[
                   const SizedBox(height: 4),
                   Text(
-                    _veterinarioSelecionado!,
-                    style: const TextStyle(
-                      color: _azulConsultas,
-                      fontSize: 12,
-                    ),
+                    _veterinarios
+                        .firstWhere(
+                          (vet) => vet['_id'] == _veterinarioSelecionado,
+                          orElse: () => {'nome': 'Veterinário'},
+                        )['nome']
+                        .toString(),
                   ),
                 ],
                 if (_especialidadeSelecionada != null) ...[
@@ -803,7 +893,7 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
                 Text(
                   'Você poderá revisar os dados do pet, do atendimento, '
                       'do profissional e do horário antes de concluir. '
-                      'A disponibilidade exibida ainda é simulada.',
+                      'Os horários disponíveis são consultados no servidor.',
                   style: TextStyle(
                     color: CoresApp.textSecondary,
                     fontSize: 12,
@@ -883,10 +973,12 @@ class _MinhasConsultasTutor extends StatefulWidget {
   const _MinhasConsultasTutor({
     required this.consultas,
     this.onConsultaTap,
+    this.onConsultasAtualizadas,
   });
 
   final List<ResumoConsulta> consultas;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
+  final VoidCallback? onConsultasAtualizadas;
 
   @override
   State<_MinhasConsultasTutor> createState() =>
@@ -896,11 +988,17 @@ class _MinhasConsultasTutor extends StatefulWidget {
 class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     with SingleTickerProviderStateMixin {
   late final TabController _tabController;
+  List<ResumoConsulta> _consultas = [];
+  final Map<String, Map<String, dynamic>> _dadosOriginais = {};
+  bool _operando = false;
+  bool _carregando = true;
+  String? _erro;
 
   @override
   void initState() {
     super.initState();
     _tabController = TabController(length: 2, vsync: this);
+    _carregarConsultas();
   }
 
   @override
@@ -909,9 +1007,252 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     super.dispose();
   }
 
+  String _tipoLegivel(String valor) {
+    const tipos = {
+      'consulta_geral': 'Consulta geral',
+      'vacinacao': 'Vacinação',
+      'dermatologia': 'Dermatologia',
+      'odontologia': 'Odontologia',
+      'retorno': 'Retorno',
+      'exames_laboratoriais': 'Exames laboratoriais',
+    };
+    return tipos[valor] ?? valor;
+  }
+
+  String _statusLegivel(String valor) {
+    const status = {
+      'agendada': 'Confirmada',
+      'chegada_confirmada': 'Chegada confirmada',
+      'em_triagem': 'Em triagem',
+      'aguardando_veterinario': 'Aguardando veterinário',
+      'em_consulta': 'Em consulta',
+      'realizada': 'Realizada',
+      'concluida': 'Concluída',
+      'cancelada': 'Cancelada',
+    };
+    return status[valor.toLowerCase()] ?? valor;
+  }
+
+  AgendamentosService _servico() {
+    final token = SessaoUsuario.instancia.token;
+    if (token == null || token.isEmpty) {
+      throw StateError('Faça login novamente.');
+    }
+    return AgendamentosService(baseUrl: 'http://localhost:3000', token: token);
+  }
+
+  void _mensagem(String texto) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(SnackBar(content: Text(texto)));
+  }
+
+  Future<void> _cancelar(ResumoConsulta consulta) async {
+    if (_operando) return;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Cancelar consulta?'),
+        content: Text('Deseja cancelar a consulta de ${consulta.petName} em ${consulta.date} às ${consulta.time}?'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text('Cancelar consulta')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _operando = true);
+    try {
+      await _servico().cancelarAgendamento(consultaId: consulta.id);
+      widget.onConsultasAtualizadas?.call();
+      await _carregarConsultas();
+      _mensagem('Consulta cancelada com sucesso.');
+    } catch (erro) {
+      _mensagem('Não foi possível cancelar: $erro');
+    } finally {
+      if (mounted) setState(() => _operando = false);
+    }
+  }
+
+  Future<void> _reagendar(ResumoConsulta consulta) async {
+    if (_operando) return;
+    final original = _dadosOriginais[consulta.id];
+    final veterinarioId = original?['veterinarioId']?.toString();
+    if (veterinarioId == null || veterinarioId.isEmpty) {
+      _mensagem('Veterinário da consulta não encontrado.');
+      return;
+    }
+    final hoje = DateTime.now();
+    final data = await showDatePicker(
+      context: context,
+      initialDate: hoje,
+      firstDate: DateTime(hoje.year, hoje.month, hoje.day),
+      lastDate: hoje.add(const Duration(days: 365)),
+    );
+    if (data == null || !mounted) return;
+    final duracao = (original?['duracaoMinutos'] as num?)?.toInt() ?? 30;
+    List<String> horarios;
+    try {
+      horarios = await _servico().consultarDisponibilidade(
+        veterinarioId: veterinarioId, data: data, duracaoMinutos: duracao,
+      );
+    } catch (erro) {
+      _mensagem('Erro ao consultar horários: $erro');
+      return;
+    }
+    if (!mounted) return;
+    if (horarios.isEmpty) {
+      _mensagem('Não há horários disponíveis nessa data.');
+      return;
+    }
+    final horario = await showDialog<String>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Escolha o novo horário'),
+        content: SizedBox(
+          width: 320,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: horarios.length,
+            itemBuilder: (context, index) => ListTile(
+              title: Text(horarios[index]),
+              onTap: () => Navigator.pop(context, horarios[index]),
+            ),
+          ),
+        ),
+        actions: [TextButton(onPressed: () => Navigator.pop(context), child: const Text('Voltar'))],
+      ),
+    );
+    if (horario == null || !mounted) return;
+    final dataHora = '${data.year}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}T$horario:00';
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar reagendamento?'),
+        content: Text('Nova data: ${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year} às $horario.'),
+        actions: [
+          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text('Voltar')),
+          FilledButton(onPressed: () => Navigator.pop(context, true), child: const Text('Confirmar')),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+    setState(() => _operando = true);
+    try {
+      await _servico().remarcarAgendamento(
+        consultaId: consulta.id, dataHora: dataHora, duracaoMinutos: duracao,
+      );
+      widget.onConsultasAtualizadas?.call();
+      await _carregarConsultas();
+      _mensagem('Consulta reagendada com sucesso!');
+    } catch (erro) {
+      _mensagem('Não foi possível reagendar: $erro');
+    } finally {
+      if (mounted) setState(() => _operando = false);
+    }
+  }
+
+  Future<void> _carregarConsultas() async {
+    setState(() {
+      _carregando = true;
+      _erro = null;
+    });
+
+    try {
+      final token = SessaoUsuario.instancia.token;
+      if (token == null || token.isEmpty) {
+        throw StateError('Token não encontrado. Faça login novamente.');
+      }
+
+      final agendamentosService = AgendamentosService(
+        baseUrl: 'http://localhost:3000',
+        token: token,
+      );
+      final petsService = PetsService(baseUrl: 'http://localhost:3000');
+      final veterinariosService = VeterinariosService(
+        baseUrl: 'http://localhost:3000',
+      );
+
+      final resultados = await Future.wait<dynamic>([
+        agendamentosService.listarAgendamentos(),
+        petsService.listarPets(),
+        veterinariosService.listarVeterinarios(),
+      ]);
+
+      final agendamentos = resultados[0] as List<dynamic>;
+      final pets = resultados[1] as List;
+      final veterinarios = resultados[2] as List;
+
+      final nomesPets = <String, String>{};
+      for (final item in pets) {
+        if (item is! Map) continue;
+        final id = (item['_id'] ?? item['id'])?.toString();
+        final nome = item['nome']?.toString();
+        if (id != null && nome != null) nomesPets[id] = nome;
+      }
+
+      final nomesVeterinarios = <String, String>{};
+      for (final item in veterinarios) {
+        if (item is! Map) continue;
+        final id = (item['_id'] ?? item['id'])?.toString();
+        final nome = item['nome']?.toString();
+        if (id != null && nome != null) nomesVeterinarios[id] = nome;
+      }
+
+      final lista = <ResumoConsulta>[];
+      final originais = <String, Map<String, dynamic>>{};
+      for (final item in agendamentos) {
+        if (item is! Map) continue;
+        final id = (item['_id'] ?? item['id'] ?? '').toString();
+        originais[id] = Map<String, dynamic>.from(item);
+        final petId = (item['petId'] ?? '').toString();
+        final veterinarioId = (item['veterinarioId'] ?? '').toString();
+        final dataHora = (item['dataHora'] ?? '').toString();
+        final tipo = (item['tipo'] ?? 'consulta_geral').toString();
+        final status = (item['status'] ?? 'agendada').toString();
+
+        // O backend envia dataHora no formato AAAA-MM-DDTHH:mm:ss,
+        // representando a hora local da clínica, sem fuso horário.
+        String data = dataHora;
+        String horario = '';
+        if (dataHora.length >= 16 && dataHora[10] == 'T') {
+          final ano = dataHora.substring(0, 4);
+          final mes = dataHora.substring(5, 7);
+          final dia = dataHora.substring(8, 10);
+          data = '$dia/$mes/$ano';
+          horario = dataHora.substring(11, 16);
+        }
+
+        lista.add(ResumoConsulta(
+          id: id,
+          type: _tipoLegivel(tipo),
+          date: data,
+          time: horario,
+          vetName: nomesVeterinarios[veterinarioId] ??
+              'Veterinário ($veterinarioId)',
+          petName: nomesPets[petId] ?? 'Pet ($petId)',
+          status: _statusLegivel(status),
+        ));
+      }
+
+      if (!mounted) return;
+      setState(() {
+        _consultas = lista;
+        _dadosOriginais..clear()..addAll(originais);
+        _carregando = false;
+      });
+    } catch (erro) {
+      if (!mounted) return;
+      setState(() {
+        _carregando = false;
+        _erro = 'Não foi possível carregar as consultas: $erro';
+      });
+    }
+  }
+
   bool _ehHistorico(ResumoConsulta consulta) {
     final status = consulta.status.toLowerCase();
-
     return status.contains('realizada') ||
         status.contains('concluída') ||
         status.contains('concluida') ||
@@ -920,11 +1261,10 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
 
   @override
   Widget build(BuildContext context) {
-    final proximas = widget.consultas
+    final proximas = _consultas
         .where((consulta) => !_ehHistorico(consulta))
         .toList();
-
-    final historico = widget.consultas.where(_ehHistorico).toList();
+    final historico = _consultas.where(_ehHistorico).toList();
 
     return Scaffold(
       backgroundColor: CoresApp.background,
@@ -939,6 +1279,13 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
             fontWeight: FontWeight.w800,
           ),
         ),
+        actions: [
+          IconButton(
+            tooltip: 'Atualizar consultas',
+            onPressed: _carregando ? null : _carregarConsultas,
+            icon: const Icon(Icons.refresh_rounded),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           labelColor: CoresApp.primary,
@@ -951,21 +1298,42 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
           ],
         ),
       ),
-      body: TabBarView(
-        controller: _tabController,
-        children: [
-          _ListaConsultas(
-            consultas: proximas,
-            mensagemVazia: 'Você não tem consultas próximas.',
-            onConsultaTap: widget.onConsultaTap,
-          ),
-          _ListaConsultas(
-            consultas: historico,
-            mensagemVazia: 'Seu histórico de consultas aparecerá aqui.',
-            onConsultaTap: widget.onConsultaTap,
-          ),
-        ],
-      ),
+      body: _carregando
+          ? const Center(child: CircularProgressIndicator())
+          : _erro != null
+              ? Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(_erro!, textAlign: TextAlign.center),
+                        const SizedBox(height: 12),
+                        ElevatedButton(
+                          onPressed: _carregarConsultas,
+                          child: const Text('Tentar novamente'),
+                        ),
+                      ],
+                    ),
+                  ),
+                )
+              : TabBarView(
+                  controller: _tabController,
+                  children: [
+                    _ListaConsultas(
+                      consultas: proximas,
+                      mensagemVazia: 'Você não tem consultas próximas.',
+                      onConsultaTap: widget.onConsultaTap,
+                      onCancelar: _operando ? null : _cancelar,
+                      onReagendar: _operando ? null : _reagendar,
+                    ),
+                    _ListaConsultas(
+                      consultas: historico,
+                      mensagemVazia: 'Seu histórico de consultas aparecerá aqui.',
+                      onConsultaTap: widget.onConsultaTap,
+                    ),
+                  ],
+                ),
     );
   }
 }
@@ -975,9 +1343,13 @@ class _ListaConsultas extends StatelessWidget {
     required this.consultas,
     required this.mensagemVazia,
     this.onConsultaTap,
+    this.onCancelar,
+    this.onReagendar,
   });
 
   final List<ResumoConsulta> consultas;
+  final ValueChanged<ResumoConsulta>? onCancelar;
+  final ValueChanged<ResumoConsulta>? onReagendar;
   final String mensagemVazia;
   final ValueChanged<ResumoConsulta>? onConsultaTap;
 
@@ -1029,6 +1401,8 @@ class _ListaConsultas extends StatelessWidget {
 
         return _CartaoConsulta(
           consulta: consulta,
+          onCancelar: onCancelar == null ? null : () => onCancelar!(consulta),
+          onReagendar: onReagendar == null ? null : () => onReagendar!(consulta),
           onTap: onConsultaTap == null
               ? null
               : () => onConsultaTap!(consulta),
@@ -1042,10 +1416,14 @@ class _CartaoConsulta extends StatelessWidget {
   const _CartaoConsulta({
     required this.consulta,
     this.onTap,
+    this.onCancelar,
+    this.onReagendar,
   });
 
   final ResumoConsulta consulta;
   final VoidCallback? onTap;
+  final VoidCallback? onCancelar;
+  final VoidCallback? onReagendar;
 
   Color _corStatus() {
     final status = consulta.status.toLowerCase();

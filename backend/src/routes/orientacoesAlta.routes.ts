@@ -3,6 +3,7 @@ import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarAlta } from "../notificacoes/eventos.js";
 
 const router = Router();
 
@@ -86,6 +87,12 @@ router.post(
                     orientacoesRetorno: orientacoesRetorno.trim(),
                     dataRegistro: new Date()
                 });
+
+            await notificarAlta(banco, {
+                petId: pet._id,
+                veterinarioUsuarioId: new ObjectId(res.locals.usuarioId),
+                referenciaId: resultado.insertedId
+            });
 
             return res.status(201).json({
                 mensagem: "Orientações de alta cadastradas com sucesso!",

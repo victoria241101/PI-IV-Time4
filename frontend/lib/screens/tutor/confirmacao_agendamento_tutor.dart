@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
+import 'package:pet_care/services/agendamentos_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 class ConfirmacaoAgendamentoTutor extends StatefulWidget {
   const ConfirmacaoAgendamentoTutor({
@@ -28,19 +30,35 @@ class _ConfirmacaoAgendamentoTutorState
           '${widget.dados.data.month.toString().padLeft(2, '0')}/'
           '${widget.dados.data.year}';
 
-  void _finalizar() {
+  String _tipoParaApi(String tipo) {
+    switch (tipo) {
+      case 'Consulta geral':
+        return 'consulta_geral';
+      case 'Vacinação':
+        return 'vacinacao';
+      case 'Dermatologia':
+        return 'dermatologia';
+      case 'Odontologia':
+        return 'odontologia';
+      case 'Retorno':
+        return 'retorno';
+      default:
+        throw StateError('Tipo de atendimento não reconhecido: $tipo');
+    }
+  }
+
+  Future<void> _finalizar() async {
     if (_finalizando || _confirmado) return;
 
-    final callback = widget.onConfirmar;
+    final petId = widget.dados.petId;
+    final veterinarioId = widget.dados.veterinarioId;
 
-    if (callback == null) {
+    if (petId == null || petId.isEmpty ||
+        veterinarioId == null || veterinarioId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Não foi possível concluir: a confirmação do agendamento '
-                'ainda não está conectada.',
-          ),
-        ),
+        const SnackBar(content: Text(
+          'Selecione um pet e um veterinário cadastrados para continuar.',
+        )),
       );
       return;
     }
@@ -48,32 +66,59 @@ class _ConfirmacaoAgendamentoTutorState
     setState(() => _finalizando = true);
 
     try {
-      callback(widget.dados);
+      final token = SessaoUsuario.instancia.token ??
+          const String.fromEnvironment('TOKEN_TESTE');
+      if (token.isEmpty) {
+        throw StateError('Token de autenticação não encontrado.');
+      }
+
+      final service = AgendamentosService(
+        baseUrl: 'http://localhost:3000',
+        token: token,
+      );
+
+      // O backend confirma novamente se o horário continua disponível.
+      await service.criarAgendamento(
+        petId: petId,
+        veterinarioId: veterinarioId,
+        data: widget.dados.data,
+        horario: widget.dados.horario,
+        tipo: _tipoParaApi(widget.dados.tipoAtendimento),
+        duracaoMinutos: 30,
+        observacoes: widget.dados.urgente
+            ? 'Atendimento marcado como urgente pelo tutor.'
+            : '',
+      );
 
       if (!mounted) return;
+      setState(() => _confirmado = true);
 
-      setState(() {
-        _confirmado = true;
-        _finalizando = false;
-      });
+      // Atualiza a lista local apenas depois da confirmação da API.
+      // Se o callback estiver ausente, a gravação no banco já ocorreu.
+      try {
+        widget.onConfirmar?.call(widget.dados);
+      } catch (erro) {
+        debugPrint('Agendamento salvo, mas a atualização local falhou: $erro');
+      }
 
-      // Retorna pelas telas de confirmação e detalhes até a tela
-      // de consultas, preservando o fluxo de navegação existente.
-      Navigator.of(context)
-        ..pop()
-        ..pop();
-    } catch (_) {
       if (!mounted) return;
-
-      setState(() => _finalizando = false);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
-          content: Text(
-            'Não foi possível concluir o agendamento. Tente novamente.',
-          ),
+          content: Text('Agendamento salvo com sucesso!'),
         ),
       );
+
+      Navigator.of(context).pop(true);
+    } catch (erro) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(
+          'Não foi possível concluir o agendamento: $erro',
+        )),
+      );
+    } finally {
+      if (mounted) setState(() => _finalizando = false);
     }
   }
 
@@ -574,10 +619,9 @@ class _AvisoConfirmacao extends StatelessWidget {
                 ),
                 SizedBox(height: 5),
                 Text(
-                  'A confirmação registra os dados no fluxo atual '
-                      'do aplicativo. A persistência no banco e a '
-                      'confirmação de disponibilidade dependem da '
-                      'integração com o backend.',
+                  'Ao concluir, o agendamento será enviado ao servidor. '
+                      'A confirmação só acontecerá depois que o banco '
+                      'registrar a consulta.',
                   style: TextStyle(
                     color: CoresApp.textSecondary,
                     fontSize: 12,

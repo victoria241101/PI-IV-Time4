@@ -4,16 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/screens/doacao/confirmacao_doacao.dart';
+import 'package:pet_care/services/doacoes_service.dart';
 
 class CheckoutDoacao extends StatefulWidget {
   const CheckoutDoacao({
     super.key,
+    required this.campanhaId,
     required this.nomeAnimal,
     required this.titulo,
     required this.meta,
     required this.valorDoacao,
   });
 
+  final String campanhaId;
   final String nomeAnimal;
   final String titulo;
   final double meta;
@@ -29,6 +32,8 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
 
   String _formaPagamento = 'pix';
   bool _processando = false;
+  String? _doacaoId;
+  bool _confirmada = false;
 
   String _formatarValor(double valor) {
     final partes = valor.toStringAsFixed(2).split('.');
@@ -49,37 +54,80 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
   }
 
   Future<void> _confirmarDoacao() async {
+    debugPrint('ID DA CAMPANHA: ${widget.campanhaId}');
     if (_processando) return;
+
+    // Evita registrar uma segunda doação depois de uma confirmação.
+    if (_confirmada) {
+      Navigator.of(context).pop(true);
+      return;
+    }
 
     setState(() {
       _processando = true;
     });
 
-    // Demonstração do fluxo. Nenhuma cobrança é realizada.
-    await Future<void>.delayed(
-      const Duration(milliseconds: 600),
-    );
+    try {
+      final service = DoacoesService.autenticado(
+        baseUrl: 'http://localhost:3000',
+      );
 
-    if (!mounted) return;
+      // Se já foi criada uma doação pendente, tenta confirmar a mesma.
+      if (_doacaoId == null) {
+        final resposta = await service.criarDoacao(
+          campanhaId: widget.campanhaId,
+          valor: widget.valorDoacao,
+          metodoPagamento: _formaPagamento,
+        );
 
-    final resultado = await Navigator.of(context).push<bool>(
-      MaterialPageRoute<bool>(
-        builder: (_) => ConfirmacaoDoacao(
-          nomeAnimal: widget.nomeAnimal,
-          titulo: widget.titulo,
-          valorDoacao: widget.valorDoacao,
+        final id = resposta['doacaoId'];
+        if (id is! String || id.isEmpty) {
+          throw Exception('O servidor não retornou o ID da doação.');
+        }
+        _doacaoId = id;
+      }
+
+      await service.confirmarDoacao(doacaoId: _doacaoId!);
+      _confirmada = true;
+
+      if (!mounted) return;
+
+      // A confirmação é apenas demonstrativa; não houve cobrança real.
+      await Navigator.of(context).push<bool>(
+        MaterialPageRoute<bool>(
+          builder: (_) => ConfirmacaoDoacao(
+            nomeAnimal: widget.nomeAnimal,
+            titulo: widget.titulo,
+            valorDoacao: widget.valorDoacao,
+          ),
         ),
-      ),
-    );
+      );
 
-    if (!mounted) return;
-
-    if (resultado == true) {
+      if (!mounted) return;
       Navigator.of(context).pop(true);
-    } else {
-      setState(() {
-        _processando = false;
-      });
+    } catch (erro) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context)
+        ..hideCurrentSnackBar()
+        ..showSnackBar(
+          SnackBar(
+            content: Text(
+              _doacaoId == null
+                  ? 'Não foi possível verificar o registro da doação. '
+                    'Confira o histórico antes de tentar novamente. $erro'
+                  : 'Não foi possível confirmar a doação pendente. '
+                    'Tente novamente. $erro',
+            ),
+            behavior: SnackBarBehavior.floating,
+          ),
+        );
+    } finally {
+      if (mounted) {
+        setState(() {
+          _processando = false;
+        });
+      }
     }
   }
 

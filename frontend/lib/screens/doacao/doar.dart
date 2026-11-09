@@ -9,11 +9,13 @@ import 'package:pet_care/screens/doacao/checkout_doacao.dart';
 class Doar extends StatefulWidget {
   const Doar({
     super.key,
+    required this.campanhaId,
     required this.nomeAnimal,
     required this.titulo,
     required this.meta,
   });
 
+  final String campanhaId;
   final String nomeAnimal;
   final String titulo;
   final double meta;
@@ -103,7 +105,7 @@ class _DoarState extends State<Doar> {
 
     final valor = double.tryParse(texto);
 
-    if (valor == null || !valor.isFinite || valor <= 0) {
+    if (valor == null || !valor.isFinite || valor < 1 || valor > 1000000) {
       return null;
     }
 
@@ -127,7 +129,7 @@ class _DoarState extends State<Doar> {
         ..showSnackBar(
           const SnackBar(
             content: Text(
-              'Informe um valor válido, com até duas casas decimais.',
+              'Informe um valor entre R\$ 1,00 e R\$ 1.000.000,00, com até duas casas decimais.',
             ),
             behavior: SnackBarBehavior.floating,
           ),
@@ -140,6 +142,7 @@ class _DoarState extends State<Doar> {
     final resultado = await Navigator.of(context).push<bool>(
       MaterialPageRoute<bool>(
         builder: (_) => CheckoutDoacao(
+          campanhaId: widget.campanhaId,
           nomeAnimal: widget.nomeAnimal,
           titulo: widget.titulo,
           meta: widget.meta,

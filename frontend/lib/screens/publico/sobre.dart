@@ -1,38 +1,68 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/screens/doacao/doacao.dart';
-import 'package:pet_care/widgets/publicos/barra_nav_publica.dart';
+
 import 'package:pet_care/widgets/publicos/cabecalho_publico.dart';
+import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
+import 'package:pet_care/widgets/barra_nav_tutor.dart';
+
+enum ContextoSobre {
+  publico,
+  geral,
+  tutor,
+}
 
 class Sobre extends StatelessWidget {
   const Sobre({
     super.key,
+    this.contexto = ContextoSobre.publico,
+    this.indiceTutor = 0,
+    this.onNavTutorTap,
   });
 
-  void _onNavTap(BuildContext context, int index) {
-    switch (index) {
-      case 0:
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        break;
+  final ContextoSobre contexto;
+  final int indiceTutor;
+  final ValueChanged<int>? onNavTutorTap;
 
-      case 1:
-        Navigator.of(context).pushNamedAndRemoveUntil(
-          '/campanhas',
-              (route) => route.isFirst,
-        );
-        break;
+  Widget _construirCabecalho() {
+    switch (contexto) {
+      case ContextoSobre.publico:
+        return const CabecalhoPublico();
 
-      case 2:
-        return;
+      case ContextoSobre.geral:
+        return const CabecalhoGeral();
+
+      case ContextoSobre.tutor:
+        return const SizedBox.shrink();
     }
+  }
+
+  Widget? _construirNavegacao(BuildContext context) {
+    if (contexto != ContextoSobre.tutor) {
+      return null;
+    }
+
+    return BarraNavTutor(
+      currentIndex: indiceTutor,
+      onTap: (index) {
+        Navigator.of(context).pop();
+        onNavTutorTap?.call(index);
+      },
+    );
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: contexto == ContextoSobre.tutor
+          ? AppBar(
+        title: const Text('Sobre o PetCare'),
+        backgroundColor: CoresApp.background,
+        foregroundColor: CoresApp.darkBlue,
+        elevation: 0,
+      )
+          : null,
       backgroundColor: CoresApp.background,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -43,15 +73,9 @@ class Sobre extends StatelessWidget {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              CabecalhoPublico(
-                onBackTap: () {
-                  Navigator.of(context).pop();
-                },
-              ),
+              _construirCabecalho(),
 
-              const SizedBox(
-                height: EspacamentosApp.lg,
-              ),
+              const SizedBox(height: EspacamentosApp.lg),
 
               Padding(
                 padding: const EdgeInsets.symmetric(
@@ -70,15 +94,11 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(
-                        EspacamentosApp.lg,
-                      ),
+                      padding: const EdgeInsets.all(EspacamentosApp.lg),
                       decoration: BoxDecoration(
                         color: CoresApp.darkBlue,
                         borderRadius: BorderRadius.circular(28),
@@ -106,9 +126,9 @@ class Sobre extends StatelessWidget {
                               size: 30,
                             ),
                           ),
-                          const SizedBox(
-                            height: EspacamentosApp.lg,
-                          ),
+
+                          const SizedBox(height: EspacamentosApp.lg),
+
                           const Text(
                             'Cuidar também é uma forma de amar.',
                             style: TextStyle(
@@ -118,9 +138,9 @@ class Sobre extends StatelessWidget {
                               fontWeight: FontWeight.w800,
                             ),
                           ),
-                          const SizedBox(
-                            height: EspacamentosApp.sm,
-                          ),
+
+                          const SizedBox(height: EspacamentosApp.sm),
+
                           const Text(
                             'O PetCare foi pensado para aproximar '
                                 'tutores, clínicas e pessoas dispostas a '
@@ -135,9 +155,7 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     const Text(
                       'O que é o PetCare?',
@@ -148,9 +166,7 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
+                    const SizedBox(height: EspacamentosApp.sm),
 
                     const Text(
                       'Uma plataforma para centralizar o cuidado '
@@ -163,9 +179,7 @@ class Sobre extends StatelessWidget {
                       ),
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.lg,
-                    ),
+                    const SizedBox(height: EspacamentosApp.lg),
 
                     const _ItemSobre(
                       icone: Icons.favorite_outline_rounded,
@@ -175,9 +189,7 @@ class Sobre extends StatelessWidget {
                           'dos seus pets.',
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
+                    const SizedBox(height: EspacamentosApp.sm),
 
                     const _ItemSobre(
                       icone: Icons.calendar_month_outlined,
@@ -187,9 +199,7 @@ class Sobre extends StatelessWidget {
                           'veterinários em um só lugar.',
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.sm,
-                    ),
+                    const SizedBox(height: EspacamentosApp.sm),
 
                     const _ItemSobre(
                       icone: Icons.volunteer_activism_outlined,
@@ -199,15 +209,11 @@ class Sobre extends StatelessWidget {
                           'mais transparência e segurança.',
                     ),
 
-                    const SizedBox(
-                      height: EspacamentosApp.xl,
-                    ),
+                    const SizedBox(height: EspacamentosApp.xl),
 
                     Container(
                       width: double.infinity,
-                      padding: const EdgeInsets.all(
-                        EspacamentosApp.md,
-                      ),
+                      padding: const EdgeInsets.all(EspacamentosApp.md),
                       decoration: BoxDecoration(
                         color: CoresApp.primary.withAlpha(16),
                         borderRadius: BorderRadius.circular(18),
@@ -242,10 +248,7 @@ class Sobre extends StatelessWidget {
           ),
         ),
       ),
-      bottomNavigationBar: BarraNavPublica(
-        currentIndex: 2,
-        onTap: (index) => _onNavTap(context, index),
-      ),
+      bottomNavigationBar: _construirNavegacao(context),
     );
   }
 }
@@ -265,9 +268,7 @@ class _ItemSobre extends StatelessWidget {
   Widget build(BuildContext context) {
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(
-        EspacamentosApp.md,
-      ),
+      padding: const EdgeInsets.all(EspacamentosApp.md),
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(18),
@@ -291,9 +292,7 @@ class _ItemSobre extends StatelessWidget {
               size: 22,
             ),
           ),
-          const SizedBox(
-            width: EspacamentosApp.md,
-          ),
+          const SizedBox(width: EspacamentosApp.md),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,

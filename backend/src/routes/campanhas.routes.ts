@@ -1,8 +1,12 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
-import { autenticar } from "../middlewares/auth.middleware.js";
+import {
+    autenticar,
+    autenticarOpcional
+} from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { notificarCampanha } from "../notificacoes/eventos.js";
 import {
     PAPEIS_GESTAO_CAMPANHAS,
     ehEquipe,
@@ -95,40 +99,27 @@ router.post(
     }
 );
 
-// 6.2 GET /campanhas - Listagem de campanhas (qualquer autenticado)
-router.get("/", autenticar, async (req, res) => {
+// 6.2 GET /campanhas - Listagem de campanhas
+router.get("/", autenticarOpcional, async (req, res) => {
     try {
-        const daEquipe = ehEquipe(res.locals.usuarioTipo);
-        const statusParam = req.query.status;
-
-        const filtro: Record<string, unknown> = {};
-
-        if (!daEquipe) {
-            // Não-equipe sempre vê apenas campanhas ativas
-            filtro.status = "ativa";
-        } else {
-            if (statusParam === "encerrada") {
-                filtro.status = "encerrada";
-            } else if (statusParam === "todas") {
-                // Sem filtro de status, lista todas
-            } else {
-                // Padrão: ativas
-                filtro.status = "ativa";
-            }
-        }
-
         const banco = obterBanco();
-        const campanhas = await banco.collection<CampanhaDocumento>("campanhas")
-            .find(filtro)
+
+        const campanhas = await banco
+            .collection<CampanhaDocumento>("campanhas")
+            .find({ status: "ativa" })
             .sort({ criadoEm: -1 })
             .limit(50)
             .toArray();
 
-        // Cálculo de progresso em paralelo (a falha de um não derruba os demais)
         const campanhasFormatadas = await Promise.all(
             campanhas.map(async (campanha) => {
                 const progresso = await obterProgresso(campanha);
-                return formatarCampanha(campanha, progresso, daEquipe);
+
+                return formatarCampanha(
+                    campanha,
+                    progresso,
+                    false
+                );
             })
         );
 
@@ -139,14 +130,15 @@ router.get("/", autenticar, async (req, res) => {
 
     } catch (erro) {
         console.error("Erro ao listar campanhas:", erro);
+
         return res.status(500).json({
             mensagem: "Erro ao listar campanhas."
         });
     }
 });
 
-// 6.3 GET /campanhas/:id - Consulta de campanha por ID (qualquer autenticado)
-router.get("/:id", autenticar, async (req, res) => {
+// 6.3 GET /campanhas/:id - Consulta de campanha por ID 
+router.get("/:id", autenticarOpcional, async (req, res) => {
     try {
         const id = req.params.id;
 
@@ -157,9 +149,13 @@ router.get("/:id", autenticar, async (req, res) => {
         }
 
         const banco = obterBanco();
-        const campanha = await banco.collection<CampanhaDocumento>("campanhas").findOne({
-            _id: new ObjectId(id)
-        });
+
+        const campanha = await banco
+            .collection<CampanhaDocumento>("campanhas")
+            .findOne({
+                _id: new ObjectId(id),
+                status: "ativa"
+            });
 
         if (!campanha) {
             return res.status(404).json({
@@ -167,25 +163,20 @@ router.get("/:id", autenticar, async (req, res) => {
             });
         }
 
-        const daEquipe = ehEquipe(res.locals.usuarioTipo);
-
-        // Quem não é da equipe e pede uma campanha encerrada recebe 404
-        if (!daEquipe && campanha.status === "encerrada") {
-            return res.status(404).json({
-                mensagem: "Campanha não encontrada."
-            });
-        }
-
         const progresso = await obterProgresso(campanha);
-        const campanhaFormatada = formatarCampanha(campanha, progresso, daEquipe);
 
         return res.status(200).json({
             mensagem: "Campanha encontrada com sucesso!",
-            campanha: campanhaFormatada
+            campanha: formatarCampanha(
+                campanha,
+                progresso,
+                false
+            )
         });
 
     } catch (erro) {
         console.error("Erro ao buscar campanha:", erro);
+
         return res.status(500).json({
             mensagem: "Erro ao buscar campanha."
         });
@@ -236,6 +227,15 @@ router.patch(
                 return res.status(409).json({
                     mensagem: "Esta campanha já está encerrada."
                 });
+            }
+
+            if (resultado.modifiedCount === 1) {
+                await notificarCampanha(
+                    banco,
+                    "campanha_encerrada",
+                    { ...campanhaExistente, status: "encerrada" },
+                    new ObjectId(res.locals.usuarioId)
+                );
             }
 
             return res.status(200).json({

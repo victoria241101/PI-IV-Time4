@@ -3,11 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/gerais/barra_nav_geral.dart';
+import 'package:pet_care/screens/autenticacao/service/perfil_service.dart';
 import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
-
-import 'package:pet_care/screens/doacao/doacao.dart';
-import 'package:pet_care/screens/publico/sobre.dart';
 
 class PerfilGeral extends StatefulWidget {
   const PerfilGeral({
@@ -19,62 +16,356 @@ class PerfilGeral extends StatefulWidget {
 }
 
 class _PerfilGeralState extends State<PerfilGeral> {
-  int _currentIndex = 3;
+  // =====================================================
+  // AÇÕES DO PERFIL
+  // =====================================================
 
+  void _mensagem(String mensagem) {
+    if (!mounted) return;
 
-  void _onNavTap(int index) {
-    switch (index) {
-      case 0:
-      // Retorna à primeira tela da pilha.
-      // No fluxo do tutor, essa tela é InicioTutor.
-        Navigator.of(context).popUntil(
-              (route) => route.isFirst,
+    ScaffoldMessenger.of(context)
+      ..hideCurrentSnackBar()
+      ..showSnackBar(
+        SnackBar(
+          content: Text(mensagem),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+  }
+
+  Future<void> _editarPerfil() async {
+    final formKey = GlobalKey<FormState>();
+
+    final nomeController = TextEditingController(
+      text: SessaoUsuario.instancia.nomeUsuario ?? '',
+    );
+
+    final emailController = TextEditingController(
+      text: SessaoUsuario.instancia.emailUsuario ?? '',
+    );
+
+    try {
+      final resultado = await showDialog<bool>(
+        context: context,
+        builder: (dialogContext) {
+          bool salvando = false;
+
+          return StatefulBuilder(
+            builder: (contextDialogo, atualizarDialogo) {
+              return AlertDialog(
+                backgroundColor: CoresApp.surface,
+                title: const Text('Editar perfil'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: nomeController,
+                          enabled: !salvando,
+                          textCapitalization: TextCapitalization.words,
+                          decoration: const InputDecoration(
+                            labelText: 'Nome completo',
+                            prefixIcon: Icon(Icons.person_outline),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.trim().length < 2) {
+                              return 'Informe seu nome completo.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: emailController,
+                          enabled: !salvando,
+                          keyboardType: TextInputType.emailAddress,
+                          decoration: const InputDecoration(
+                            labelText: 'E-mail',
+                            prefixIcon: Icon(Icons.email_outlined),
+                            border: OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            final email = valor?.trim() ?? '';
+                            if (!RegExp(
+                              r'^[^@\s]+@[^@\s]+\.[^@\s]+$',
+                            ).hasMatch(email)) {
+                              return 'Informe um e-mail válido.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: salvando
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(false),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: salvando
+                        ? null
+                        : () async {
+                      if (!formKey.currentState!.validate()) return;
+
+                      atualizarDialogo(() => salvando = true);
+
+                      try {
+                        await SessaoUsuario.instancia.atualizarPerfil(
+                          nome: nomeController.text,
+                          email: emailController.text,
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop(true);
+                      } catch (erro) {
+                        if (!dialogContext.mounted) return;
+
+                        atualizarDialogo(() => salvando = false);
+
+                        ScaffoldMessenger.of(dialogContext)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Não foi possível solicitar a alteração: $erro',
+                              ),
+                            ),
+                          );
+                      }
+                    },
+                    child: salvando
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                        : const Text('Solicitar alteração'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+
+      if (resultado == true && mounted) {
+        _mensagem(
+          'Solicitação enviada! Verifique seu e-mail para confirmar as alterações.',
         );
-        break;
-
-      case 1:
-      // Abre Campanhas usando a mesma estratégia
-      // de navegação utilizada nas outras telas.
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => const Doacao(),
-          ),
-        );
-        break;
-
-      case 2:
-      // Abre Sobre sem depender de uma rota nomeada.
-        Navigator.of(context).pushReplacement(
-          MaterialPageRoute<void>(
-            builder: (_) => const Sobre(),
-          ),
-        );
-        break;
-
-      case 3:
-      // O usuário já está no Perfil.
-        return;
+      }
+    } finally {
+      nomeController.dispose();
+      emailController.dispose();
     }
   }
 
-  void _editarPerfil() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'A edição do perfil será implementada em seguida.',
-        ),
-      ),
-    );
-  }
+  Future<void> _alterarSenha() async {
+    final formKey = GlobalKey<FormState>();
 
-  void _alterarSenha() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'A alteração de senha será implementada em seguida.',
-        ),
-      ),
-    );
+    final senhaAtualController = TextEditingController();
+    final novaSenhaController = TextEditingController();
+    final confirmarSenhaController = TextEditingController();
+
+    try {
+      await showDialog<void>(
+        context: context,
+        builder: (dialogContext) {
+          bool salvando = false;
+          bool mostrarSenhaAtual = false;
+          bool mostrarNovaSenha = false;
+          bool mostrarConfirmacao = false;
+
+          return StatefulBuilder(
+            builder: (contextDialogo, atualizarDialogo) {
+              return AlertDialog(
+                backgroundColor: CoresApp.surface,
+                title: const Text('Alterar senha'),
+                content: Form(
+                  key: formKey,
+                  child: SingleChildScrollView(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        TextFormField(
+                          controller: senhaAtualController,
+                          enabled: !salvando,
+                          obscureText: !mostrarSenhaAtual,
+                          decoration: InputDecoration(
+                            labelText: 'Senha atual',
+                            prefixIcon: const Icon(Icons.lock_outline),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(
+                                      () => mostrarSenhaAtual = !mostrarSenhaAtual,
+                                );
+                              },
+                              icon: Icon(
+                                mostrarSenhaAtual
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
+                              return 'Informe sua senha atual.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: novaSenhaController,
+                          enabled: !salvando,
+                          obscureText: !mostrarNovaSenha,
+                          decoration: InputDecoration(
+                            labelText: 'Nova senha',
+                            prefixIcon: const Icon(Icons.lock_reset),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(
+                                      () => mostrarNovaSenha = !mostrarNovaSenha,
+                                );
+                              },
+                              icon: Icon(
+                                mostrarNovaSenha
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor == null || valor.isEmpty) {
+                              return 'Informe a nova senha.';
+                            }
+                            if (valor.length < 8) {
+                              return 'Use pelo menos 8 caracteres.';
+                            }
+                            if (valor == senhaAtualController.text) {
+                              return 'Escolha uma senha diferente.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 16),
+                        TextFormField(
+                          controller: confirmarSenhaController,
+                          enabled: !salvando,
+                          obscureText: !mostrarConfirmacao,
+                          decoration: InputDecoration(
+                            labelText: 'Confirmar nova senha',
+                            prefixIcon: const Icon(Icons.verified_user_outlined),
+                            suffixIcon: IconButton(
+                              onPressed: () {
+                                atualizarDialogo(
+                                      () => mostrarConfirmacao = !mostrarConfirmacao,
+                                );
+                              },
+                              icon: Icon(
+                                mostrarConfirmacao
+                                    ? Icons.visibility_off
+                                    : Icons.visibility,
+                              ),
+                            ),
+                            border: const OutlineInputBorder(),
+                          ),
+                          validator: (valor) {
+                            if (valor != novaSenhaController.text) {
+                              return 'As senhas não coincidem.';
+                            }
+                            return null;
+                          },
+                        ),
+                        const SizedBox(height: 12),
+                        const Text(
+                          'Você receberá um e-mail para confirmar a alteração. '
+                              'Sua senha atual continuará válida até a confirmação.',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: CoresApp.textSecondary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                actions: [
+                  TextButton(
+                    onPressed: salvando
+                        ? null
+                        : () => Navigator.of(dialogContext).pop(),
+                    child: const Text('Cancelar'),
+                  ),
+                  FilledButton(
+                    onPressed: salvando
+                        ? null
+                        : () async {
+                      if (!formKey.currentState!.validate()) return;
+
+                      atualizarDialogo(() => salvando = true);
+
+                      try {
+                        final servico = PerfilService.autenticado(
+                          baseUrl: 'http://localhost:3000',
+                        );
+
+                        await servico.alterarSenha(
+                          senhaAtual: senhaAtualController.text,
+                          novaSenha: novaSenhaController.text,
+                          confirmarSenha: confirmarSenhaController.text,
+                        );
+
+                        if (!dialogContext.mounted) return;
+                        Navigator.of(dialogContext).pop();
+
+                        _mensagem(
+                          'Solicitação enviada! Verifique seu e-mail '
+                              'para confirmar a nova senha.',
+                        );
+                      } catch (erro) {
+                        if (!dialogContext.mounted) return;
+
+                        atualizarDialogo(() => salvando = false);
+
+                        ScaffoldMessenger.of(dialogContext)
+                          ..hideCurrentSnackBar()
+                          ..showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                'Não foi possível solicitar a alteração: $erro',
+                              ),
+                            ),
+                          );
+                      }
+                    },
+                    child: salvando
+                        ? const SizedBox(
+                      width: 18,
+                      height: 18,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                        : const Text('Solicitar alteração'),
+                  ),
+                ],
+              );
+            },
+          );
+        },
+      );
+    } finally {
+      senhaAtualController.dispose();
+      novaSenhaController.dispose();
+      confirmarSenhaController.dispose();
+    }
   }
 
   Future<void> _sair() async {
@@ -126,15 +417,11 @@ class _PerfilGeralState extends State<PerfilGeral> {
       },
     );
 
-    if (confirmar != true) {
-      return;
-    }
+    if (confirmar != true) return;
 
     await SessaoUsuario.instancia.sair();
 
-    if (!mounted) {
-      return;
-    }
+    if (!mounted) return;
 
     Navigator.pushNamedAndRemoveUntil(
       context,
@@ -142,6 +429,10 @@ class _PerfilGeralState extends State<PerfilGeral> {
           (route) => false,
     );
   }
+
+  // =====================================================
+  // TELA
+  // =====================================================
 
   @override
   Widget build(BuildContext context) {
@@ -159,11 +450,16 @@ class _PerfilGeralState extends State<PerfilGeral> {
             animation: SessaoUsuario.instancia,
             builder: (context, child) {
               final nome =
-                  SessaoUsuario.instancia.nomeUsuario?.trim() ?? 'Usuário';
+              SessaoUsuario.instancia.nomeUsuario?.trim().isNotEmpty ==
+                  true
+                  ? SessaoUsuario.instancia.nomeUsuario!.trim()
+                  : 'Usuário';
 
               final email =
-                  SessaoUsuario.instancia.emailUsuario?.trim() ??
-                      'E-mail não informado';
+              SessaoUsuario.instancia.emailUsuario?.trim().isNotEmpty ==
+                  true
+                  ? SessaoUsuario.instancia.emailUsuario!.trim()
+                  : 'E-mail não informado';
 
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -221,7 +517,11 @@ class _PerfilGeralState extends State<PerfilGeral> {
                         'Atualize a senha usada para acessar sua conta.',
                         onTap: _alterarSenha,
                       ),
-                      const SizedBox(height: EspacamentosApp.sm),
+
+                      const SizedBox(
+                        height: EspacamentosApp.sm,
+                      ),
+
                       const _ItemPerfil(
                         icone: Icons.verified_user_outlined,
                         titulo: 'Conta autenticada',
@@ -243,7 +543,8 @@ class _PerfilGeralState extends State<PerfilGeral> {
                       _ItemPerfil(
                         icone: Icons.logout_rounded,
                         titulo: 'Sair da conta',
-                        descricao: 'Encerrar sua sessão neste dispositivo.',
+                        descricao:
+                        'Encerrar sua sessão neste dispositivo.',
                         onTap: _sair,
                         corIcone: CoresApp.primary,
                       ),
@@ -271,13 +572,13 @@ class _PerfilGeralState extends State<PerfilGeral> {
           ),
         ),
       ),
-      bottomNavigationBar: BarraNavGeral(
-        currentIndex: _currentIndex,
-        onTap: _onNavTap,
-      ),
     );
   }
 }
+
+// =====================================================
+// CARD PRINCIPAL DO PERFIL
+// =====================================================
 
 class _CardPerfil extends StatelessWidget {
   const _CardPerfil({
@@ -412,6 +713,10 @@ class _CardPerfil extends StatelessWidget {
   }
 }
 
+// =====================================================
+// INFORMAÇÕES INDIVIDUAIS
+// =====================================================
+
 class _InformacaoPerfil extends StatelessWidget {
   const _InformacaoPerfil({
     required this.icone,
@@ -458,7 +763,9 @@ class _InformacaoPerfil extends StatelessWidget {
                     color: CoresApp.textSecondary,
                   ),
                 ),
+
                 const SizedBox(height: 2),
+
                 Text(
                   valor,
                   overflow: TextOverflow.ellipsis,
@@ -476,6 +783,10 @@ class _InformacaoPerfil extends StatelessWidget {
     );
   }
 }
+
+// =====================================================
+// SEÇÕES DO PERFIL
+// =====================================================
 
 class _SecaoPerfil extends StatelessWidget {
   const _SecaoPerfil({
@@ -512,9 +823,11 @@ class _SecaoPerfil extends StatelessWidget {
                 color: CoresApp.primary,
                 size: 20,
               ),
+
               const SizedBox(
                 width: EspacamentosApp.sm,
               ),
+
               Text(
                 titulo,
                 style: const TextStyle(
@@ -525,15 +838,21 @@ class _SecaoPerfil extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(
             height: EspacamentosApp.md,
           ),
+
           ...children,
         ],
       ),
     );
   }
 }
+
+// =====================================================
+// ITENS DAS SEÇÕES
+// =====================================================
 
 class _ItemPerfil extends StatelessWidget {
   const _ItemPerfil({
@@ -586,7 +905,9 @@ class _ItemPerfil extends StatelessWidget {
                     color: CoresApp.darkBlue,
                   ),
                 ),
+
                 const SizedBox(height: 3),
+
                 Text(
                   descricao,
                   style: const TextStyle(
