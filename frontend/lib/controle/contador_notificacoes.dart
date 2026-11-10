@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/widgets.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
-import 'package:pet_care/core/api_exception.dart';
 import 'package:pet_care/services/notificacoes_service.dart';
 
 /// Controlador singleton responsável pelo polling e estado da contagem de notificações não lidas.

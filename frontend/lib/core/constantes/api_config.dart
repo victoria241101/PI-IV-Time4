@@ -4,7 +4,7 @@ import 'package:flutter/foundation.dart';
 ///
 /// Orientações para execução:
 /// - Emulador Android: não precisa de nada, o padrão 10.0.2.2 já funciona.
-/// - Celular físico: passar --dart-define=API_URL=http://<IP do computador na rede>:3000
+/// - Celular físico: passar --dart-define=API_URL=http://`IP_DO_COMPUTADOR`:3000
 /// - Nunca gravar o IP real no código.
 class ApiConfig {
   ApiConfig._();
