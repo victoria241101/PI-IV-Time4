@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -12,7 +13,7 @@ import 'package:pet_care/widgets/item_notificacao.dart';
 
 /// Lista de conversas do usuário com suporte a pull-to-refresh e estados visuais completos.
 class ListaConversas extends StatefulWidget {
-  final void Function(ConversaResumo conversa) onAbrirConversa;
+  final FutureOr<void> Function(ConversaResumo conversa) onAbrirConversa;
   final String? titulo;
   final ChatService? servico;
   final bool exibirBotaoNovaConversa;
@@ -117,7 +118,14 @@ class _ListaConversasState extends State<ListaConversas> {
           naoLidas: 0,
         );
       }
-      widget.onAbrirConversa(resumo);
+      await _abrirConversa(resumo);
+    }
+  }
+
+  Future<void> _abrirConversa(ConversaResumo conversa) async {
+    await widget.onAbrirConversa(conversa);
+    if (mounted) {
+      await _carregarConversas();
     }
   }
 
@@ -335,7 +343,7 @@ class _ListaConversasState extends State<ListaConversas> {
                 : CoresApp.surface,
             borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
             child: InkWell(
-              onTap: () => widget.onAbrirConversa(conversa),
+              onTap: () => _abrirConversa(conversa),
               borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
               child: Container(
                 padding: const EdgeInsets.all(EspacamentosApp.md),

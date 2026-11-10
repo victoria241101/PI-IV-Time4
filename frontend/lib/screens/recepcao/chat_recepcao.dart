@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/screens/chat/tela_mensagens.dart';
 import 'package:pet_care/widgets/chat/lista_conversas.dart';
 
 class ChatRecepcao extends StatelessWidget {
@@ -17,13 +18,10 @@ class ChatRecepcao extends StatelessWidget {
       ),
       child: ListaConversas(
         titulo: 'Chat da equipe',
-        onAbrirConversa: (conversa) {
-          // provisório até a Parte 5
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text(
-                'A tela de mensagens chega na próxima etapa.',
-              ),
+        onAbrirConversa: (conversa) async {
+          await Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => TelaMensagens(conversa: conversa),
             ),
           );
         },
