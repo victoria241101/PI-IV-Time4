@@ -1,5 +1,8 @@
 // tela principal da recepção com agenda, cadastro, calendário e chat
 import 'package:flutter/material.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
+import 'package:pet_care/core/tema/cores_app.dart';
+import 'package:pet_care/screens/recepcao/cadastro/central_cadastros_recepcao.dart';
 import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
@@ -86,6 +89,12 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
   }
 
   bool _registrarConsulta(ConsultaRecepcao consulta) {
+    if (consulta.prontuarioOrigemId != null &&
+        _consultas.any(
+          (c) => c.prontuarioOrigemId == consulta.prontuarioOrigemId,
+        )) {
+      return false;
+    }
     if (consulta.status == StatusConsultaRecepcao.agendada) {
       final novoInicio = _minutosDoDia(consulta.horario);
       final novoFim = novoInicio + consulta.duracaoMinutos;
@@ -114,6 +123,21 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
           : '${consulta.pet} está aguardando triagem',
     );
     return true;
+  }
+
+  Future<void> _novoAgendamento(DateTime dia) async {
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          backgroundColor: CoresApp.background,
+          appBar: cabecalhoClinica('Novo agendamento'),
+          body: CadastroRecepcao(
+            dataInicial: dia,
+            onRegistrarConsulta: _registrarConsulta,
+          ),
+        ),
+      ),
+    );
   }
 
   int _minutosDoDia(String horario) {
@@ -145,10 +169,12 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
           key: ValueKey(_versaoCalendario),
           consultas: _consultas,
           dataInicial: _dataInicialAgenda,
+          mostrarCabecalho: false,
+          onNovoAgendamento: _novoAgendamento,
           onCancelar: _cancelarConsulta,
           onReagendar: _reagendarConsulta,
         ),
-        CadastroRecepcao(onRegistrarConsulta: _registrarConsulta),
+        const CentralCadastrosRecepcao(),
         const ChatRecepcao(),
       ],
     );

@@ -24,6 +24,10 @@ class AgendaRecepcao extends StatelessWidget {
   Widget build(BuildContext context) {
     final ordenadas = consultas.toList()
       ..sort((a, b) => a.horario.compareTo(b.horario));
+    final grupos = <String, List<ConsultaRecepcao>>{};
+    for (final consulta in ordenadas) {
+      grupos.putIfAbsent(consulta.horario, () => []).add(consulta);
+    }
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(
         EspacamentosApp.pagePadding,
@@ -36,6 +40,7 @@ class AgendaRecepcao extends StatelessWidget {
         children: [
           ResumoClinica(
             titulo: 'Acompanhamento de hoje',
+            distribuirIndicadores: true,
             indicadores: [
               (
                 consultas
@@ -83,24 +88,67 @@ class AgendaRecepcao extends StatelessWidget {
           if (ordenadas.isEmpty)
             _vazio()
           else
-            for (final consulta in ordenadas) ...[
-              CartaoAtendimento(
-                consulta: consulta,
-                mostrarSala: true,
-                acao: consulta.status == StatusConsultaRecepcao.agendada
-                    ? 'Confirmar chegada'
-                    : null,
-                iconeAcao: Icons.how_to_reg_outlined,
-                onAcao: consulta.status == StatusConsultaRecepcao.agendada
-                    ? () => onConfirmarChegada(consulta)
-                    : null,
+            for (final grupo in grupos.entries) ...[
+              CartaoClinica(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Row(
+                      children: [
+                        const Icon(
+                          Icons.schedule_rounded,
+                          size: 20,
+                          color: CoresApp.primaryDark,
+                        ),
+                        const SizedBox(width: 8),
+                        Text(
+                          grupo.key,
+                          style: TipografiaApp.bodyMedium.copyWith(
+                            color: CoresApp.primaryDark,
+                          ),
+                        ),
+                        const Spacer(),
+                        Text(
+                          '${grupo.value.length} atendimento${grupo.value.length == 1 ? '' : 's'}',
+                          style: TipografiaApp.caption,
+                        ),
+                      ],
+                    ),
+                    const SizedBox(height: EspacamentosApp.md),
+                    for (var i = 0; i < grupo.value.length; i++) ...[
+                      if (i > 0)
+                        const Padding(
+                          padding: EdgeInsets.symmetric(
+                            vertical: EspacamentosApp.md,
+                          ),
+                          child: Divider(height: 1),
+                        ),
+                      _atendimento(grupo.value[i]),
+                    ],
+                  ],
+                ),
               ),
-              const SizedBox(height: EspacamentosApp.sm),
+              const SizedBox(height: EspacamentosApp.md),
             ],
         ],
       ),
     );
   }
+
+  Widget _atendimento(ConsultaRecepcao consulta) => CartaoAtendimento(
+    consulta: consulta,
+    mostrarSala: true,
+    mostrarHorario: false,
+    agrupado: true,
+    emergenciaCompacta: true,
+    acao: consulta.status == StatusConsultaRecepcao.agendada
+        ? 'Confirmar chegada'
+        : null,
+    iconeAcao: Icons.how_to_reg_outlined,
+    onAcao: consulta.status == StatusConsultaRecepcao.agendada
+        ? () => onConfirmarChegada(consulta)
+        : null,
+  );
 
   Widget _vazio() {
     return CartaoClinica(

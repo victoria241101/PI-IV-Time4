@@ -18,6 +18,9 @@ class CartaoAtendimento extends StatelessWidget {
     this.iconeAcao = Icons.arrow_forward_rounded,
     this.acaoSecundaria = false,
     this.mostrarSala = false,
+    this.mostrarHorario = true,
+    this.agrupado = false,
+    this.emergenciaCompacta = false,
   });
   final ConsultaRecepcao consulta;
   final VoidCallback? onTap;
@@ -26,82 +29,105 @@ class CartaoAtendimento extends StatelessWidget {
   final IconData iconeAcao;
   final bool acaoSecundaria;
   final bool mostrarSala;
+  final bool mostrarHorario;
+  final bool agrupado;
+  final bool emergenciaCompacta;
   @override
-  Widget build(BuildContext context) => CartaoClinica(
-    onTap: onTap,
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Wrap(
-          spacing: EspacamentosApp.sm,
-          runSpacing: EspacamentosApp.xs,
-          children: [
+  Widget build(BuildContext context) =>
+      agrupado ? _conteudo() : CartaoClinica(onTap: onTap, child: _conteudo());
+
+  Widget _conteudo() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      Wrap(
+        spacing: EspacamentosApp.sm,
+        runSpacing: EspacamentosApp.xs,
+        children: [
+          if (mostrarHorario)
             Text(
               consulta.horario,
               style: TipografiaApp.bodyMedium.copyWith(
                 color: CoresApp.primaryDark,
               ),
             ),
+          if (emergenciaCompacta)
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Flexible(
+                  child: IndicadorStatus(
+                    label: consulta.status.rotulo,
+                    color: consulta.status.cor,
+                  ),
+                ),
+                if (consulta.emergencia) ...[
+                  const SizedBox(width: 8),
+                  const Tooltip(
+                    message: 'Emergência',
+                    triggerMode: TooltipTriggerMode.tap,
+                    child: Icon(
+                      Icons.emergency_rounded,
+                      color: CoresApp.danger,
+                      semanticLabel: 'Emergência',
+                      size: 24,
+                    ),
+                  ),
+                ],
+              ],
+            )
+          else
             IndicadorStatus(
               label: consulta.status.rotulo,
               color: consulta.status.cor,
             ),
-            if (consulta.emergencia)
-              const IndicadorStatus(
-                label: 'Emergência',
-                color: CoresApp.danger,
-              ),
-          ],
-        ),
-        const SizedBox(height: EspacamentosApp.sm),
-        Row(
-          children: [
-            AvatarPet(
-              fotoUrl: consulta.fotoPet,
-              nome: consulta.pet,
-              tamanho: 48,
-            ),
-            const SizedBox(width: EspacamentosApp.sm),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(consulta.pet, style: TipografiaApp.heading3),
-                  Text(
-                    '${consulta.especie} · ${consulta.tutor}',
-                    style: TipografiaApp.caption,
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        const SizedBox(height: EspacamentosApp.sm),
-        Text(
-          'Veterinário: ${consulta.profissional}${mostrarSala ? ' · ${consulta.sala}' : ''}',
-          style: TipografiaApp.caption,
-        ),
-        if (acao != null) ...[
-          const SizedBox(height: EspacamentosApp.sm),
-          if (acaoSecundaria)
-            OutlinedButton.icon(
-              onPressed: onAcao,
-              icon: Icon(iconeAcao),
-              label: Text(acao!),
-              style: OutlinedButton.styleFrom(
-                foregroundColor: CoresApp.primaryDark,
-                minimumSize: const Size(double.infinity, 48),
-              ),
-            )
-          else
-            BotaoClinica(
-              label: acao!,
-              icon: iconeAcao,
-              expanded: true,
-              onPressed: onAcao,
-            ),
+          if (consulta.emergencia && !emergenciaCompacta)
+            const IndicadorStatus(label: 'Emergência', color: CoresApp.danger),
         ],
+      ),
+      const SizedBox(height: EspacamentosApp.sm),
+      Row(
+        children: [
+          AvatarPet(fotoUrl: consulta.fotoPet, nome: consulta.pet, tamanho: 48),
+          const SizedBox(width: EspacamentosApp.sm),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(consulta.pet, style: TipografiaApp.heading3),
+                Text(
+                  '${consulta.especie} · ${consulta.tutor}',
+                  style: TipografiaApp.caption,
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+      const SizedBox(height: EspacamentosApp.sm),
+      Text(
+        'Veterinário: ${consulta.profissional}${mostrarSala ? ' · ${consulta.sala}' : ''}',
+        style: TipografiaApp.caption,
+      ),
+      if (acao != null) ...[
+        const SizedBox(height: EspacamentosApp.sm),
+        if (acaoSecundaria)
+          OutlinedButton.icon(
+            onPressed: onAcao,
+            icon: Icon(iconeAcao),
+            label: Text(acao!),
+            style: OutlinedButton.styleFrom(
+              foregroundColor: CoresApp.primaryDark,
+              minimumSize: const Size(double.infinity, 48),
+            ),
+          )
+        else
+          BotaoClinica(
+            label: acao!,
+            icon: iconeAcao,
+            expanded: true,
+            onPressed: onAcao,
+          ),
       ],
-    ),
+    ],
   );
 }

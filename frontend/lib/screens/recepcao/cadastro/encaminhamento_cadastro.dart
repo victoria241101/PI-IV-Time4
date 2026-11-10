@@ -23,8 +23,10 @@ class EncaminhamentoCadastro extends StatelessWidget {
     required this.onSelecionarHorario,
     required this.onProfissionalChanged,
     required this.onConfirmar,
+    this.campoIndicacao,
   });
 
+  final Widget? campoIndicacao;
   final String nomePet;
   final String nomeResponsavel;
   final String encaminhamento;
@@ -38,7 +40,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
   final ValueChanged<String> onProfissionalChanged;
   final VoidCallback onConfirmar;
 
-  bool get _agendando => encaminhamento == 'Agendar consulta';
+  bool get _agendando => encaminhamento != 'Triagem';
 
   @override
   Widget build(BuildContext context) {
@@ -85,15 +87,27 @@ class EncaminhamentoCadastro extends StatelessWidget {
           icon: Icons.medical_services_outlined,
           titulo: 'Agendar consulta',
           descricao: 'Escolha a data, o horário e o veterinário',
-          selecionado: _agendando,
+          selecionado: encaminhamento == 'Agendar consulta',
           onTap: () => onEncaminhamentoChanged('Agendar consulta'),
+        ),
+        const SizedBox(height: EspacamentosApp.md),
+        CartaoOpcaoApp(
+          icon: Icons.local_hospital_outlined,
+          titulo: 'Agendar internação',
+          descricao: 'Vincule a um prontuário com indicação do veterinário',
+          selecionado: encaminhamento == 'Agendar internação',
+          onTap: () => onEncaminhamentoChanged('Agendar internação'),
         ),
         if (_agendando) ...[
           const SizedBox(height: EspacamentosApp.md),
+          if (encaminhamento == 'Agendar internação' && campoIndicacao != null)
+            campoIndicacao!,
           _seletoresAgendamento(),
           const SizedBox(height: EspacamentosApp.sm),
           Text(
-            'No dia marcado, confirme a chegada para o paciente seguir à triagem',
+            encaminhamento == 'Agendar internação'
+                ? 'O agendamento reserva uma data; a internação começa após a admissão do paciente.'
+                : 'No dia marcado, confirme a chegada para o paciente seguir à triagem',
             style: TipografiaApp.caption,
           ),
         ],
@@ -118,7 +132,10 @@ class EncaminhamentoCadastro extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Horário da consulta', style: TipografiaApp.bodyMedium),
+          Text(
+            'Data e horário do agendamento',
+            style: TipografiaApp.bodyMedium,
+          ),
           const SizedBox(height: EspacamentosApp.sm),
           Row(
             children: [

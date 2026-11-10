@@ -16,7 +16,6 @@ class DadosResponsavelCadastro extends StatelessWidget {
     required this.cpfController,
     required this.telefoneController,
     required this.emailController,
-    required this.enderecoController,
     required this.validarNome,
     required this.validarTelefone,
     required this.onContinuar,
@@ -27,7 +26,6 @@ class DadosResponsavelCadastro extends StatelessWidget {
   final TextEditingController cpfController;
   final TextEditingController telefoneController;
   final TextEditingController emailController;
-  final TextEditingController enderecoController;
   final FormFieldValidator<String> validarNome;
   final FormFieldValidator<String> validarTelefone;
   final VoidCallback onContinuar;
@@ -83,13 +81,6 @@ class DadosResponsavelCadastro extends StatelessWidget {
                   prefixIcon: Icons.mail_outline_rounded,
                   keyboardType: TextInputType.emailAddress,
                 ),
-                const SizedBox(height: EspacamentosApp.md),
-                CampoFormularioApp(
-                  controller: enderecoController,
-                  label: 'Endereço residencial',
-                  prefixIcon: Icons.location_on_outlined,
-                  textCapitalization: TextCapitalization.words,
-                ),
               ],
             ),
           ),
@@ -119,25 +110,18 @@ class PerfilPetCadastro extends StatelessWidget {
     required this.cpfResponsavel,
     required this.telefoneResponsavel,
     required this.emailResponsavel,
-    required this.enderecoResponsavel,
     required this.nomePetController,
     required this.racaController,
-    required this.idadeController,
-    required this.condicoesController,
+    required this.dataNascimento,
     required this.especie,
     required this.sexo,
-    required this.castrado,
-    required this.possuiMicrochip,
-    required this.fotoSelecionada,
     required this.validarNomePet,
     required this.onEditarResponsavel,
     required this.onEspecieChanged,
     required this.onSexoChanged,
-    required this.onCastradoChanged,
-    required this.onMicrochipChanged,
-    required this.onFotoTocada,
-    required this.onFotoSelecionada,
+    required this.onDataNascimentoChanged,
     required this.onContinuar,
+    this.rotuloContinuar = 'Continuar',
   });
 
   final GlobalKey<FormState> formKey;
@@ -145,25 +129,18 @@ class PerfilPetCadastro extends StatelessWidget {
   final String cpfResponsavel;
   final String telefoneResponsavel;
   final String emailResponsavel;
-  final String enderecoResponsavel;
   final TextEditingController nomePetController;
   final TextEditingController racaController;
-  final TextEditingController idadeController;
-  final TextEditingController condicoesController;
+  final DateTime? dataNascimento;
   final String especie;
   final String sexo;
-  final bool castrado;
-  final bool possuiMicrochip;
-  final bool fotoSelecionada;
   final FormFieldValidator<String> validarNomePet;
   final VoidCallback onEditarResponsavel;
   final ValueChanged<String> onEspecieChanged;
   final ValueChanged<String> onSexoChanged;
-  final ValueChanged<bool> onCastradoChanged;
-  final ValueChanged<bool> onMicrochipChanged;
-  final VoidCallback onFotoTocada;
-  final VoidCallback onFotoSelecionada;
+  final ValueChanged<DateTime?> onDataNascimentoChanged;
   final VoidCallback onContinuar;
+  final String rotuloContinuar;
 
   @override
   Widget build(BuildContext context) {
@@ -189,24 +166,16 @@ class PerfilPetCadastro extends StatelessWidget {
                 DadoCadastro(titulo: 'Celular', valor: telefoneResponsavel),
                 if (emailResponsavel.isNotEmpty)
                   DadoCadastro(titulo: 'E-mail', valor: emailResponsavel),
-                if (enderecoResponsavel.isNotEmpty)
-                  DadoCadastro(titulo: 'Endereço', valor: enderecoResponsavel),
               ],
             ),
           ),
           const SizedBox(height: EspacamentosApp.md),
           SecaoCadastro(
             icon: Icons.pets_rounded,
-            titulo: 'Perfil clínico do pet',
+            titulo: 'Dados do pet',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                SeletorFotoPet(
-                  selecionada: fotoSelecionada,
-                  onFotoTocada: onFotoTocada,
-                  onFotoSelecionada: onFotoSelecionada,
-                ),
-                const SizedBox(height: EspacamentosApp.md),
                 CampoFormularioApp(
                   controller: nomePetController,
                   label: 'Nome do pet',
@@ -238,51 +207,16 @@ class PerfilPetCadastro extends StatelessWidget {
                   textCapitalization: TextCapitalization.words,
                 ),
                 const SizedBox(height: EspacamentosApp.md),
-                LinhaIdadeMicrochip(
-                  idadeController: idadeController,
-                  possuiMicrochip: possuiMicrochip,
-                  onMicrochipChanged: onMicrochipChanged,
-                ),
-                const SizedBox(height: EspacamentosApp.md),
-                SwitchListTile.adaptive(
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: EspacamentosApp.sm,
-                  ),
-                  value: castrado,
-                  onChanged: onCastradoChanged,
-                  activeThumbColor: CoresApp.primary,
-                  title: Text('Castrado(a)', style: TipografiaApp.bodyMedium),
-                ),
-                const SizedBox(height: EspacamentosApp.sm),
-                Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                        'Condições pré-existentes / alergias',
-                        style: TipografiaApp.captionBold,
-                      ),
-                    ),
-                    Text(
-                      'Atenção',
-                      style: TipografiaApp.captionBold.copyWith(
-                        color: CoresApp.accentOrangeDark,
-                      ),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: EspacamentosApp.sm),
-                CampoFormularioApp(
-                  controller: condicoesController,
-                  label: 'Observações clínicas',
-                  hint: 'Descreva condições ou alergias conhecidas',
-                  maxLines: 3,
+                SeletorNascimentoPet(
+                  dataNascimento: dataNascimento,
+                  onDataSelecionada: onDataNascimentoChanged,
                 ),
               ],
             ),
           ),
           const SizedBox(height: EspacamentosApp.md),
           BotaoClinica(
-            label: 'Continuar',
+            label: rotuloContinuar,
             icon: Icons.arrow_forward_rounded,
             expanded: true,
             onPressed: onContinuar,
@@ -293,55 +227,71 @@ class PerfilPetCadastro extends StatelessWidget {
   }
 }
 
-class LinhaIdadeMicrochip extends StatelessWidget {
-  const LinhaIdadeMicrochip({
+/// Selector de data de nascimento para o pet no cadastro da recepção.
+class SeletorNascimentoPet extends StatefulWidget {
+  const SeletorNascimentoPet({
     super.key,
-    required this.idadeController,
-    required this.possuiMicrochip,
-    required this.onMicrochipChanged,
+    required this.dataNascimento,
+    required this.onDataSelecionada,
   });
 
-  final TextEditingController idadeController;
-  final bool possuiMicrochip;
-  final ValueChanged<bool> onMicrochipChanged;
+  final DateTime? dataNascimento;
+  final ValueChanged<DateTime?> onDataSelecionada;
+
+  @override
+  State<SeletorNascimentoPet> createState() => _SeletorNascimentoPetState();
+}
+
+class _SeletorNascimentoPetState extends State<SeletorNascimentoPet> {
+  String _formatar(DateTime data) =>
+      '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';
+
+  Future<void> _escolher() async {
+    final hoje = DateUtils.dateOnly(DateTime.now());
+    final inicial =
+        widget.dataNascimento ?? hoje.subtract(const Duration(days: 365));
+    final data = await showDatePicker(
+      context: context,
+      initialDate: inicial.isAfter(hoje) ? hoje : inicial,
+      firstDate: DateTime(hoje.year - 30),
+      lastDate: hoje,
+      helpText: 'Data de nascimento do pet',
+      cancelText: 'Cancelar',
+      confirmText: 'Selecionar',
+    );
+    if (data != null && mounted) {
+      widget.onDataSelecionada(data);
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final idade = CampoFormularioApp(
-          controller: idadeController,
-          label: 'Idade ou nascimento',
-          hint: 'Ex.: 2 anos e 3 meses',
-        );
-        final microchip = SwitchListTile.adaptive(
-          contentPadding: const EdgeInsets.symmetric(
-            horizontal: EspacamentosApp.sm,
+    final texto = widget.dataNascimento != null
+        ? _formatar(widget.dataNascimento!)
+        : 'Selecionar data';
+    return Material(
+      type: MaterialType.transparency,
+      child: ListTile(
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: EspacamentosApp.sm,
+        ),
+        leading: const Icon(Icons.cake_outlined),
+        title: Text('Data de nascimento', style: TipografiaApp.bodyMedium),
+        subtitle: Text(
+          texto,
+          style: TipografiaApp.caption.copyWith(
+            color: widget.dataNascimento != null
+                ? CoresApp.textSecondary
+                : CoresApp.iconDefault,
           ),
-          value: possuiMicrochip,
-          onChanged: onMicrochipChanged,
-          activeThumbColor: CoresApp.primary,
-          title: Text('Possui microchip?', style: TipografiaApp.bodyMedium),
-        );
-
-        if (constraints.maxWidth < 430) {
-          return Column(
-            children: [
-              idade,
-              const SizedBox(height: EspacamentosApp.md),
-              microchip,
-            ],
-          );
-        }
-
-        return Row(
-          children: [
-            Expanded(child: idade),
-            const SizedBox(width: EspacamentosApp.sm),
-            Expanded(child: microchip),
-          ],
-        );
-      },
+        ),
+        trailing: const Icon(Icons.calendar_month_outlined),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(EspacamentosApp.radiusMd),
+          side: const BorderSide(color: CoresApp.divider),
+        ),
+        onTap: _escolher,
+      ),
     );
   }
 }
@@ -361,13 +311,16 @@ class PassoCadastro extends StatelessWidget {
       ),
       child: Row(
         children: [
-          _etapa(
-            numero: 1,
-            titulo: 'Responsável',
-            ativa: ativo == 0,
-            concluida: ativo > 0 || concluido,
-          ),
           Expanded(
+            child: _etapa(
+              numero: 1,
+              titulo: 'Responsável',
+              ativa: ativo == 0,
+              concluida: ativo > 0 || concluido,
+            ),
+          ),
+          SizedBox(
+            width: 24,
             child: Container(
               height: 2,
               margin: const EdgeInsets.symmetric(
@@ -378,11 +331,13 @@ class PassoCadastro extends StatelessWidget {
                   : CoresApp.divider,
             ),
           ),
-          _etapa(
-            numero: 2,
-            titulo: 'Perfil do pet',
-            ativa: ativo == 1,
-            concluida: concluido && ativo > 1,
+          Expanded(
+            child: _etapa(
+              numero: 2,
+              titulo: 'Perfil do pet',
+              ativa: ativo == 1,
+              concluida: concluido && ativo > 1,
+            ),
           ),
         ],
       ),
@@ -409,15 +364,20 @@ class PassoCadastro extends StatelessWidget {
           ),
         ),
         const SizedBox(width: EspacamentosApp.xs),
-        Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'ETAPA $numero',
-              style: TipografiaApp.caption.copyWith(fontSize: 9),
-            ),
-            Text(titulo, style: TipografiaApp.captionBold.copyWith(color: cor)),
-          ],
+        Flexible(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'ETAPA $numero',
+                style: TipografiaApp.caption.copyWith(fontSize: 9),
+              ),
+              Text(
+                titulo,
+                style: TipografiaApp.captionBold.copyWith(color: cor),
+              ),
+            ],
+          ),
         ),
       ],
     );

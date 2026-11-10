@@ -53,11 +53,7 @@ class AplicativoVeterinaria extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       scrollBehavior: const ComportamentoRolagemApp(),
       theme: TemaApp.light,
-      home: Builder(
-        builder: (context) => SplashScreen(
-          onConcluida: () => _abrirInicio(context),
-        ),
-      ),
+      home: const RevisaoFluxosTemporaria(),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),

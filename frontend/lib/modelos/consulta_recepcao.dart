@@ -48,6 +48,9 @@ class ConsultaRecepcao {
     required this.sala,
     required this.status,
     this.emergencia = false,
+    this.internacaoAgendada = false,
+    this.prontuarioOrigemId,
+    this.dataPrevistaInternacao,
     this.fotoPetUrl,
   });
 
@@ -63,6 +66,9 @@ class ConsultaRecepcao {
   String sala;
   StatusConsultaRecepcao status;
   final bool emergencia;
+  final bool internacaoAgendada;
+  final String? prontuarioOrigemId;
+  final DateTime? dataPrevistaInternacao;
   final String? fotoPetUrl;
 
   String? get fotoPet => fotoPetUrl;

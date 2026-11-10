@@ -6,6 +6,8 @@ class ProntuarioCompartilhado {
     this.descricaoConsulta = '',
     this.retornoRecomendado = '',
     this.internacao = '',
+    this.procedimentoIndicado = '',
+    this.dataPrevistaInternacao,
     this.internacaoAtiva = false,
     this.internacaoIniciadaEm,
     this.internacaoFinalizadaEm,
@@ -25,6 +27,8 @@ class ProntuarioCompartilhado {
   String descricaoConsulta;
   String retornoRecomendado;
   String internacao;
+  String procedimentoIndicado;
+  DateTime? dataPrevistaInternacao;
   bool internacaoAtiva;
   DateTime? internacaoIniciadaEm;
   DateTime? internacaoFinalizadaEm;
@@ -40,6 +44,8 @@ class ProntuarioCompartilhado {
     descricaoConsulta: descricaoConsulta,
     retornoRecomendado: retornoRecomendado,
     internacao: internacao,
+    procedimentoIndicado: procedimentoIndicado,
+    dataPrevistaInternacao: dataPrevistaInternacao,
     internacaoAtiva: internacaoAtiva,
     internacaoIniciadaEm: internacaoIniciadaEm,
     internacaoFinalizadaEm: internacaoFinalizadaEm,

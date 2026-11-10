@@ -10,7 +10,7 @@ class CartaoOpcaoApp extends StatelessWidget {
     super.key,
     required this.icon,
     required this.titulo,
-    required this.descricao,
+    this.descricao = '',
     required this.onTap,
     this.selecionado = false,
     this.compacto = false,
@@ -29,7 +29,7 @@ class CartaoOpcaoApp extends StatelessWidget {
     return Semantics(
       button: true,
       selected: selecionado,
-      label: '$titulo. $descricao',
+      label: descricao.isEmpty ? titulo : '$titulo. $descricao',
       child: Material(
         color: selecionado ? CoresApp.primary.withAlpha(14) : CoresApp.surface,
         borderRadius: BorderRadius.circular(EspacamentosApp.radiusLg),
@@ -67,8 +67,10 @@ class CartaoOpcaoApp extends StatelessWidget {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Text(titulo, style: TipografiaApp.bodyMedium),
-                      const SizedBox(height: EspacamentosApp.xs),
-                      Text(descricao, style: TipografiaApp.caption),
+                      if (descricao.isNotEmpty) ...[
+                        const SizedBox(height: EspacamentosApp.xs),
+                        Text(descricao, style: TipografiaApp.caption),
+                      ],
                     ],
                   ),
                 ),
