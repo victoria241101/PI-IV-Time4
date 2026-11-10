@@ -66,6 +66,10 @@ class ContadorNotificacoes extends ChangeNotifier with WidgetsBindingObserver {
     }
 
     if (!SessaoUsuario.instancia.estaLogado) {
+      if (_naoLidas != 0) {
+        _naoLidas = 0;
+        notifyListeners();
+      }
       return;
     }
 
@@ -132,10 +136,9 @@ class ContadorNotificacoes extends ChangeNotifier with WidgetsBindingObserver {
 
     switch (state) {
       case AppLifecycleState.resumed:
-        if (!_bloqueado401) {
-          atualizar();
-          _iniciarTimer();
-        }
+        _bloqueado401 = false;
+        atualizar();
+        _iniciarTimer();
         break;
       case AppLifecycleState.inactive:
       case AppLifecycleState.paused:
