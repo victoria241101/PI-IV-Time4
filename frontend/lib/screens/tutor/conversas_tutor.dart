@@ -1,9 +1,9 @@
-
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/widgets/cabecalho_app.dart';
+import 'package:pet_care/widgets/chat/lista_conversas.dart';
 
 class ConversasTutor extends StatelessWidget {
   const ConversasTutor({super.key});
@@ -74,7 +74,7 @@ class ConversasTutor extends StatelessWidget {
                                 EspacamentosApp.radiusMd,
                               ),
                             ),
-                            child: Icon(
+                            child: const Icon(
                               Icons.support_agent_rounded,
                               color: CoresApp.primary,
                               size: 30,
@@ -86,7 +86,7 @@ class ConversasTutor extends StatelessWidget {
                           Expanded(
                             child: Column(
                               crossAxisAlignment:
-                              CrossAxisAlignment.start,
+                                  CrossAxisAlignment.start,
                               children: [
                                 Text(
                                   'Estamos aqui para ajudar',
@@ -115,98 +115,19 @@ class ConversasTutor extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: EspacamentosApp.xl),
-                    Row(
-                      children: [
-                        Text(
-                          'Suas conversas',
-                          style: TextStyle(
-                            color: CoresApp.textPrimary,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
-                        const Spacer(),
-                        Container(
-                          padding: const EdgeInsets.symmetric(
-                            horizontal: 10,
-                            vertical: 5,
-                          ),
-                          decoration: BoxDecoration(
-                            color: CoresApp.surfaceSoft,
-                            borderRadius: BorderRadius.circular(20),
-                          ),
-                          child: Text(
-                            '0 conversas',
-                            style: TextStyle(
-                              color: CoresApp.textSecondary,
-                              fontSize: 12,
-                              fontWeight: FontWeight.w600,
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: EspacamentosApp.md),
                     Expanded(
-                      child: Center(
-                        child: SingleChildScrollView(
-                          child: Container(
-                            width: double.infinity,
-                            padding: const EdgeInsets.symmetric(
-                              horizontal: EspacamentosApp.lg,
-                              vertical: EspacamentosApp.xl,
-                            ),
-                            decoration: BoxDecoration(
-                              color: CoresApp.surface,
-                              borderRadius: BorderRadius.circular(
-                                EspacamentosApp.radiusLg,
+                      child: ListaConversas(
+                        titulo: 'Suas conversas',
+                        onAbrirConversa: (conversa) {
+                          // provisório até a Parte 5
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(
+                                'A tela de mensagens chega na próxima etapa.',
                               ),
                             ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 88,
-                                  height: 88,
-                                  decoration: BoxDecoration(
-                                    color: CoresApp.surfaceSoft,
-                                    shape: BoxShape.circle,
-                                  ),
-                                  child: Icon(
-                                    Icons.forum_outlined,
-                                    size: 40,
-                                    color: CoresApp.primary,
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: EspacamentosApp.lg,
-                                ),
-                                Text(
-                                  'Nenhuma conversa ainda',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: CoresApp.textPrimary,
-                                    fontSize: 17,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                const SizedBox(
-                                  height: EspacamentosApp.sm,
-                                ),
-                                Text(
-                                  'Quando houver conversas vinculadas '
-                                      'ao seu atendimento, elas aparecerão aqui.',
-                                  textAlign: TextAlign.center,
-                                  style: TextStyle(
-                                    color: CoresApp.textSecondary,
-                                    fontSize: 14,
-                                    height: 1.6,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ),
+                          );
+                        },
                       ),
                     ),
                     const SizedBox(height: EspacamentosApp.md),
