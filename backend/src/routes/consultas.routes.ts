@@ -1,5 +1,8 @@
+import { criarRotasTriagem } from "../consultas/triagem.routes.js";
+import { obterFiltroConsulta } from "../consultas/identificadoresConsultas.js";
+import { criarRotasLeituraConsultas } from "../consultas/leitura.routes.js";
 import { Router } from "express";
-import { ObjectId, MongoServerError, type Document, type Filter } from "mongodb";
+import { ObjectId, MongoServerError, type Document } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
@@ -7,14 +10,8 @@ import { notificarChegada, notificarTriagemConcluida } from "../notificacoes/eve
 
 const router = Router();
 
-// Suporta IDs antigos ("C002") e novos (ObjectId do MongoDB).
-function obterFiltroConsulta(id: string): Filter<Document> {
-    // O driver tipa _id como ObjectId por padrão, mas o banco
-    // também possui consultas antigas com identificadores de texto.
-    return {
-        _id: ObjectId.isValid(id) ? new ObjectId(id) : id
-    } as Filter<Document>;
-}
+router.use(criarRotasLeituraConsultas({ obterBanco, autenticar }));
+router.use(criarRotasTriagem({ obterBanco, autenticar, notificarTriagemConcluida }));
 
 router.patch(
     "/:id/confirmar-chegada",
@@ -68,213 +65,6 @@ router.patch(
 
             return res.status(500).json({
                 mensagem: "Erro ao confirmar chegada do paciente."
-            });
-        }
-    }
-);
-
-router.patch(
-    "/:id/iniciar-triagem",
-    autenticar,
-    permitirFuncoes("ENFERMEIRO"),
-    async (req, res) => {
-        try {
-            const id = String(req.params.id ?? "");
-
-            if (!id) {
-                return res.status(400).json({
-                    mensagem: "Código da consulta não informado."
-                });
-            }
-
-            const banco = obterBanco();
-            const consultas = banco.collection<Document>("consultas");
-
-            const resultado = await consultas.updateOne(
-                {
-                    ...obterFiltroConsulta(id),
-                    status: "chegada_confirmada"
-                },
-                {
-                    $set: {
-                        status: "em_triagem"
-                    }
-                }
-            );
-
-            if (resultado.modifiedCount === 0) {
-                return res.status(409).json({
-                    mensagem: "Consulta não encontrada ou não está aguardando triagem."
-                });
-            }
-
-            return res.status(200).json({
-                mensagem: "Triagem iniciada com sucesso!"
-            });
-        } catch (erro) {
-            console.error("Erro ao iniciar triagem:", erro);
-
-            return res.status(500).json({
-                mensagem: "Erro ao iniciar triagem."
-            });
-        }
-    }
-);
-
-router.post(
-    "/:id/triagem",
-    autenticar,
-    permitirFuncoes("ENFERMEIRO"),
-    async (req, res) => {
-        try {
-            const id = String(req.params.id ?? "");
-            const { peso, temperatura, sintomas, observacoes } = req.body;
-
-            if (!id) {
-                return res.status(400).json({
-                    mensagem: "Código da consulta não informado."
-                });
-            }
-
-            if (
-                typeof peso !== "number" ||
-                !Number.isFinite(peso) ||
-                peso <= 0 ||
-                typeof temperatura !== "number" ||
-                !Number.isFinite(temperatura) ||
-                typeof sintomas !== "string" ||
-                !sintomas.trim()
-            ) {
-                return res.status(400).json({
-                    mensagem: "Informe peso, temperatura e sintomas válidos."
-                });
-            }
-
-            if (
-                observacoes !== undefined &&
-                typeof observacoes !== "string"
-            ) {
-                return res.status(400).json({
-                    mensagem: "As observações devem ser um texto."
-                });
-            }
-
-            const banco = obterBanco();
-            const consultas = banco.collection<Document>("consultas");
-
-            const consulta = await consultas.findOne({
-                ...obterFiltroConsulta(id),
-                status: "em_triagem"
-            });
-
-            if (!consulta) {
-                return res.status(409).json({
-                    mensagem: "Consulta não encontrada ou não está em triagem."
-                });
-            }
-
-            const triagens = banco.collection("triagens");
-            const triagemExistente = await triagens.findOne({ consultaId: id });
-
-            if (triagemExistente) {
-                return res.status(409).json({
-                    mensagem: "Esta consulta já possui uma triagem registrada."
-                });
-            }
-
-            const resultado = await triagens.insertOne({
-                consultaId: id,
-                petId: consulta.petId,
-                enfermeiroUsuarioId: res.locals.usuarioId,
-                peso,
-                temperatura,
-                sintomas: sintomas.trim(),
-                observacoes: observacoes?.trim() ?? "",
-                dataHora: new Date()
-            });
-
-            return res.status(201).json({
-                mensagem: "Triagem registrada com sucesso!",
-                triagemId: resultado.insertedId
-            });
-        } catch (erro) {
-            if (erro instanceof MongoServerError && erro.code === 11000) {
-                return res.status(409).json({
-                    mensagem: "Esta consulta já possui uma triagem registrada."
-                });
-            }
-
-            console.error("Erro ao registrar triagem:", erro);
-
-            return res.status(500).json({
-                mensagem: "Erro ao registrar triagem."
-            });
-        }
-    }
-);
-
-router.patch(
-    "/:id/finalizar-triagem",
-    autenticar,
-    permitirFuncoes("ENFERMEIRO"),
-    async (req, res) => {
-        try {
-            const id = String(req.params.id ?? "");
-
-            if (!id) {
-                return res.status(400).json({
-                    mensagem: "Código da consulta não informado."
-                });
-            }
-
-            const banco = obterBanco();
-            const consultas = banco.collection<Document>("consultas");
-            const triagens = banco.collection("triagens");
-
-            const triagem = await triagens.findOne({ consultaId: id });
-
-            if (!triagem) {
-                return res.status(409).json({
-                    mensagem: "É necessário registrar a triagem antes de finalizá-la."
-                });
-            }
-
-            const resultado = await consultas.updateOne(
-                {
-                    ...obterFiltroConsulta(id),
-                    status: "em_triagem"
-                },
-                {
-                    $set: {
-                        status: "aguardando_veterinario",
-                        triagemFinalizadaEm: new Date()
-                    }
-                }
-            );
-
-            if (resultado.modifiedCount === 0) {
-                return res.status(409).json({
-                    mensagem: "Consulta não encontrada ou não está em triagem."
-                });
-            }
-
-            const consulta = await consultas.findOne(obterFiltroConsulta(id));
-            if (consulta) {
-                await notificarTriagemConcluida(
-                    banco,
-                    consulta,
-                    new ObjectId(res.locals.usuarioId)
-                );
-            }
-
-            return res.status(200).json({
-                mensagem: "Triagem finalizada! Paciente aguardando veterinário."
-            });
-        } catch (erro) {
-            console.error("Erro ao finalizar triagem:", erro);
-
-            return res.status(500).json({
-                mensagem: "Erro ao finalizar triagem."
             });
         }
     }
