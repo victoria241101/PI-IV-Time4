@@ -264,11 +264,6 @@ class _InicioTutorComDadosReaisState extends State<_InicioTutorComDadosReais> {
       carregarDetalhesPet: (petId) async {
         throw UnimplementedError('Detalhes do pet ainda não estão conectados ao backend.');
       },
-      onNotificacoes: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Notificações ainda não estão disponíveis.')),
-        );
-      },
     );
   }
 }

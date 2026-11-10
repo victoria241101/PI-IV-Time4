@@ -9,6 +9,7 @@ import 'package:pet_care/screens/recepcao/cadastro/cadastro_recepcao.dart';
 import 'package:pet_care/screens/recepcao/agenda/agenda_recepcao.dart';
 import 'package:pet_care/screens/recepcao/agenda/calendario_agendamentos.dart';
 import 'package:pet_care/screens/recepcao/chat_recepcao.dart';
+import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 
 /// Tela principal do fluxo de recepção / secretaria.
 class InicioRecepcao extends StatefulWidget {
@@ -131,7 +132,7 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
       nomePadrao: 'Recepção',
       abaAtual: _abaAtual,
       onSelecionarAba: (index) => setState(() => _abaAtual = index),
-      onNotificacao: () => _mensagem('Você está em dia com as notificações'),
+      onNotificacao: () => ModalNotificacoesTutor.show(context),
       terceiraAba: const BottomNavigationBarItem(
         icon: Icon(Icons.person_add_alt_1_outlined),
         label: 'Cadastro',

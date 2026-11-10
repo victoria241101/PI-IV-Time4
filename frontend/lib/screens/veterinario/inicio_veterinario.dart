@@ -15,6 +15,7 @@ import 'package:pet_care/screens/veterinario/consulta_veterinario.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 import 'package:pet_care/widgets/clinica/cartao_atendimento.dart';
+import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 
 class InicioVeterinario extends StatefulWidget {
   const InicioVeterinario({
@@ -119,12 +120,6 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     );
   }
 
-  void _mensagem(String texto) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(texto)));
-  }
-
   @override
   Widget build(BuildContext context) {
     final consultas = _consultasDoPerfil;
@@ -135,7 +130,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
       nomePadrao: _profissionalAtual,
       abaAtual: _abaAtual,
       onSelecionarAba: (index) => setState(() => _abaAtual = index),
-      onNotificacao: () => _mensagem('Você está em dia com as notificações'),
+      onNotificacao: () => ModalNotificacoesTutor.show(context),
       terceiraAba:
           widget.terceiraAbaItem ??
           const BottomNavigationBarItem(
