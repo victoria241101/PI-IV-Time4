@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
+import 'package:pet_care/services/api_http.dart';
 
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
@@ -10,7 +11,7 @@ class AuthService {
 
   static final AuthService instancia = AuthService._();
 
-  static const String _baseUrl = 'http://localhost:3000';
+  static const String _baseUrl = apiBaseUrl;
 
   final SessaoUsuario _sessao = SessaoUsuario.instancia;
 

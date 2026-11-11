@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
 import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
-import 'package:pet_care/screens/revisao_fluxos_temporaria.dart';
 import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -32,16 +31,37 @@ class AplicativoVeterinaria extends StatelessWidget {
     final sessao = SessaoUsuario.instancia;
     final Widget destino = !sessao.estaLogado
         ? const InicioPublico()
-        : sessao.ehTutor
-            ? const _InicioTutorComDadosReais()
-            : const InicioGeral();
+        : _construirDestinoAutenticado(context);
     Navigator.of(context).pushReplacement(
       MaterialPageRoute<void>(builder: (_) => destino),
     );
   }
 
+  Widget _protegerPerfil(String tipo, Widget tela) => AnimatedBuilder(
+    animation: SessaoUsuario.instancia,
+    builder: (context, _) {
+      final sessao = SessaoUsuario.instancia;
+      if (!sessao.estaLogado) return const LoginScreen();
+      if (sessao.tipoUsuario != tipo) {
+        return _construirDestinoAutenticado(context);
+      }
+      return tela;
+    },
+  );
+
   Widget _construirDestinoAutenticado(BuildContext context) {
-    return SessaoUsuario.instancia.ehTutor
+    final sessao = SessaoUsuario.instancia;
+    if (!sessao.estaLogado) return const LoginScreen();
+    if (sessao.ehSecretaria) {
+      return _protegerPerfil('SECRETARIA', const InicioRecepcao());
+    }
+    if (sessao.ehEnfermeiro) {
+      return _protegerPerfil('ENFERMEIRO', const InicioEnfermeiro());
+    }
+    if (sessao.ehVeterinario) {
+      return _protegerPerfil('VETERINARIO', const InicioVeterinario());
+    }
+    return sessao.ehTutor
         ? const _InicioTutorComDadosReais()
         : const InicioGeral();
   }
@@ -53,7 +73,11 @@ class AplicativoVeterinaria extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       scrollBehavior: const ComportamentoRolagemApp(),
       theme: TemaApp.light,
-      home: const RevisaoFluxosTemporaria(),
+      home: Builder(
+        builder: (context) => SplashScreen(
+          onConcluida: () => _abrirInicio(context),
+        ),
+      ),
       routes: {
         '/login': (context) => const LoginScreen(),
         '/cadastro': (context) => const CadastroScreen(),
@@ -62,10 +86,10 @@ class AplicativoVeterinaria extends StatelessWidget {
         '/inicio-autenticado': (context) => _construirDestinoAutenticado(context),
         '/campanhas': (context) => const Doacao(publica: true),
         '/sobre': (context) => const Sobre(),
-        '/recepcao': (context) => const InicioRecepcao(),
-        '/veterinario': (context) => const InicioVeterinario(),
-        '/enfermeiro': (context) => const InicioEnfermeiro(),
-        '/revisao-fluxos': (context) => const RevisaoFluxosTemporaria(),
+        '/recepcao': (context) => _protegerPerfil('SECRETARIA', const InicioRecepcao()),
+        '/veterinario': (context) => _protegerPerfil('VETERINARIO', const InicioVeterinario()),
+        '/enfermeiro': (context) => _protegerPerfil('ENFERMEIRO', const InicioEnfermeiro()),
+        '/revisao-fluxos': (context) => _construirDestinoAutenticado(context),
       },
     );
   }
