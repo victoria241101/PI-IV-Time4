@@ -1,16 +1,10 @@
 // agenda e prontuarios compartilhados pelas equipes da clinica
 import 'package:flutter/material.dart';
-
-import 'package:pet_care/mocks/cenarios_clinica_temporarios.dart';
-
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
 
 class AgendaClinica extends ChangeNotifier {
-  AgendaClinica._() {
-    // TEMPORÁRIO: remover esta chamada e o import ao conectar os dados reais.
-    carregarCenariosClinicaTemporarios(consultas, prontuarios);
-  }
+  AgendaClinica._();
 
   static final AgendaClinica instancia = AgendaClinica._();
 

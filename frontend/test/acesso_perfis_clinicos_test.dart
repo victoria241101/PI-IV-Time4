@@ -7,6 +7,7 @@ import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
 import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
 import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
 import 'package:pet_care/services/api_http.dart';
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -38,7 +39,7 @@ void main() {
         },
         () => MockClient((req) async {
           chamadas++;
-        expect(req.url.origin, Uri.parse(apiBaseUrl).origin);
+          expect(req.url.origin, Uri.parse(apiBaseUrl).origin);
           if (req.url.path == '/usuarios/login') {
             expect(req.method, 'POST');
             return http.Response(jsonEncode({'token': 'token-teste'}), 200);
@@ -129,23 +130,39 @@ void main() {
     );
     expect(sessao.estaLogado, isFalse);
   });
-  final contexto = _ContextoTeste();
-  MaterialApp app() => const AplicativoVeterinaria().build(contexto) as MaterialApp;
-  Widget destino(String rota) {
-    Widget tela = app().routes![rota]!(contexto);
+  Future<MaterialApp> app(WidgetTester tester) async {
+    await tester.pumpWidget(const AplicativoVeterinaria());
+    return tester.widget<MaterialApp>(find.byType(MaterialApp));
+  }
+
+  Widget destino(MaterialApp aplicativo, BuildContext contexto, String rota) {
+    Widget tela = aplicativo.routes![rota]!(contexto);
     while (tela is AnimatedBuilder) {
       tela = tela.builder(contexto, null);
     }
     return tela;
   }
-  const rotas = ['/recepcao', '/enfermeiro', '/veterinario', '/inicio-autenticado', '/revisao-fluxos'];
-  test('Abertura usa splash existente para restaurar sessão', () {
-    final inicio = app().home as Builder;
+
+  const rotas = [
+    '/recepcao',
+    '/enfermeiro',
+    '/veterinario',
+    '/inicio-autenticado',
+    '/revisao-fluxos',
+  ];
+  testWidgets('Abertura usa splash existente para restaurar sessão', (
+    tester,
+  ) async {
+    final aplicativo = await app(tester);
+    final contexto = tester.element(find.byType(MaterialApp));
+    final inicio = aplicativo.home as Builder;
     expect(inicio.builder(contexto), isA<SplashScreen>());
   });
-  test('Visitante não acessa nenhuma entrada clínica', () {
+  testWidgets('Visitante não acessa nenhuma entrada clínica', (tester) async {
+    final aplicativo = await app(tester);
+    final contexto = tester.element(find.byType(MaterialApp));
     for (final rota in rotas) {
-      expect(destino(rota), isA<LoginScreen>());
+      expect(destino(aplicativo, contexto, rota), isA<LoginScreen>());
     }
   });
   for (final perfil in {
@@ -153,33 +170,52 @@ void main() {
     'ENFERMEIRO': InicioEnfermeiro,
     'VETERINARIO': InicioVeterinario,
   }.entries) {
-    test('${perfil.key} acessa somente sua tela, inclusive por rota alheia', () async {
-      await sessao.entrar(nome: 'Teste', email: 'teste@example.test',
-        token: 'token-teste', tipoUsuario: perfil.key);
-      for (final rota in rotas) {
-        expect(destino(rota).runtimeType, perfil.value);
-      }
-      // Reavalia o mesmo guard após encerrar a sessão.
-      final guard = app().routes!['/recepcao']!(contexto) as AnimatedBuilder;
-      expect(guard.listenable, same(sessao));
-      await sessao.sair();
-      expect(guard.builder(contexto, null), isA<LoginScreen>());
-    });
+    testWidgets(
+      '${perfil.key} acessa somente sua tela, inclusive por rota alheia',
+      (tester) async {
+        await sessao.entrar(
+          nome: 'Teste',
+          email: 'teste@example.test',
+          token: 'token-teste',
+          tipoUsuario: perfil.key,
+        );
+        final aplicativo = await app(tester);
+        final contexto = tester.element(find.byType(MaterialApp));
+        for (final rota in rotas) {
+          expect(destino(aplicativo, contexto, rota).runtimeType, perfil.value);
+        }
+        // Reavalia o mesmo guard após encerrar a sessão.
+        final guard =
+            aplicativo.routes!['/recepcao']!(contexto) as AnimatedBuilder;
+        expect(guard.listenable, same(sessao));
+        await sessao.sair();
+        expect(guard.builder(contexto, null), isA<LoginScreen>());
+      },
+    );
   }
   for (final tutor in [false, true]) {
-    test('Destino original de usuário (tutor=$tutor) preservado', () async {
-      await sessao.entrar(nome: 'Teste', email: 'teste@example.test',
-        token: 'token-teste', tipoUsuario: 'USUARIO', ehTutor: tutor);
+    testWidgets('Destino original de usuário (tutor=$tutor) preservado', (
+      tester,
+    ) async {
+      await sessao.entrar(
+        nome: 'Teste',
+        email: 'teste@example.test',
+        token: 'token-teste',
+        tipoUsuario: 'USUARIO',
+        ehTutor: tutor,
+      );
+      final aplicativo = await app(tester);
+      final contexto = tester.element(find.byType(MaterialApp));
       for (final rota in rotas) {
         if (tutor) {
-          expect(destino(rota).runtimeType.toString(), '_InicioTutorComDadosReais');
+          expect(
+            destino(aplicativo, contexto, rota).runtimeType.toString(),
+            '_InicioTutorComDadosReais',
+          );
         } else {
-          expect(destino(rota), isA<InicioGeral>());
+          expect(destino(aplicativo, contexto, rota), isA<InicioGeral>());
         }
       }
     });
   }
-
 }
-
-class _ContextoTeste extends Fake implements BuildContext {}
