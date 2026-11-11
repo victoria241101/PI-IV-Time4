@@ -129,6 +129,7 @@ class SessaoUsuario extends ChangeNotifier {
 
     final servico = PerfilService.autenticado(
       baseUrl: 'http://localhost:3000',
+      token: SessaoUsuario.instancia.token!,
     );
 
     final resposta = await servico.atualizarPerfil(
@@ -172,6 +173,39 @@ class SessaoUsuario extends ChangeNotifier {
     _emailUsuario = null;
     _ehTutor = false;
     _tipoUsuario = 'USUARIO';
+
+    notifyListeners();
+  }
+  Future<void> sincronizarPerfilConfirmado() async {
+    if (!_estaLogado) {
+      throw StateError('Não existe uma sessão ativa.');
+    }
+
+    final resposta = await PerfilService.autenticado(
+      baseUrl: 'http://localhost:3000',
+      token: _token!,
+    ).buscarPerfil();
+
+    final usuario = resposta['usuario'];
+
+    if (usuario is! Map) {
+      throw Exception('Não foi possível atualizar os dados do perfil.');
+    }
+
+    final nome = usuario['nome']?.toString();
+    final email = usuario['email']?.toString();
+
+    if (nome == null || email == null) {
+      throw Exception('Dados do perfil incompletos.');
+    }
+
+    final prefs = await SharedPreferences.getInstance();
+
+    await prefs.setString(_chaveNome, nome);
+    await prefs.setString(_chaveEmail, email);
+
+    _nomeUsuario = nome;
+    _emailUsuario = email;
 
     notifyListeners();
   }

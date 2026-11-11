@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
@@ -7,6 +6,7 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/cabecalho_petcare.dart';
 import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 
+import '../publico/inicio_publico.dart';
 import 'esqueci_senha.dart';
 
 class LoginScreen extends StatefulWidget {
@@ -208,16 +208,21 @@ class _LoginScreenState extends State<LoginScreen> {
                     Align(
                       alignment: Alignment.centerLeft,
                       child: IconButton(
-                        onPressed: () => Navigator.of(context).pop(),
+                        onPressed: () {
+                          Navigator.of(context).pushAndRemoveUntil(
+                            MaterialPageRoute(
+                              builder: (_) => const InicioPublico(),
+                            ),
+                                (route) => false,
+                          );
+                        },
                         style: IconButton.styleFrom(
                           backgroundColor: Colors.white,
                           foregroundColor: CoresApp.darkBlue,
                           elevation: 2,
                           shadowColor: Colors.black.withAlpha(20),
                         ),
-                        icon: const Icon(
-                          Icons.arrow_back_rounded,
-                        ),
+                        icon: const Icon(Icons.arrow_back_rounded),
                       ),
                     ),
 
