@@ -1,3 +1,4 @@
+import { completarNomesAgenda } from './nomesAgenda.js';
 import { Router, type RequestHandler } from "express";
 import { ObjectId, type Db, type Document, type Filter } from "mongodb";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
@@ -51,8 +52,11 @@ export function criarRotasLeituraConsultas(dependencias: {
                     projection: { _id: 1, petId: 1, tutorId: 1, veterinarioId: 1,
                         dataHora: 1, duracaoMinutos: 1, tipo: 1, status: 1, enfermeiroUsuarioId: 1 }
                 }).sort({ dataHora: 1, _id: 1 }).skip((pagina - 1) * limite).limit(limite + 1).toArray();
-                const consultas = registros.slice(0, limite).map(item => ({
+                const paginaComNomes = await completarNomesAgenda(banco, registros.slice(0, limite));
+                const consultas = paginaComNomes.map(item => ({
                     id: String(item._id),
+                    petNome: item.petNome, especie: item.especie,
+                    tutorNome: item.tutorNome, veterinarioNome: item.veterinarioNome,
                     petId: item.petId == null ? null : String(item.petId),
                     tutorId: item.tutorId == null ? null : String(item.tutorId),
                     veterinarioId: item.veterinarioId == null ? null : String(item.veterinarioId),

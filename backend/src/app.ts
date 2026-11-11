@@ -1,3 +1,7 @@
+import { criarRotasCadastrosRecepcao } from './recepcao/cadastros.routes.js';
+import { obterBanco, obterCliente } from './database.js';
+import { autenticar } from './middlewares/auth.middleware.js';
+import { enviarComandoJava } from './javaClient.js';
 import express from "express";
 import cors from "cors";
 
@@ -35,6 +39,18 @@ app.use(cors({
 }));
 
 app.use(express.json());
+
+// Cadastro administrativo separado das rotas públicas de tutor.
+app.use('/recepcao', criarRotasCadastrosRecepcao({
+    obterBanco, obterCliente, autenticar,
+    gerarHash: async senha => {
+        const resposta = await enviarComandoJava('GERAR_HASH_SENHA', { senha });
+        if (resposta.status !== 'OK' || !resposta.dados?.hash) {
+            throw new Error('Serviço de senha indisponível.');
+        }
+        return resposta.dados.hash;
+    }
+}));
 
 // Rotas da API
 app.use("/usuarios", usuariosRoutes);

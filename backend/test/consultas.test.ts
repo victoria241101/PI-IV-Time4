@@ -1,44 +1,54 @@
-import test from 'node:test';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { ObjectId } from 'mongodb';
+import { ObjectId, type Db, type Document } from 'mongodb';
 import { criarRotasLeituraConsultas } from '../src/consultas/leitura.routes.ts';
 import { obterFiltroConsulta } from '../src/consultas/identificadoresConsultas.ts';
 
 const usuarioId = '507f1f77bcf86cd799439011';
-async function chamar(t, { papel = 'SECRETARIA', autenticado = true, query = '?data=2026-11-09', registros = [], profissional = { _id: 'VET001' }, falhar = false } = {}) {
-    const chamadas = {};
-    const banco = { collection(nome) {
+type OpcoesConsulta = { papel?: string; autenticado?: boolean; query?: string; registros?: Document[]; profissional?: Document | null; falhar?: boolean };
+async function chamar(t: TestContext, { papel = 'SECRETARIA', autenticado = true, query = '?data=2026-11-09', registros = [], profissional = { _id: 'VET001' }, falhar = false }: OpcoesConsulta = {}) {
+    const chamadas: Document = {};
+    const banco = { collection(nome: string) {
+        if (nome !== 'consultas' && nome !== 'veterinarios') {
+            return { find: () => ({ toArray: async () => [] }) };
+        }
         chamadas.colecao = nome;
         return {
-            async findOne(filtro) { chamadas.profissional = filtro; return profissional; },
-            find(filtro, opcoes) {
+            async findOne(filtro: Document) { chamadas.profissional = filtro; return profissional; },
+            find(filtro: Document, opcoes: Document) {
+                if (nome !== 'consultas') return { toArray: async () => [] };
                 if (falhar) throw new Error('Banco indisponível');
                 chamadas.filtro = filtro; chamadas.opcoes = opcoes;
                 return {
-                    sort(ordem) { chamadas.ordem = ordem; return this; },
-                    skip(n) { chamadas.pular = n; return this; },
-                    limit(n) { chamadas.limite = n; return this; },
+                    sort(ordem: Document) { chamadas.ordem = ordem; return this; },
+                    skip(n: number) { chamadas.pular = n; return this; },
+                    limit(n: number) { chamadas.limite = n; return this; },
                     async toArray() { return registros; }
                 };
             }
         };
     }};
     const app = express();
-    app.use('/consultas', criarRotasLeituraConsultas({ obterBanco: () => banco, autenticar(req, res, next) {
+    app.use('/consultas', criarRotasLeituraConsultas({ obterBanco: () => banco as unknown as Db, autenticar(req, res, next) {
         if (!autenticado) return res.sendStatus(401);
         res.locals.usuarioId = usuarioId; res.locals.usuarioTipo = papel; next();
     }}));
-    const servidor = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
-    t.after(() => new Promise(resolve => servidor.close(resolve)));
-    const resposta = await fetch(`http://127.0.0.1:${servidor.address().port}/consultas${query}`);
+    const servidor = await new Promise<Server>(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+    t.after(() => new Promise<void>((resolve, reject) => servidor.close(erro => erro ? reject(erro) : resolve())));
+    const resposta = await fetch(`http://127.0.0.1:${(servidor.address() as AddressInfo).port}/consultas${query}`);
     const corpo = resposta.headers.get('content-type')?.includes('json') ? await resposta.json() : null;
     return { status: resposta.status, corpo, chamadas };
 }
 
 test('identificador aceita texto legado e as duas representações MongoDB', () => {
     assert.deepEqual(obterFiltroConsulta('C002'), { _id: { $in: ['C002'] } });
-    const ids = obterFiltroConsulta(usuarioId)._id.$in;
+    const filtroId = obterFiltroConsulta(usuarioId)._id;
+    assert.ok(filtroId && typeof filtroId === 'object' && '$in' in filtroId);
+    const ids = filtroId.$in;
+    assert.ok(Array.isArray(ids));
     assert.equal(ids[0], usuarioId);
     assert.ok(ids[1] instanceof ObjectId);
     assert.equal(ids[1].toHexString(), usuarioId);
@@ -101,9 +111,9 @@ test('fila é compartilhada, mas continuar só é permitido para o responsável'
     const r = await chamar(t, { papel: 'ENFERMEIRO', registros });
     assert.equal(r.corpo.consultas.length, 4);
     assert.equal(r.chamadas.filtro.enfermeiroUsuarioId, undefined);
-    assert.deepEqual(r.corpo.consultas.map(c => [c.podeIniciarTriagem, c.podeContinuarTriagem]), [
+    assert.deepEqual(r.corpo.consultas.map((c: Document) => [c.podeIniciarTriagem, c.podeContinuarTriagem]), [
         [true, false], [false, true], [false, false], [false, false]
     ]);
     const secretaria = await chamar(t, { registros });
-    assert.ok(secretaria.corpo.consultas.every(c => !c.podeIniciarTriagem && !c.podeContinuarTriagem));
+    assert.ok(secretaria.corpo.consultas.every((c: Document) => !c.podeIniciarTriagem && !c.podeContinuarTriagem));
 });

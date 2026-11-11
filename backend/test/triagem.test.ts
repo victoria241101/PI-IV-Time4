@@ -1,7 +1,9 @@
-import test from 'node:test';
+import type { Server } from 'node:http';
+import type { AddressInfo } from 'node:net';
+import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';
-import { ObjectId } from 'mongodb';
+import { ObjectId, type Db, type Document } from 'mongodb';
 import { criarRotasTriagem } from '../src/consultas/triagem.routes.ts';
 
 const ana = '507f1f77bcf86cd799439011';
@@ -9,33 +11,33 @@ const bia = '507f1f77bcf86cd799439012';
 const clara = '507f1f77bcf86cd799439013';
 const dados = { peso: 5, temperatura: 38, sintomas: 'Sem apetite' };
 // Este substituto reproduz apenas os filtros usados nestas ações, não o MongoDB.
-function corresponde(doc, filtro) {
+function corresponde(doc: Document | null, filtro: Document) {
     return doc != null && Object.entries(filtro).every(([campo, valor]) => {
-        const igual = esperado => esperado instanceof ObjectId
+        const igual = (esperado: unknown) => esperado instanceof ObjectId
             ? doc[campo] instanceof ObjectId && esperado.equals(doc[campo])
             : doc[campo] === esperado;
         return valor?.$in ? valor.$in.some(igual) : igual(valor);
     });
 }
-async function ambiente(t, inicial = {}) {
-    const consulta = { _id: 'C001', petId: 'P001', status: 'chegada_confirmada', ...inicial };
-    const triagens = [];
-    const notificacoes = [];
-    const banco = { collection(nome) {
+async function ambiente(t: TestContext, inicial: Document = {}) {
+    const consulta: Document = { _id: 'C001', petId: 'P001', status: 'chegada_confirmada', ...inicial };
+    const triagens: Document[] = [];
+    const notificacoes: unknown[][] = [];
+    const banco = { collection(nome: string) {
         return nome === 'consultas' ? {
-            async findOne(filtro) { return corresponde(consulta, filtro) ? { ...consulta } : null; },
-            async updateOne(filtro, alteracao) {
+            async findOne(filtro: Document) { return corresponde(consulta, filtro) ? { ...consulta } : null; },
+            async updateOne(filtro: Document, alteracao: Document) {
                 if (!corresponde(consulta, filtro)) return { modifiedCount: 0 };
                 Object.assign(consulta, alteracao.$set);
                 return { modifiedCount: 1 };
             }
         } : {
-            async findOne(filtro) { return triagens.find(doc => corresponde(doc, filtro)) ?? null; },
-            async insertOne(doc) { const _id = new ObjectId(); triagens.push({ ...doc, _id }); return { insertedId: _id }; }
+            async findOne(filtro: Document) { return triagens.find(doc => corresponde(doc, filtro)) ?? null; },
+            async insertOne(doc: Document) { const _id = new ObjectId(); triagens.push({ ...doc, _id }); return { insertedId: _id }; }
         };
     }};
     const app = express(); app.use(express.json());
-    app.use('/consultas', criarRotasTriagem({ obterBanco: () => banco,
+    app.use('/consultas', criarRotasTriagem({ obterBanco: () => banco as unknown as Db,
         autenticar(req, res, next) {
             if (!req.headers['x-usuario-teste']) return res.sendStatus(401);
             res.locals.usuarioId = req.headers['x-usuario-teste'];
@@ -43,13 +45,13 @@ async function ambiente(t, inicial = {}) {
         },
         async notificarTriagemConcluida(...args) { notificacoes.push(args); }
     }));
-    const servidor = await new Promise(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
-    t.after(() => new Promise(resolve => servidor.close(resolve)));
+    const servidor = await new Promise<Server>(resolve => { const s = app.listen(0, '127.0.0.1', () => resolve(s)); });
+    t.after(() => new Promise<void>((resolve, reject) => servidor.close(erro => erro ? reject(erro) : resolve())));
     return { consulta, triagens, notificacoes,
-        async pedir(usuario, acao, corpo, papel = 'ENFERMEIRO') {
-            const headers = { 'content-type': 'application/json', 'x-papel-teste': papel };
+        async pedir(usuario: string | null, acao: string, corpo?: Document, papel = 'ENFERMEIRO') {
+            const headers: Record<string, string> = { 'content-type': 'application/json', 'x-papel-teste': papel };
             if (usuario) headers['x-usuario-teste'] = usuario;
-            const r = await fetch(`http://127.0.0.1:${servidor.address().port}/consultas/${consulta._id}/${acao}`, {
+            const r = await fetch(`http://127.0.0.1:${(servidor.address() as AddressInfo).port}/consultas/${consulta._id}/${acao}`, {
                 method: acao === 'triagem' ? 'POST' : 'PATCH', headers,
                 ...(corpo === undefined ? {} : { body: JSON.stringify(corpo) })
             });

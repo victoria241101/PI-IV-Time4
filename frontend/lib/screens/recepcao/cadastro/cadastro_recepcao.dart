@@ -1,3 +1,4 @@
+import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 // fluxo de cadastro de tutor e pet pela recepção
 import 'package:flutter/material.dart';
 import 'package:pet_care/controle/agenda_clinica.dart';
@@ -37,7 +38,9 @@ class CadastroRecepcao extends StatefulWidget {
     this.dataInicial,
     this.somenteCadastro = false,
     this.onCadastroConcluido,
+    this.cadastrosService,
   });
+  final CadastrosRecepcaoService? cadastrosService;
   final DateTime? dataInicial;
   final bool somenteCadastro;
   final ValueChanged<RegistroRecepcaoLocal>? onCadastroConcluido;
@@ -49,6 +52,11 @@ class CadastroRecepcao extends StatefulWidget {
 }
 
 class _CadastroRecepcaoState extends State<CadastroRecepcao> {
+  late final _cadastrosService =
+      widget.cadastrosService ?? CadastrosRecepcaoService();
+  String _solicitacaoId = CadastrosRecepcaoService.novaSolicitacao();
+  bool _salvando = false;
+  Map<String, dynamic>? _cadastroSalvo;
   final _cpfKey = GlobalKey<FormState>();
   final _responsavelKey = GlobalKey<FormState>();
   final _petKey = GlobalKey<FormState>();
@@ -102,6 +110,7 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
   // Navegação entre etapas
 
   void _voltar() {
+    if (_salvando) return;
     setState(() {
       switch (_etapa) {
         case _EtapaCadastro.inicio:
@@ -159,7 +168,14 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
 
   void _continuarResponsavel() {
     if (!_responsavelKey.currentState!.validate()) return;
-    if (!_responsavelExistente &&
+    if (widget.somenteCadastro &&
+        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+            .hasMatch(_emailController.text.trim())) {
+      _mensagem('Informe um e-mail válido para o tutor acessar a conta.');
+      return;
+    }
+    if (!widget.somenteCadastro &&
+        !_responsavelExistente &&
         CadastrosRecepcaoLocal.instancia.tutorPorCpf(_cpfController.text) !=
             null) {
       _mensagem(
@@ -191,12 +207,41 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
     });
   }
 
-  void _continuarPet() {
-    if (!_petKey.currentState!.validate()) return;
+  Future<void> _continuarPet() async {
+    if (_salvando || !_petKey.currentState!.validate()) return;
     if (widget.somenteCadastro) {
-      final registro = _registroTutorPet();
-      widget.onCadastroConcluido?.call(registro);
-      setState(() => _etapa = _EtapaCadastro.sucesso);
+      if (_racaController.text.trim().isEmpty) {
+        _mensagem(
+          'Informe a raça do pet. Para raça desconhecida, informe SRD.',
+        );
+        return;
+      }
+      setState(() => _salvando = true);
+      try {
+        final dados = _registroTutorPet().dados;
+        final resultado = await _cadastrosService.cadastrar({
+          ...dados,
+          'nome': _nomeResponsavel,
+        }, _solicitacaoId);
+        if (!mounted) return;
+        _cadastroSalvo = resultado;
+        _nomeResponsavel = resultado['nome']?.toString() ?? _nomeResponsavel;
+        final registro = RegistroRecepcaoLocal(
+          tipo: TipoCadastroRecepcao.tutorPet,
+          nome: resultado['nome']?.toString() ?? _nomeResponsavel,
+          dados: {
+            ...dados,
+            'tutorId': resultado['tutorId'] as String,
+            'petId': resultado['petId'] as String,
+          },
+        );
+        widget.onCadastroConcluido?.call(registro);
+        setState(() => _etapa = _EtapaCadastro.sucesso);
+      } catch (erro) {
+        if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+      } finally {
+        if (mounted) setState(() => _salvando = false);
+      }
       return;
     }
     setState(() {
@@ -349,6 +394,8 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
 
   void _reiniciar() {
     setState(() {
+      _solicitacaoId = CadastrosRecepcaoService.novaSolicitacao();
+      _cadastroSalvo = null;
       _etapa = widget.somenteCadastro
           ? _EtapaCadastro.responsavel
           : _EtapaCadastro.inicio;
@@ -396,7 +443,8 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
             children: [
               _cabecalhoEtapa(),
               const SizedBox(height: EspacamentosApp.md),
-              _conteudoEtapa(),
+              if (_salvando) const LinearProgressIndicator(),
+              AbsorbPointer(absorbing: _salvando, child: _conteudoEtapa()),
             ],
           ),
         ),
@@ -556,7 +604,8 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
               ),
               const SizedBox(height: 8),
               Text(
-                '$_nomeResponsavel · ${_nomePetController.text}\nCadastro disponível nesta sessão de revisão.',
+                '$_nomeResponsavel · ${_nomePetController.text}\nCadastro salvo.\n'
+                '${_cadastroSalvo?['contaCriada'] == true ? 'Para criar a senha, o tutor deve usar “Esqueci a senha” com o e-mail cadastrado.' : 'O tutor pode usar sua senha ou selecionar “Esqueci a senha” com o e-mail cadastrado.'}',
                 textAlign: TextAlign.center,
               ),
               const SizedBox(height: 16),

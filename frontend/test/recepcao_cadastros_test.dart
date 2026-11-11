@@ -1,3 +1,4 @@
+import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_care/controle/agenda_clinica.dart';
@@ -117,6 +118,7 @@ void main() {
     await abrir(
       t,
       CadastroRecepcao(
+        cadastrosService: _CadastroApiTeste(),
         somenteCadastro: true,
         onRegistrarConsulta: (_) {
           consultasCriadas++;
@@ -126,6 +128,7 @@ void main() {
       ),
     );
     await preencher(t, 'Nome completo', 'Ana Teste');
+    await preencher(t, 'E-mail', 'ana@example.test');
     await preencher(t, 'CPF', '12345678901');
     await preencher(t, 'Celular', '11999999999');
     await tocar(t, 'Continuar para perfil do pet');
@@ -134,6 +137,7 @@ void main() {
     expect(find.text('Informe o nome do pet'), findsOneWidget);
     expect(salvo, isNull);
     await preencher(t, 'Nome do pet', 'Pipoca');
+    await preencher(t, 'Raça', 'SRD');
     await tocar(t, 'Cadastrar tutor e pet');
     expect(salvo?.nome, 'Ana Teste');
     expect(salvo?.dados['pet'], 'Pipoca');
@@ -204,6 +208,7 @@ void main() {
       await abrir(
         t,
         CadastroRecepcao(
+          cadastrosService: _CadastroApiTeste(),
           dataInicial: agendada,
           onRegistrarConsulta: (c) {
             criada = c;
@@ -299,16 +304,19 @@ void main() {
     await abrir(
       t,
       CadastroRecepcao(
+        cadastrosService: _CadastroApiTeste(),
         somenteCadastro: true,
         onRegistrarConsulta: (_) => true,
         onCadastroConcluido: (r) => salvo = r,
       ),
     );
     await preencher(t, 'Nome completo', 'Tutor Castrado');
+    await preencher(t, 'E-mail', 'tutor@example.test');
     await preencher(t, 'CPF', '52998224725');
     await preencher(t, 'Celular', '11888888888');
     await tocar(t, 'Continuar para perfil do pet');
     await preencher(t, 'Nome do pet', 'Bolinha');
+    await preencher(t, 'Raça', 'SRD');
     expect(find.text('Possui microchip?'), findsNothing);
     expect(find.text('Castrado(a)'), findsNothing);
     expect(find.text('Observações clínicas'), findsNothing);
@@ -324,6 +332,8 @@ void main() {
         'raca',
         'dataNascimento',
         'sexo',
+        'tutorId',
+        'petId',
       ]),
     );
     expect(t.takeException(), isNull);
@@ -343,4 +353,50 @@ void main() {
     expect(find.text('Buscar responsável'), findsOneWidget);
     expect(t.takeException(), isNull);
   });
+  testWidgets('Falha da API preserva formulário e não anuncia sucesso', (
+    t,
+  ) async {
+    await abrir(
+      t,
+      CadastroRecepcao(
+        somenteCadastro: true,
+        cadastrosService: _CadastroApiFalha(),
+        onRegistrarConsulta: (_) => false,
+      ),
+    );
+    await preencher(t, 'Nome completo', 'Ana Teste');
+    await preencher(t, 'CPF', '52998224725');
+    await preencher(t, 'Celular', '11999999999');
+    await preencher(t, 'E-mail', 'ana@example.test');
+    await tocar(t, 'Continuar para perfil do pet');
+    await preencher(t, 'Nome do pet', 'Mel');
+    await preencher(t, 'Raça', 'SRD');
+    await tocar(t, 'Cadastrar tutor e pet');
+    expect(find.text('Serviço indisponível'), findsOneWidget);
+    expect(find.text('Tutor e pet cadastrados'), findsNothing);
+    expect(find.widgetWithText(TextFormField, 'Mel'), findsOneWidget);
+  });
+}
+
+class _CadastroApiTeste extends CadastrosRecepcaoService {
+  @override
+  Future<Map<String, dynamic>> cadastrar(
+    Map<String, String> dados,
+    String solicitacaoId,
+  ) async => {
+    'tutorId': 'T001',
+    'petId': 'P001',
+    'contaCriada': true,
+    'nome': dados['nome'],
+  };
+}
+
+class _CadastroApiFalha extends CadastrosRecepcaoService {
+  @override
+  Future<Map<String, dynamic>> cadastrar(
+    Map<String, String> dados,
+    String solicitacaoId,
+  ) async {
+    throw Exception('Serviço indisponível');
+  }
 }

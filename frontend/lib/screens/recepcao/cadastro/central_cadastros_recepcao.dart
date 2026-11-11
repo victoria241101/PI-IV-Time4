@@ -184,12 +184,15 @@ class _CentralCadastrosRecepcaoState extends State<CentralCadastrosRecepcao> {
       ),
       const SizedBox(height: 24),
       Text(
-        'Prévia local · os cadastros desta revisão são apagados ao reiniciar o aplicativo.',
+        'Tutor e pet são salvos no sistema. Os demais cadastros ainda são uma prévia local.',
         style: TipografiaApp.caption,
       ),
       if (_cadastros.registros.isNotEmpty) ...[
         const SizedBox(height: 24),
-        Text('Cadastros desta sessão', style: TipografiaApp.heading3),
+        Text(
+          'Cadastros realizados nesta sessão',
+          style: TipografiaApp.heading3,
+        ),
         const SizedBox(height: 8),
         for (final registro in _cadastros.registros.reversed)
           ListTile(
