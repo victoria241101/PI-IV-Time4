@@ -206,6 +206,82 @@ class AuthService {
     }
   }
 
+  // =====================================================
+  // RECUPERAÇÃO DE SENHA
+  // =====================================================
+
+  Future<void> solicitarRecuperacaoSenha({
+    required String email,
+  }) async {
+    try {
+      final resposta = await http
+          .post(
+        Uri.parse('$_baseUrl/usuarios/esqueci-senha'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'email': email.trim().toLowerCase(),
+        }),
+      )
+          .timeout(const Duration(seconds: 20));
+
+      final dados = _decodificarResposta(resposta);
+
+      if (resposta.statusCode != 200) {
+        throw Exception(
+          dados['mensagem'] ??
+              'Não foi possível solicitar a recuperação de senha.',
+        );
+      }
+    } on http.ClientException catch (e) {
+      debugPrint('ERRO AO SOLICITAR RECUPERAÇÃO: ${e.message}');
+      throw Exception('Falha na comunicação com o servidor.');
+    } on FormatException {
+      throw Exception('O servidor retornou uma resposta inválida.');
+    } on TimeoutException {
+      throw Exception('O servidor demorou demais para responder.');
+    }
+  }
+
+  Future<void> redefinirSenha({
+    required String token,
+    required String novaSenha,
+    required String confirmarSenha,
+  }) async {
+    try {
+      final resposta = await http
+          .post(
+        Uri.parse('$_baseUrl/usuarios/redefinir-senha'),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: jsonEncode({
+          'token': token,
+          'novaSenha': novaSenha,
+          'confirmarSenha': confirmarSenha,
+        }),
+      )
+          .timeout(const Duration(seconds: 20));
+
+      final dados = _decodificarResposta(resposta);
+
+      if (resposta.statusCode != 200) {
+        throw Exception(
+          dados['mensagem'] ??
+              'Não foi possível redefinir sua senha.',
+        );
+      }
+    } on http.ClientException catch (e) {
+      debugPrint('ERRO AO REDEFINIR SENHA: ${e.message}');
+      throw Exception('Falha na comunicação com o servidor.');
+    } on FormatException {
+      throw Exception('O servidor retornou uma resposta inválida.');
+    } on TimeoutException {
+      throw Exception('O servidor demorou demais para responder.');
+    }
+  }
+
   Map<String, dynamic> _decodificarResposta(http.Response resposta) {
     final dados = jsonDecode(resposta.body);
 

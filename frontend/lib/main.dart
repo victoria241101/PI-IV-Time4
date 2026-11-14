@@ -1,8 +1,8 @@
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
@@ -55,6 +55,18 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
   Future<void> _inicializarLinks() async {
     try {
+      // Flutter Web: recebe o link pela URL do navegador.
+      if (kIsWeb) {
+        final linkInicial = Uri.base;
+
+        if (linkInicial.queryParameters.containsKey('token')) {
+          _receberLink(linkInicial);
+        }
+
+        return;
+      }
+
+      // Android: mantém o recebimento de deep links nativos.
       final linkInicial = await _appLinks.getInitialLink();
 
       if (linkInicial != null) {
@@ -73,7 +85,11 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
   }
 
   void _receberLink(Uri uri) {
-    if (uri.scheme != 'petcare') return;
+    final linkNativo = uri.scheme == 'petcare';
+    final linkWeb = kIsWeb &&
+        uri.queryParameters.containsKey('tipo');
+
+    if (!linkNativo && !linkWeb) return;
 
     if (!_inicioPronto || _navigatorKey.currentState == null) {
       _linkPendente = uri;
@@ -89,7 +105,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       return;
     }
 
-    final tipo = uri.host;
+    final tipo = uri.scheme == 'petcare'
+        ? uri.host
+        : uri.queryParameters['tipo'];
     final token = uri.queryParameters['token'];
 
     if (token == null ||
@@ -136,7 +154,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       final sessao = SessaoUsuario.instancia;
 
       final servico = PerfilService(
-        baseUrl: 'http://10.0.2.2:3000',
+        baseUrl: kIsWeb
+            ? 'http://localhost:3000'
+            : 'http://10.0.2.2:3000',
         token: sessao.token ?? '',
       );
 

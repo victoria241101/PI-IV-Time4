@@ -1,3 +1,4 @@
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -129,7 +130,7 @@ class SessaoUsuario extends ChangeNotifier {
 
     final servico = PerfilService.autenticado(
       baseUrl: 'http://localhost:3000',
-      token: SessaoUsuario.instancia.token!,
+      token: _token ?? '',
     );
 
     final resposta = await servico.atualizarPerfil(
@@ -137,8 +138,8 @@ class SessaoUsuario extends ChangeNotifier {
       email: emailNormalizado,
     );
 
-    // A solicitação foi enviada, mas ainda depende da confirmação
-    // por e-mail. Não atualizamos os dados locais neste momento.
+    // A alteração ainda depende da confirmação por e-mail.
+    // Os dados locais não são atualizados nesta etapa.
     debugPrint(resposta['mensagem']?.toString());
   }
 
@@ -176,6 +177,7 @@ class SessaoUsuario extends ChangeNotifier {
 
     notifyListeners();
   }
+
   Future<void> sincronizarPerfilConfirmado() async {
     if (!_estaLogado) {
       throw StateError('Não existe uma sessão ativa.');
@@ -183,7 +185,7 @@ class SessaoUsuario extends ChangeNotifier {
 
     final resposta = await PerfilService.autenticado(
       baseUrl: 'http://localhost:3000',
-      token: _token!,
+      token: _token ?? '',
     ).buscarPerfil();
 
     final usuario = resposta['usuario'];
