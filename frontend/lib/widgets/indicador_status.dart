@@ -1,3 +1,4 @@
+// Etiqueta global de status; preserva as cores, os textos e o tamanho compacto.
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -30,33 +31,29 @@ class IndicadorStatus extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final resolved = _resolvedColor;
+    final luminancia = resolved.computeLuminance();
+    final contrasteClaro = 1.05 / (luminancia + 0.05);
+    final contrasteEscuro =
+        (luminancia + 0.05) / (CoresApp.textPrimary.computeLuminance() + 0.05);
     return Container(
+      // Mantém a largura e a altura anteriores, sem o marcador ao lado do texto.
       padding: const EdgeInsets.symmetric(
-        horizontal: EspacamentosApp.sm + 4,
+        horizontal: EspacamentosApp.md + 3,
         vertical: EspacamentosApp.xs,
       ),
       decoration: BoxDecoration(
-        color: resolved.withAlpha(30),
-        borderRadius: BorderRadius.circular(EspacamentosApp.radiusFull),
+        color: resolved,
+        borderRadius: BorderRadius.circular(EspacamentosApp.xs),
       ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Container(
-            width: 8,
-            height: 8,
-            decoration: BoxDecoration(color: resolved, shape: BoxShape.circle),
-          ),
-          const SizedBox(width: EspacamentosApp.xs + 2),
-          Flexible(
-            child: Text(
-              label,
-              style: TipografiaApp.captionBold.copyWith(color: resolved),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
+      child: Text(
+        label,
+        style: TipografiaApp.captionBold.copyWith(
+          color: contrasteClaro > contrasteEscuro
+              ? CoresApp.textOnPrimary
+              : CoresApp.textPrimary,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }

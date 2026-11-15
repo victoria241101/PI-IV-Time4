@@ -21,6 +21,10 @@ import 'package:pet_care/screens/tutor/inicio_tutor.dart';
 import 'package:pet_care/services/agendamentos_service.dart';
 import 'package:pet_care/services/pets_service.dart';
 import 'package:pet_care/services/veterinarios_service.dart';
+import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
+import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
+import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -310,6 +314,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
             _construirDestinoAutenticado(context),
         '/campanhas': (context) => const Doacao(publica: true),
         '/sobre': (context) => const Sobre(),
+        '/recepcao': (context) => const InicioRecepcao(),
+        '/veterinario': (context) => const InicioVeterinario(),
+        '/enfermeiro': (context) => const InicioEnfermeiro(),
       },
     );
   }
@@ -586,13 +593,6 @@ class _InicioTutorComDadosReaisState
       carregarDetalhesPet: (petId) async {
         throw UnimplementedError(
           'Detalhes do pet ainda não estão conectados ao backend.',
-        );
-      },
-      onNotificacoes: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notificações ainda não estão disponíveis.'),
-          ),
         );
       },
     );
