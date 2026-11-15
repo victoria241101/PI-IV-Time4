@@ -1,12 +1,66 @@
+import 'package:pet_care/services/clinica/consultas_clinica_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 // agenda e prontuarios compartilhados pelas equipes da clinica
 import 'package:flutter/material.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
 
 class AgendaClinica extends ChangeNotifier {
-  AgendaClinica._();
+  AgendaClinica._() {
+    SessaoUsuario.instancia.addListener(() {
+      if (_sessaoCarregada != SessaoUsuario.instancia.token) {
+        ++_requisicao;
+        consultas.clear();
+        prontuarios.clear();
+        _sessaoCarregada = SessaoUsuario.instancia.token;
+        notifyListeners();
+      }
+    });
+  }
 
   static final AgendaClinica instancia = AgendaClinica._();
+
+  ConsultasClinicaService servico = ConsultasClinicaService();
+  String? _sessaoCarregada;
+  int _requisicao = 0;
+
+  /// A API decide quais consultas o usuário autenticado pode consultar.
+  Future<void> carregarDia(DateTime dia) async {
+    final token = SessaoUsuario.instancia.token;
+    final requisicao = ++_requisicao;
+    if (_sessaoCarregada != token) {
+      consultas.clear();
+      prontuarios.clear();
+      _sessaoCarregada = token;
+      notifyListeners();
+    }
+    final recebidas = await servico.listarDia(dia);
+    if (requisicao != _requisicao || SessaoUsuario.instancia.token != token) {
+      return;
+    }
+    final novas = recebidas.where((c) => c.statusTela != null).map((c) {
+      final data = DateTime.parse(c.dataHora);
+      return ConsultaRecepcao(
+        id: c.id,
+        petId: c.petId,
+        tutorId: c.tutorId,
+        veterinarioId: c.veterinarioId,
+        data: DateUtils.dateOnly(data),
+        horario: c.dataHora.substring(11, 16),
+        duracaoMinutos: c.duracaoMinutos,
+        pet: c.petNome ?? 'Pet sem nome',
+        especie: c.especie ?? '',
+        tutor: c.tutorNome ?? 'Tutor sem nome',
+        profissional: c.veterinarioNome ?? 'Veterinário sem nome',
+        motivo: c.tipo,
+        sala: '',
+        status: c.statusTela!,
+      );
+    }).toList();
+    consultas.removeWhere((c) => DateUtils.isSameDay(c.data, dia));
+    consultas.addAll(novas);
+    notifyListeners();
+  }
 
   final List<ConsultaRecepcao> consultas = [];
   final Map<String, ProntuarioCompartilhado> prontuarios = {};

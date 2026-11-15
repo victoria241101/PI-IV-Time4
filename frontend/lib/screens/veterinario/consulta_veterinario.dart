@@ -24,6 +24,19 @@ class ConsultaVeterinario extends StatefulWidget {
 
 class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   late final ProntuarioCompartilhado _prontuario;
+  final _camposAtendimento = <String, TextEditingController>{
+    for (final nome in [
+      'Anamnese',
+      'Exame físico',
+      'Diagnóstico',
+      'Prognóstico',
+      'Tratamento',
+    ])
+      nome: TextEditingController(),
+  };
+  bool _salvando = false;
+  bool _atendimentoSalvo = false;
+  bool _dadosCarregados = false;
   late final TextEditingController _descricaoController;
   late final TextEditingController _retornoController;
   late final TextEditingController _observacoesController;
@@ -50,10 +63,50 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     _observacoesController = TextEditingController(
       text: _prontuario.observacoes,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _carregarProntuario();
+      } catch (erro) {
+        if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+      }
+    });
+  }
+
+  Future<void> _carregarProntuario() async {
+    final dados = await AgendaClinica.instancia.servico.lerProntuario(
+      widget.consulta.id,
+    );
+    if (!mounted) return;
+    final triagem = dados['triagem'];
+    if (triagem is Map) {
+      _prontuario.observacoesTriagem =
+          'Peso: ${triagem['peso']} kg\nTemperatura: ${triagem['temperatura']} °C\nSintomas: ${triagem['sintomas']}\n${triagem['observacoes'] ?? ''}';
+    }
+    final atendimento = dados['atendimento'];
+    if (atendimento is Map) {
+      const chaves = {
+        'Anamnese': 'anamnese',
+        'Exame físico': 'exameFisico',
+        'Diagnóstico': 'diagnostico',
+        'Prognóstico': 'prognostico',
+        'Tratamento': 'tratamento',
+      };
+      for (final campo in chaves.entries) {
+        _camposAtendimento[campo.key]!.text =
+            '${atendimento[campo.value] ?? ''}';
+      }
+      _descricaoController.text = '${atendimento['anamnese'] ?? ''}';
+      _observacoesController.text = '${atendimento['observacoes'] ?? ''}';
+      _atendimentoSalvo = true;
+    }
+    setState(() => _dadosCarregados = true);
   }
 
   @override
   void dispose() {
+    for (final campo in _camposAtendimento.values) {
+      campo.dispose();
+    }
     _descricaoController.dispose();
     _retornoController.dispose();
     _observacoesController.dispose();
@@ -79,6 +132,18 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
             _cabecalhoConsulta(consulta),
             const SizedBox(height: EspacamentosApp.sm),
             _secaoTriagem(),
+            if (_emConsulta || _finalizada)
+              for (final campo in _camposAtendimento.entries)
+                CampoFormularioApp(
+                  controller: campo.value,
+                  label: campo.key,
+                  enabled:
+                      _dadosCarregados &&
+                      !_finalizada &&
+                      !_salvando &&
+                      !_atendimentoSalvo,
+                  maxLines: 3,
+                ),
             if (_aguardandoVeterinario) ...[
               const SizedBox(height: EspacamentosApp.sm),
               _aviso(
@@ -100,6 +165,10 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               const SizedBox(height: EspacamentosApp.sm),
               _secaoDescricao(),
               const SizedBox(height: EspacamentosApp.sm),
+              Text(
+                'Medicações, exames e internação abaixo ainda são rascunhos locais.',
+                style: TipografiaApp.caption,
+              ),
               _secaoMedicamentos(),
               const SizedBox(height: EspacamentosApp.sm),
               _secaoExames(),
@@ -248,6 +317,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               style: TipografiaApp.bodySmall,
             )
           : DropdownButtonFormField<String>(
+              isExpanded: true,
               initialValue: _prontuario.internacao,
               decoration: const InputDecoration(
                 labelText: 'Conduta',
@@ -324,7 +394,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     int maxLines = 1,
   }) {
     return IgnorePointer(
-      ignoring: _finalizada,
+      ignoring: _finalizada || _salvando || _atendimentoSalvo,
       child: CampoFormularioApp(
         controller: controller,
         label: label,
@@ -424,19 +494,71 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     );
   }
 
-  void _iniciarConsulta() {
-    AgendaClinica.instancia.atualizarStatus(
-      widget.consulta,
-      StatusConsultaRecepcao.emConsulta,
-    );
-    setState(() {});
+  Future<void> _iniciarConsulta() async {
+    if (_salvando) return;
+    setState(() => _salvando = true);
+    try {
+      if (!_dadosCarregados) await _carregarProntuario();
+      if (!mounted) return;
+      await AgendaClinica.instancia.servico.iniciarAtendimento(
+        widget.consulta.id,
+      );
+      if (!mounted) return;
+      AgendaClinica.instancia.atualizarStatus(
+        widget.consulta,
+        StatusConsultaRecepcao.emConsulta,
+      );
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
   }
 
-  void _finalizarConsulta() {
-    _atualizarProntuario();
-    AgendaClinica.instancia.finalizarConsulta(widget.consulta, _prontuario);
-    _mensagem('Consulta finalizada e prontuário atualizado');
-    Navigator.of(context).pop();
+  Future<void> _finalizarConsulta() async {
+    if (_salvando) return;
+    setState(() => _salvando = true);
+    try {
+      if (!_dadosCarregados) await _carregarProntuario();
+      if (!mounted) return;
+      final servico = AgendaClinica.instancia.servico;
+      {
+        if (!_atendimentoSalvo) {
+          String valor(String nome) => _camposAtendimento[nome]!.text.trim();
+          if (_camposAtendimento.values.any((c) => c.text.trim().isEmpty)) {
+            throw const FormatException(
+              'Preencha os cinco campos do atendimento.',
+            );
+          }
+          await servico.salvarAtendimento(
+            widget.consulta.id,
+            anamnese: valor('Anamnese'),
+            exameFisico: valor('Exame físico'),
+            diagnostico: valor('Diagnóstico'),
+            prognostico: valor('Prognóstico'),
+            tratamento: valor('Tratamento'),
+            observacoes: [
+              if (_descricaoController.text.trim().isNotEmpty)
+                'Descrição: ${_descricaoController.text.trim()}',
+              if (_retornoController.text.trim().isNotEmpty)
+                'Retorno: ${_retornoController.text.trim()}',
+              _observacoesController.text.trim(),
+            ].where((texto) => texto.isNotEmpty).join('\n'),
+          );
+          _atendimentoSalvo = true;
+        }
+        await servico.finalizarAtendimento(widget.consulta.id);
+      }
+      if (!mounted) return;
+      _atualizarProntuario();
+      AgendaClinica.instancia.finalizarConsulta(widget.consulta, _prontuario);
+      _mensagem('Atendimento clínico salvo e consulta finalizada na API');
+      Navigator.of(context).pop();
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
   }
 
   void _atualizarProntuario() {

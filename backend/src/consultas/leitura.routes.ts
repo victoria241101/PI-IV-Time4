@@ -1,3 +1,4 @@
+import { criarLeituraProntuario } from './prontuarioClinico.js';
 import { completarNomesAgenda } from './nomesAgenda.js';
 import { Router, type RequestHandler } from "express";
 import { ObjectId, type Db, type Document, type Filter } from "mongodb";
@@ -10,6 +11,7 @@ export function criarRotasLeituraConsultas(dependencias: {
     autenticar: RequestHandler;
 }) {
     const router = Router();
+    router.use(criarLeituraProntuario(dependencias.obterBanco, dependencias.autenticar));
     router.get("/", dependencias.autenticar,
         permitirFuncoes("SECRETARIA", "ENFERMEIRO", "VETERINARIO"),
         async (req, res) => {

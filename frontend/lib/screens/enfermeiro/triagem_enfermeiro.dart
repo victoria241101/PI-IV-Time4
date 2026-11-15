@@ -7,7 +7,7 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
-import 'package:pet_care/screens/gerais/prontuario_internacao.dart';
+import 'package:pet_care/screens/veterinario/prontuario_internacao.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
@@ -25,6 +25,12 @@ class TriagemEnfermeiro extends StatefulWidget {
 class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
   final _agenda = AgendaClinica.instancia;
   late final TextEditingController _observacoesController;
+  final _peso = TextEditingController();
+  final _temperatura = TextEditingController();
+  final _sintomas = TextEditingController();
+  bool _salvando = false;
+  bool _triagemSalva = false;
+  bool _dadosCarregados = false;
 
   @override
   void initState() {
@@ -32,16 +38,47 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     _observacoesController = TextEditingController(
       text: _agenda.prontuarioDa(widget.consulta).observacoesTriagem,
     );
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      try {
+        await _carregarProntuario();
+      } catch (erro) {
+        if (mounted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(erro.toString().replaceFirst('Exception: ', '')),
+            ),
+          );
+        }
+      }
+    });
+  }
+
+  Future<void> _carregarProntuario() async {
+    final dados = await _agenda.servico.lerProntuario(widget.consulta.id);
+    if (!mounted) return;
+    final triagem = dados['triagem'];
+    if (triagem is Map) {
+      _peso.text = '${triagem['peso'] ?? ''}';
+      _temperatura.text = '${triagem['temperatura'] ?? ''}';
+      _sintomas.text = '${triagem['sintomas'] ?? ''}';
+      _observacoesController.text = '${triagem['observacoes'] ?? ''}';
+      _triagemSalva = true;
+    }
+    setState(() => _dadosCarregados = true);
   }
 
   @override
   void dispose() {
+    _peso.dispose();
+    _temperatura.dispose();
+    _sintomas.dispose();
     _observacoesController.dispose();
     super.dispose();
   }
 
   bool get _podeEditar =>
-      widget.consulta.status == StatusConsultaRecepcao.emTriagem;
+      widget.consulta.status == StatusConsultaRecepcao.emTriagem &&
+      _dadosCarregados;
 
   String get _responsavel =>
       SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro';
@@ -56,14 +93,60 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     }
   }
 
-  void _avancarEtapa() {
-    if (widget.consulta.status == StatusConsultaRecepcao.aguardandoTriagem) {
-      _salvarObservacoes(novoStatus: StatusConsultaRecepcao.emTriagem);
-    } else if (widget.consulta.status == StatusConsultaRecepcao.emTriagem) {
-      _salvarObservacoes(
-        novoStatus: StatusConsultaRecepcao.aguardandoVeterinario,
-      );
-      Navigator.of(context).pop();
+  Future<void> _avancarEtapa() async {
+    if (_salvando) return;
+    setState(() => _salvando = true);
+    try {
+      if (!_dadosCarregados) await _carregarProntuario();
+      if (!mounted) return;
+      if (widget.consulta.status == StatusConsultaRecepcao.aguardandoTriagem) {
+        await _agenda.servico.iniciarTriagem(widget.consulta.id);
+        if (!mounted) return;
+        _salvarObservacoes(novoStatus: StatusConsultaRecepcao.emTriagem);
+      } else if (widget.consulta.status == StatusConsultaRecepcao.emTriagem) {
+        {
+          if (!_triagemSalva) {
+            final peso = double.tryParse(_peso.text.replaceAll(',', '.'));
+            final temperatura = double.tryParse(
+              _temperatura.text.replaceAll(',', '.'),
+            );
+            if (peso == null ||
+                !peso.isFinite ||
+                peso <= 0 ||
+                temperatura == null ||
+                !temperatura.isFinite ||
+                _sintomas.text.trim().isEmpty) {
+              throw const FormatException(
+                'Preencha peso, temperatura e sintomas válidos.',
+              );
+            }
+            await _agenda.servico.salvarTriagem(
+              widget.consulta.id,
+              peso: peso,
+              temperatura: temperatura,
+              sintomas: _sintomas.text.trim(),
+              observacoes: _observacoesController.text.trim(),
+            );
+            _triagemSalva = true;
+          }
+          await _agenda.servico.finalizarTriagem(widget.consulta.id);
+        }
+        if (!mounted) return;
+        _salvarObservacoes(
+          novoStatus: StatusConsultaRecepcao.aguardandoVeterinario,
+        );
+        Navigator.of(context).pop();
+      }
+    } catch (erro) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(erro.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _salvando = false);
     }
   }
 
@@ -135,13 +218,31 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
                 ),
               ),
               const SizedBox(height: EspacamentosApp.sm),
+              ...[
+                CampoFormularioApp(
+                  controller: _peso,
+                  label: 'Peso (kg)',
+                  enabled: _podeEditar && !_salvando && !_triagemSalva,
+                ),
+                CampoFormularioApp(
+                  controller: _temperatura,
+                  label: 'Temperatura (°C)',
+                  enabled: _podeEditar && !_salvando && !_triagemSalva,
+                ),
+                CampoFormularioApp(
+                  controller: _sintomas,
+                  label: 'Sintomas',
+                  enabled: _podeEditar && !_salvando && !_triagemSalva,
+                  maxLines: 3,
+                ),
+              ],
               CampoFormularioApp(
                 controller: _observacoesController,
                 label: 'Observações clínicas',
                 hint: 'Registre as informações iniciais do paciente',
                 prefixIcon: Icons.notes_rounded,
                 maxLines: 7,
-                enabled: _podeEditar,
+                enabled: _podeEditar && !_salvando && !_triagemSalva,
                 onChanged: (_) => _salvarObservacoes(),
                 textCapitalization: TextCapitalization.sentences,
               ),

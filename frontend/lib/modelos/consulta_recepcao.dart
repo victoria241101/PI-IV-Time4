@@ -37,6 +37,9 @@ extension StatusConsultaRecepcaoUi on StatusConsultaRecepcao {
 class ConsultaRecepcao {
   ConsultaRecepcao({
     required this.id,
+    this.petId,
+    this.tutorId,
+    this.veterinarioId,
     required this.data,
     required this.horario,
     required this.duracaoMinutos,
@@ -55,6 +58,7 @@ class ConsultaRecepcao {
   });
 
   final String id;
+  final String? petId, tutorId, veterinarioId;
   DateTime data;
   String horario;
   final int duracaoMinutos;

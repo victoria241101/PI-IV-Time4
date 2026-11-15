@@ -1,3 +1,4 @@
+import 'package:pet_care/services/clinica/consultas_clinica_service.dart';
 // Confere navegação, ações de cada perfil e notas compartilhadas após a padronização.
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,7 +6,6 @@ import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
-import 'package:pet_care/screens/revisao_fluxos_temporaria.dart';
 import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
 import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
 import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
@@ -17,6 +17,7 @@ void main() {
   late List<ConsultaRecepcao> anteriores;
   late Map<String, ProntuarioCompartilhado> prontuarios;
   late ConsultaRecepcao consulta;
+  late ConsultasClinicaService servicoAnterior;
   setUpAll(() {
     // Fontes locais de teste evitam downloads; conservam os tamanhos do core.
     TipografiaApp.heading1 = const TextStyle(fontSize: 24);
@@ -31,6 +32,8 @@ void main() {
     TipografiaApp.buttonSmall = const TextStyle(fontSize: 14);
   });
   setUp(() {
+    servicoAnterior = agenda.servico;
+    agenda.servico = _ApiClinicaTeste();
     anteriores = List.of(agenda.consultas);
     prontuarios = Map.of(agenda.prontuarios);
     agenda.consultas.clear();
@@ -51,6 +54,7 @@ void main() {
     agenda.adicionarConsulta(consulta);
   });
   tearDown(() {
+    agenda.servico = servicoAnterior;
     agenda.consultas
       ..clear()
       ..addAll(anteriores);
@@ -78,7 +82,7 @@ void main() {
     for (final pagina in <Widget>[
       const InicioRecepcao(),
       const InicioEnfermeiro(),
-      const InicioVeterinario(),
+      const InicioVeterinario(profissional: 'Dra. Camila'),
     ]) {
       await abrir(tester, pagina, largura: 360);
       for (final aba in [1, 2, 3, 0]) {
@@ -126,7 +130,19 @@ void main() {
     await tester.tap(find.text('Iniciar triagem'));
     await tester.pumpAndSettle();
     expect(consulta.status, StatusConsultaRecepcao.emTriagem);
-    await tester.enterText(find.byType(TextField), 'Observações preservadas');
+    await tester.enterText(find.widgetWithText(TextField, 'Peso (kg)'), '10');
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Temperatura (°C)'),
+      '38.5',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Sintomas'),
+      'Coceira',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, 'Observações clínicas'),
+      'Observações preservadas',
+    );
     await tester.tap(find.text('Concluir triagem'));
     await tester.pumpAndSettle();
     expect(consulta.status, StatusConsultaRecepcao.aguardandoVeterinario);
@@ -142,7 +158,7 @@ void main() {
     'Veterinário acompanha a triagem e só finaliza após iniciar consulta',
     (tester) async {
       consulta.status = StatusConsultaRecepcao.emTriagem;
-      await abrir(tester, const InicioVeterinario());
+      await abrir(tester, const InicioVeterinario(profissional: 'Dra. Camila'));
       await tester.tap(find.text('Ver atendimento'));
       await tester.pumpAndSettle();
       expect(find.text('Iniciar consulta'), findsNothing);
@@ -158,6 +174,23 @@ void main() {
       await tester.tap(find.text('Iniciar consulta'));
       await tester.pumpAndSettle();
       expect(consulta.status, StatusConsultaRecepcao.emConsulta);
+      for (final nome in [
+        'Anamnese',
+        'Exame físico',
+        'Diagnóstico',
+        'Prognóstico',
+        'Tratamento',
+      ]) {
+        await tester.scrollUntilVisible(
+          find.widgetWithText(TextField, nome),
+          120,
+          scrollable: find.byType(Scrollable).first,
+        );
+        await tester.enterText(
+          find.widgetWithText(TextField, nome),
+          'Informação clínica de teste',
+        );
+      }
       await tester.tap(find.text('Finalizar consulta'));
       await tester.pumpAndSettle();
       expect(consulta.status, StatusConsultaRecepcao.finalizado);
@@ -165,24 +198,15 @@ void main() {
       expect(tester.takeException(), isNull);
     },
   );
-  testWidgets('Seletor temporário permite abrir e voltar dos três fluxos', (
-    tester,
-  ) async {
-    await abrir(tester, const RevisaoFluxosTemporaria());
-    for (final rotulo in [
-      'Secretária / Recepção',
-      'Enfermeiro',
-      'Veterinário',
-    ]) {
-      await tester.tap(find.text(rotulo));
-      await tester.pumpAndSettle();
-      expect(find.byType(NavigationBar), findsOneWidget);
-      await tester.pageBack();
-      await tester.pumpAndSettle();
-      expect(find.text('Secretária / Recepção'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    }
+  testWidgets('Falha na API não confirma chegada localmente', (tester) async {
+    agenda.servico = _ApiClinicaFalha();
+    await abrir(tester, const InicioRecepcao());
+    await tester.tap(find.text('Confirmar chegada'));
+    await tester.pumpAndSettle();
+    expect(consulta.status, StatusConsultaRecepcao.agendada);
+    expect(find.text('Serviço indisponível'), findsOneWidget);
   });
+
   testWidgets('Nota identifica o autor e preserva data e hora digitadas', (
     tester,
   ) async {
@@ -212,4 +236,48 @@ void main() {
     expect(find.text('Registrado por Enfermeira Ana'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
+}
+
+class _ApiClinicaTeste extends ConsultasClinicaService {
+  @override
+  Future<Map<String, dynamic>> lerProntuario(String id) async => {
+    'triagem': null,
+    'atendimento': null,
+  };
+  @override
+  Future<void> confirmarChegada(String id) async {}
+  @override
+  Future<void> iniciarTriagem(String id) async {}
+  @override
+  Future<void> finalizarTriagem(String id) async {}
+  @override
+  Future<void> iniciarAtendimento(String id) async {}
+  @override
+  Future<void> finalizarAtendimento(String id) async {}
+  @override
+  Future<void> salvarTriagem(
+    String id, {
+    required double peso,
+    required double temperatura,
+    required String sintomas,
+    String observacoes = '',
+  }) async {}
+  @override
+  Future<void> salvarAtendimento(
+    String id, {
+    required String anamnese,
+    required String exameFisico,
+    required String diagnostico,
+    required String prognostico,
+    required String tratamento,
+    String observacoes = '',
+    String? codigoICDVet,
+  }) async {}
+}
+
+class _ApiClinicaFalha extends _ApiClinicaTeste {
+  @override
+  Future<void> confirmarChegada(String id) async {
+    throw Exception('Serviço indisponível');
+  }
 }

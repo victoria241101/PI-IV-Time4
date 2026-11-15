@@ -7,7 +7,7 @@ import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
-import 'package:pet_care/screens/gerais/prontuario_internacao.dart';
+import 'package:pet_care/screens/veterinario/prontuario_internacao.dart';
 import 'package:pet_care/widgets/avatar_pet.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';

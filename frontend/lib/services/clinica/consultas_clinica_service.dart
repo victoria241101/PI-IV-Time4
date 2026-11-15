@@ -75,18 +75,38 @@ class ConsultasClinicaService {
   }) async {
     if (id.trim().isEmpty) throw ArgumentError('Informe o ID da consulta.');
     final uri = _uri('/consultas/${Uri.encodeComponent(id)}/$acao');
-    final headers = cabecalhosJson(_token);
+    final token = _token;
+    final headers = cabecalhosJson(token);
     // Nenhum reenvio automático de operações que alteram dados.
     final resposta =
         await (dados == null
                 ? http.patch(uri, headers: headers)
                 : http.post(uri, headers: headers, body: jsonEncode(dados)))
             .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
     final conteudo = processarRespostaJson(resposta);
     if (conteudo is! Map) {
       throw const FormatException('Resposta clínica inválida.');
     }
     return Map<String, dynamic>.from(conteudo);
+  }
+
+  Future<Map<String, dynamic>> lerProntuario(String id) async {
+    final token = _token;
+    final resposta = await http
+        .get(
+          _uri('/consultas/${Uri.encodeComponent(id)}/dados-clinicos'),
+          headers: cabecalhosJson(token),
+        )
+        .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
+    final dados = processarRespostaJson(resposta);
+    if (dados is! Map ||
+        !dados.containsKey('triagem') ||
+        !dados.containsKey('atendimento')) {
+      throw const FormatException('Resposta de prontuário inválida.');
+    }
+    return Map<String, dynamic>.from(dados);
   }
 
   Future<void> confirmarChegada(String id) async {

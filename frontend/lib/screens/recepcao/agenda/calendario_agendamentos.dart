@@ -21,8 +21,10 @@ class CalendarioAgendamentos extends StatefulWidget {
     this.mostrarMotivo = true,
     this.mostrarCabecalho = true,
     this.onNovoAgendamento,
+    this.onSelecionarDia,
   });
 
+  final ValueChanged<DateTime>? onSelecionarDia;
   final List<ConsultaRecepcao> consultas;
   final DateTime dataInicial;
   final ValueChanged<ConsultaRecepcao>? onCancelar;
@@ -239,6 +241,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                 onTap: () {
                   setState(() {
                     _diaSelecionado = dia;
+                    widget.onSelecionarDia?.call(dia);
                     if (!pertenceAoMes) {
                       _mesVisivel = DateTime(dia.year, dia.month);
                     }
@@ -305,6 +308,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
     setState(() {
       _mesVisivel = DateTime(_mesVisivel.year, _mesVisivel.month + delta);
       _diaSelecionado = DateTime(_mesVisivel.year, _mesVisivel.month, 1);
+      widget.onSelecionarDia?.call(_diaSelecionado);
     });
   }
 

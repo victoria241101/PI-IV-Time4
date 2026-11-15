@@ -53,6 +53,17 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     super.initState();
     _hoje = DateUtils.dateOnly(DateTime.now());
     AgendaClinica.instancia.addListener(_atualizarAgenda);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
+    });
+  }
+
+  Future<void> _carregarAgenda([DateTime? dia]) async {
+    try {
+      await AgendaClinica.instancia.carregarDia(dia ?? _hoje);
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   @override
@@ -76,7 +87,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         }
       }
     }
-    return 'Dra. Camila';
+    return SessaoUsuario.instancia.nomeUsuario ?? 'Veterinário';
   }
 
   String _chaveProfissional(String nome) =>
@@ -86,6 +97,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     final consultas = AgendaClinica.instancia.consultas
         .where(
           (consulta) =>
+              SessaoUsuario.instancia.estaLogado ||
               widget.mostrarTodasConsultas ||
               consulta.profissional == _profissionalAtual,
         )
@@ -134,7 +146,10 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     return LayoutClinica(
       nomePadrao: _profissionalAtual,
       abaAtual: _abaAtual,
-      onSelecionarAba: (index) => setState(() => _abaAtual = index),
+      onSelecionarAba: (index) {
+        setState(() => _abaAtual = index);
+        if (index == 0 && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
+      },
       onNotificacao: () => _mensagem('Você está em dia com as notificações'),
       terceiraAba:
           widget.terceiraAbaItem ??
@@ -145,6 +160,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
       paginas: [
         _listaDeConsultas(consultasAtivasHoje),
         CalendarioAgendamentos(
+          onSelecionarDia: _carregarAgenda,
           consultas: consultasVisiveis
               .where((c) => c.status != StatusConsultaRecepcao.finalizado)
               .toList(),
