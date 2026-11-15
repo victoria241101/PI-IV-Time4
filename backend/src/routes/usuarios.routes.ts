@@ -229,6 +229,7 @@ router.post("/cadastro", async (req, res) => {
                         novoTutor,
                         { session: sessao }
                     );
+
                     await banco.collection("pets").insertOne(
                         novoPet,
                         { session: sessao }
@@ -355,8 +356,6 @@ router.get("/perfil", autenticar, async (_req, res) => {
     }
 });
 
-
-
 // Solicitação de alteração de nome e/ou e-mail.
 router.patch("/perfil", autenticar, async (req, res) => {
     try {
@@ -475,20 +474,17 @@ router.patch("/perfil", autenticar, async (req, res) => {
             criadoEm: new Date()
         });
 
-        const urlBase = process.env.FRONTEND_URL;
-
-        if (!urlBase || !/^https?:\/\//.test(urlBase)) {
-            await pendentes.deleteOne({ tokenHash });
-
-            return res.status(503).json({
-                mensagem: "Serviço de confirmação indisponível."
-            });
-        }
-
-        const link = new URL("/confirmar-alteracao", urlBase);
-        link.searchParams.set("token", token);
-
         try {
+            const urlBase = process.env.FRONTEND_URL;
+
+            if (!urlBase || !/^https?:\/\//.test(urlBase)) {
+                throw new Error("FRONTEND_URL não configurada corretamente.");
+            }
+
+            const link = new URL("/", urlBase);
+            link.searchParams.set("tipo", "confirmar-alteracao");
+            link.searchParams.set("token", token);
+
             const { transporte, remetente } = configurarEmail();
 
             await transporte.sendMail({
@@ -647,9 +643,9 @@ router.post("/confirmar-alteracao", async (req, res) => {
     }
 });
 
-
 // Alteração de senha para quem ainda sabe a senha atual.
 router.patch("/alterar-senha", autenticar, async (req, res) => {
+    console.log("[TESTE SENHA] Requisição recebida!");
     try {
         const { senhaAtual, novaSenha, confirmarSenha } = req.body ?? {};
 
@@ -689,66 +685,64 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             });
         }
 
+        const novoHash = await gerarHashSenha(novaSenha);
 
-    const novoHash = await gerarHashSenha(novaSenha);
+        // Gera um token temporário para confirmação.
+        const token = randomBytes(32).toString("hex");
+        const tokenHash = hashToken(token);
+        const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
 
-    // Gera um token temporário para confirmação.
-    const token = randomBytes(32).toString("hex");
-    const tokenHash = hashToken(token);
-    const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
+        const pendentes = banco.collection("alteracoesPendentes");
 
-    const pendentes = banco.collection("alteracoesPendentes");
-
-    // Invalida apenas solicitações anteriores de alteração de senha.
-    await pendentes.deleteMany({
-        usuarioId,
-        tipo: "SENHA"
-    });
-
-    await pendentes.insertOne({
-        usuarioId,
-        tipo: "SENHA",
-        senhaHash: novoHash,
-        senhaHashAnterior: usuario.senhaHash,
-        tokenHash,
-        expiraEm,
-        criadoEm: new Date()
-    });
-
-    const urlBase = process.env.FRONTEND_URL;
-
-    if (!urlBase || !/^https?:\/\//.test(urlBase)) {
-        await pendentes.deleteOne({ tokenHash });
-
-    return res.status(503).json({
-        mensagem: "Serviço de confirmação indisponível."
-    });
-}
-
-    const link = new URL("/confirmar-alteracao-senha", urlBase);
-    link.searchParams.set("token", token);
-
-    try {
-        const { transporte, remetente } = configurarEmail();
-
-        await transporte.sendMail({
-            from: remetente,
-            to: usuario.email,
-            subject: "PetCare - Confirmação de alteração de senha",
-            text:
-                "Recebemos uma solicitação de alteração da sua senha.\n\n" +
-                `Acesse o link para confirmar: ${link.toString()}\n\n` +
-                "O link expira em 15 minutos e só pode ser usado uma vez.\n" +
-                "Se você não solicitou essa alteração, ignore esta mensagem."
+        // Invalida apenas solicitações anteriores de alteração de senha.
+        await pendentes.deleteMany({
+            usuarioId,
+            tipo: "SENHA"
         });
-    } catch (erro) {
-        await pendentes.deleteOne({ tokenHash });
-        throw erro;
-    }
 
-    return res.status(200).json({
-        mensagem: "Enviamos um link de confirmação para seu e-mail cadastrado. Sua senha ainda não foi alterada."
-    });
+        await pendentes.insertOne({
+            usuarioId,
+            tipo: "SENHA",
+            senhaHash: novoHash,
+            senhaHashAnterior: usuario.senhaHash,
+            tokenHash,
+            expiraEm,
+            criadoEm: new Date()
+        });
+
+        try {
+            const urlBase = process.env.FRONTEND_URL;
+
+            if (!urlBase || !/^https?:\/\//.test(urlBase)) {
+                throw new Error("FRONTEND_URL não configurada corretamente.");
+            }
+
+            const link = new URL("/", urlBase);
+            link.searchParams.set("tipo", "confirmar-alteracao-senha");
+            link.searchParams.set("token", token);
+
+            const { transporte, remetente } = configurarEmail();
+
+            console.log("[TESTE SENHA] Tentando enviar e-mail...");
+            await transporte.sendMail({
+                from: remetente,
+                to: usuario.email,
+                subject: "PetCare - Confirmação de alteração de senha",
+                text:
+                    "Recebemos uma solicitação de alteração da sua senha.\n\n" +
+                    `Acesse o link para confirmar: ${link.toString()}\n\n` +
+                    "O link expira em 15 minutos e só pode ser usado uma vez.\n" +
+                    "Se você não solicitou essa alteração, ignore esta mensagem."
+            });
+        console.log("[TESTE SENHA] SMTP aceitou o envio!");
+        } catch (erro) {
+            await pendentes.deleteOne({ tokenHash });
+            throw erro;
+        }
+
+        return res.status(200).json({
+            mensagem: "Enviamos um link de confirmação para seu e-mail cadastrado. Sua senha ainda não foi alterada."
+        });
 
     } catch (erro) {
         console.error("Erro ao alterar senha:", erro);
@@ -761,84 +755,84 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
 
 // Confirma a alteração de senha por e-mail.
 router.post("/confirmar-alteracao-senha", async (req, res) => {
-  try {
-    const { token } = req.body ?? {};
+    try {
+        const { token } = req.body ?? {};
 
-    if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
-      return res.status(400).json({
-        mensagem: "Token inválido ou expirado."
-      });
+        if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
+            return res.status(400).json({
+                mensagem: "Token inválido ou expirado."
+            });
+        }
+
+        const banco = obterBanco();
+        const pendentes = banco.collection("alteracoesPendentes");
+        const usuarios = banco.collection("usuarios");
+
+        const tokenHash = hashToken(token);
+
+        const solicitacao = await pendentes.findOne({
+            tokenHash,
+            tipo: "SENHA",
+            expiraEm: { $gt: new Date() }
+        });
+
+        if (
+            !solicitacao ||
+            !(solicitacao.usuarioId instanceof ObjectId) ||
+            typeof solicitacao.senhaHash !== "string" ||
+            typeof solicitacao.senhaHashAnterior !== "string"
+        ) {
+            return res.status(400).json({
+                mensagem: "Token inválido ou expirado."
+            });
+        }
+
+        const consumido = await pendentes.findOneAndDelete({
+            _id: solicitacao._id,
+            tokenHash,
+            tipo: "SENHA",
+            expiraEm: { $gt: new Date() }
+        });
+
+        if (!consumido) {
+            return res.status(400).json({
+                mensagem: "Token inválido ou expirado."
+            });
+        }
+
+        const resultado = await usuarios.updateOne(
+            {
+                _id: solicitacao.usuarioId,
+                senhaHash: solicitacao.senhaHashAnterior,
+                ativo: true
+            },
+            {
+                $set: { senhaHash: solicitacao.senhaHash }
+            }
+        );
+
+        if (resultado.matchedCount !== 1) {
+            return res.status(409).json({
+                mensagem: "A senha foi alterada em outra operação. Solicite uma nova alteração."
+            });
+        }
+
+        await pendentes.deleteMany({
+            usuarioId: solicitacao.usuarioId,
+            tipo: "SENHA"
+        });
+
+        return res.status(200).json({
+            mensagem: "Senha alterada com sucesso! Faça login novamente."
+        });
+
+    } catch (erro) {
+        console.error("Erro ao confirmar alteração de senha:", erro);
+
+        return res.status(500).json({
+            mensagem: "Erro interno ao confirmar alteração de senha."
+        });
     }
-
-    const banco = obterBanco();
-    const pendentes = banco.collection("alteracoesPendentes");
-    const usuarios = banco.collection("usuarios");
-
-    const tokenHash = hashToken(token);
-
-    const solicitacao = await pendentes.findOne({
-      tokenHash,
-      tipo: "SENHA",
-      expiraEm: { $gt: new Date() }
-    });
-
-    if (
-      !solicitacao ||
-      !(solicitacao.usuarioId instanceof ObjectId) ||
-      typeof solicitacao.senhaHash !== "string" ||
-      typeof solicitacao.senhaHashAnterior !== "string"
-    ) {
-      return res.status(400).json({
-        mensagem: "Token inválido ou expirado."
-      });
-    }
-
-    const consumido = await pendentes.findOneAndDelete({
-      _id: solicitacao._id,
-      tokenHash,
-      tipo: "SENHA",
-      expiraEm: { $gt: new Date() }
-    });
-
-    if (!consumido) {
-      return res.status(400).json({
-        mensagem: "Token inválido ou expirado."
-      });
-    }
-
-    const resultado = await usuarios.updateOne(
-      {
-        _id: solicitacao.usuarioId,
-        senhaHash: solicitacao.senhaHashAnterior,
-        ativo: true
-      },
-      {
-        $set: { senhaHash: solicitacao.senhaHash }
-      }
-    );
-
-    if (resultado.matchedCount !== 1) {
-      return res.status(409).json({
-        mensagem: "A senha foi alterada em outra operação. Solicite uma nova alteração."
-      });
-    }
-
-    await pendentes.deleteMany({
-      usuarioId: solicitacao.usuarioId,
-      tipo: "SENHA"
-    });
-
-    return res.status(200).json({
-      mensagem: "Senha alterada com sucesso! Faça login novamente."
-    });
-
-  } catch (erro) {
-    console.error("Erro ao confirmar alteração de senha:", erro);
-
-    return res.status(500).json({
-      mensagem: "Erro interno ao confirmar alteração de senha."
-    });
-  }
 });
 
 // Solicitação pública de recuperação de senha.

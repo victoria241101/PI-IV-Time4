@@ -1,11 +1,9 @@
-
 import 'dart:async';
 
 import 'package:flutter/material.dart';
-import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
-import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
-import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
 import 'package:app_links/app_links.dart';
+import 'package:flutter/foundation.dart';
+
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
@@ -23,6 +21,10 @@ import 'package:pet_care/screens/tutor/inicio_tutor.dart';
 import 'package:pet_care/services/agendamentos_service.dart';
 import 'package:pet_care/services/pets_service.dart';
 import 'package:pet_care/services/veterinarios_service.dart';
+import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
+import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
+import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
+
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
@@ -57,6 +59,18 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
   Future<void> _inicializarLinks() async {
     try {
+      // Flutter Web: recebe o link pela URL do navegador.
+      if (kIsWeb) {
+        final linkInicial = Uri.base;
+
+        if (linkInicial.queryParameters.containsKey('token')) {
+          _receberLink(linkInicial);
+        }
+
+        return;
+      }
+
+      // Android: mantém o recebimento de deep links nativos.
       final linkInicial = await _appLinks.getInitialLink();
 
       if (linkInicial != null) {
@@ -75,7 +89,11 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
   }
 
   void _receberLink(Uri uri) {
-    if (uri.scheme != 'petcare') return;
+    final linkNativo = uri.scheme == 'petcare';
+    final linkWeb = kIsWeb &&
+        uri.queryParameters.containsKey('tipo');
+
+    if (!linkNativo && !linkWeb) return;
 
     if (!_inicioPronto || _navigatorKey.currentState == null) {
       _linkPendente = uri;
@@ -91,7 +109,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       return;
     }
 
-    final tipo = uri.host;
+    final tipo = uri.scheme == 'petcare'
+        ? uri.host
+        : uri.queryParameters['tipo'];
     final token = uri.queryParameters['token'];
 
     if (token == null ||
@@ -138,7 +158,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       final sessao = SessaoUsuario.instancia;
 
       final servico = PerfilService(
-        baseUrl: 'http://10.0.2.2:3000',
+        baseUrl: kIsWeb
+            ? 'http://localhost:3000'
+            : 'http://10.0.2.2:3000',
         token: sessao.token ?? '',
       );
 
@@ -214,70 +236,52 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
     }
   }
 
-  
-Future<void> _abrirInicio(BuildContext context) async {
-  try {
-    await SessaoUsuario.instancia.carregar();
+  Future<void> _abrirInicio(BuildContext context) async {
+    debugPrint('TESTE 1: entrou em _abrirInicio');
 
-    if (!context.mounted) return;
+    try {
+      debugPrint('TESTE 2: iniciando carregamento da sessão');
 
-    final sessao = SessaoUsuario.instancia;
+      await SessaoUsuario.instancia.carregar();
 
-    final Widget destino = !sessao.estaLogado
-        ? const InicioPublico()
-        : _construirDestinoAutenticado(context);
+      debugPrint('TESTE 3: sessão carregada');
 
-    Navigator.of(context).pushReplacement(
-      MaterialPageRoute<void>(
-        builder: (_) => destino,
-      ),
-    );
+      if (!context.mounted) return;
 
-    // Mantém o processamento dos links da develop.
-    _inicioPronto = true;
-
-    final linkPendente = _linkPendente;
-    _linkPendente = null;
-
-    if (linkPendente != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) {
-          _processarLink(linkPendente);
-        }
-      });
-    }
-  } catch (erro, stack) {
-    debugPrint('ERRO AO CARREGAR SESSÃO: $erro');
-    debugPrint('$stack');
-  }
-}
-
-
-  Widget _protegerPerfil(String tipo, Widget tela) => AnimatedBuilder(
-    animation: SessaoUsuario.instancia,
-    builder: (context, _) {
       final sessao = SessaoUsuario.instancia;
-      if (!sessao.estaLogado) return const LoginScreen();
-      if (sessao.tipoUsuario != tipo) {
-        return _construirDestinoAutenticado(context);
+
+      final Widget destino = !sessao.estaLogado
+          ? const InicioPublico()
+          : sessao.ehTutor
+          ? const _InicioTutorComDadosReais()
+          : const InicioGeral();
+
+      Navigator.of(context).pushReplacement(
+        MaterialPageRoute<void>(
+          builder: (_) => destino,
+        ),
+      );
+
+      _inicioPronto = true;
+
+      final linkPendente = _linkPendente;
+      _linkPendente = null;
+
+      if (linkPendente != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          _processarLink(linkPendente);
+        });
       }
-      return tela;
-    },
-  );
+
+      debugPrint('TESTE 4: navegação concluída');
+    } catch (erro, stack) {
+      debugPrint('ERRO AO CARREGAR SESSÃO: $erro');
+      debugPrint('$stack');
+    }
+  }
 
   Widget _construirDestinoAutenticado(BuildContext context) {
-    final sessao = SessaoUsuario.instancia;
-    if (!sessao.estaLogado) return const LoginScreen();
-    if (sessao.ehSecretaria) {
-      return _protegerPerfil('SECRETARIA', const InicioRecepcao());
-    }
-    if (sessao.ehEnfermeiro) {
-      return _protegerPerfil('ENFERMEIRO', const InicioEnfermeiro());
-    }
-    if (sessao.ehVeterinario) {
-      return _protegerPerfil('VETERINARIO', const InicioVeterinario());
-    }
-    return sessao.ehTutor
+    return SessaoUsuario.instancia.ehTutor
         ? const _InicioTutorComDadosReais()
         : const InicioGeral();
   }
@@ -310,10 +314,9 @@ Future<void> _abrirInicio(BuildContext context) async {
             _construirDestinoAutenticado(context),
         '/campanhas': (context) => const Doacao(publica: true),
         '/sobre': (context) => const Sobre(),
-        '/recepcao': (context) => _protegerPerfil('SECRETARIA', const InicioRecepcao()),
-        '/veterinario': (context) => _protegerPerfil('VETERINARIO', const InicioVeterinario()),
-        '/enfermeiro': (context) => _protegerPerfil('ENFERMEIRO', const InicioEnfermeiro()),
-        '/revisao-fluxos': (context) => _construirDestinoAutenticado(context),
+        '/recepcao': (context) => const InicioRecepcao(),
+        '/veterinario': (context) => const InicioVeterinario(),
+        '/enfermeiro': (context) => const InicioEnfermeiro(),
       },
     );
   }
@@ -590,13 +593,6 @@ class _InicioTutorComDadosReaisState
       carregarDetalhesPet: (petId) async {
         throw UnimplementedError(
           'Detalhes do pet ainda não estão conectados ao backend.',
-        );
-      },
-      onNotificacoes: () {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Notificações ainda não estão disponíveis.'),
-          ),
         );
       },
     );

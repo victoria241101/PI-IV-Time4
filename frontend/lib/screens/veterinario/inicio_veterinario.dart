@@ -15,6 +15,7 @@ import 'package:pet_care/screens/veterinario/consulta_veterinario.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 import 'package:pet_care/widgets/clinica/cartao_atendimento.dart';
+import 'package:pet_care/widgets/modal_notificacoes_tutor.dart';
 
 class InicioVeterinario extends StatefulWidget {
   const InicioVeterinario({
@@ -62,7 +63,11 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     try {
       await AgendaClinica.instancia.carregarDia(dia ?? _hoje);
     } catch (erro) {
-      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(erro.toString().replaceFirst('Exception: ', ''))),
+        );
+      }
     }
   }
 
@@ -131,12 +136,6 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     );
   }
 
-  void _mensagem(String texto) {
-    ScaffoldMessenger.of(context)
-      ..hideCurrentSnackBar()
-      ..showSnackBar(SnackBar(content: Text(texto)));
-  }
-
   @override
   Widget build(BuildContext context) {
     final consultas = _consultasDoPerfil;
@@ -150,7 +149,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         setState(() => _abaAtual = index);
         if (index == 0 && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
       },
-      onNotificacao: () => _mensagem('Você está em dia com as notificações'),
+      onNotificacao: () => ModalNotificacoesTutor.show(context),
       terceiraAba:
           widget.terceiraAbaItem ??
           const BottomNavigationBarItem(
