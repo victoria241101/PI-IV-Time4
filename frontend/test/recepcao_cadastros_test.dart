@@ -1,3 +1,10 @@
+import 'dart:async';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/services/clinica/consultas_clinica_service.dart';
+import 'package:pet_care/services/clinica/consulta_clinica_api.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -29,6 +36,7 @@ void main() {
     TipografiaApp.buttonSmall = const TextStyle(fontSize: 14);
   });
   setUp(() {
+    _CadastroApiTeste.funcionarios.clear();
     consultas = List.of(agenda.consultas);
     prontuarios = Map.of(agenda.prontuarios);
     registros = List.of(cadastros.registros);
@@ -100,6 +108,20 @@ void main() {
   testWidgets('Hoje agrupa mesmo horário e mantém cada paciente e emergência', (
     t,
   ) async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    await SessaoUsuario.instancia.entrar(
+      nome: 'Secretária',
+      email: 'teste@example.test',
+      token: 'teste',
+      tipoUsuario: 'SECRETARIA',
+    );
+    final anterior = agenda.servico;
+    agenda.servico = _AgendaEmLeitura();
+    addTearDown(() async {
+      agenda.servico = anterior;
+      await SessaoUsuario.instancia.sair();
+    });
     agenda.consultas.addAll([
       consulta('a'),
       consulta('b', pet: 'Luna', emergencia: true),
@@ -146,26 +168,73 @@ void main() {
     expect(t.takeException(), isNull);
   });
 
-  testWidgets('Funcionário veterinário exige CRMV e retorna cadastro local', (
-    t,
-  ) async {
-    await abrir(t, const CentralCadastrosRecepcao());
-    await tocar(t, 'Funcionário');
-    await tocar(t, 'Enfermeiro');
-    await tocar(t, 'Veterinário');
-    await preencher(t, 'Nome completo', 'Beatriz Teste');
-    await preencher(t, 'E-mail para acesso', 'beatriz@example.com');
-    await preencher(t, 'Celular', '11999999999');
-    await tocar(t, 'Salvar cadastro');
-    expect(find.text('Preencha este campo'), findsOneWidget);
-    expect(cadastros.registros, isEmpty);
-    await preencher(t, 'CRMV', 'CRMV-SP-12345');
-    await tocar(t, 'Salvar cadastro');
-    expect(cadastros.registros.single.dados['cargo'], 'Veterinário');
-    expect(cadastros.registros.single.dados['crmv'], 'CRMV-SP-12345');
-    expect(t.takeException(), isNull);
-  });
+  testWidgets(
+    'Funcionário veterinário exige CRMV e confirma cadastro pela API',
+    (t) async {
+      await abrir(
+        t,
+        CentralCadastrosRecepcao(cadastrosService: _CadastroApiTeste()),
+      );
+      await tocar(t, 'Funcionário');
+      await tocar(t, 'Enfermeiro');
+      await tocar(t, 'Veterinário');
+      await preencher(t, 'Nome completo', 'Beatriz Teste');
+      await preencher(t, 'E-mail para acesso', 'beatriz@example.com');
+      await preencher(t, 'Celular', '11999999999');
+      await tocar(t, 'Salvar cadastro');
+      expect(find.text('Preencha este campo'), findsOneWidget);
+      expect(cadastros.registros, isEmpty);
+      await preencher(t, 'CRMV', 'CRMV-SP-12345');
+      await tocar(t, 'Salvar cadastro');
+      expect(_CadastroApiTeste.funcionarios.single['cargo'], 'Veterinário');
+      expect(_CadastroApiTeste.funcionarios.single['crmv'], 'CRMV-SP-12345');
+      expect(cadastros.registros, isEmpty);
+      expect(find.text('Cadastros realizados nesta sessão'), findsNothing);
+      expect(
+        find.text(
+          'Funcionário cadastrado. Primeiro acesso pelo Esqueci a senha.',
+        ),
+        findsOneWidget,
+      );
 
+      expect(t.takeException(), isNull);
+    },
+  );
+
+  testWidgets(
+    'Cadastros não integrados não abrem prévia nem salvam localmente',
+    (t) async {
+      await abrir(t, const CentralCadastrosRecepcao());
+      expect(find.textContaining('prévia local'), findsNothing);
+      await tocar(t, 'Banner');
+      expect(
+        find.text('Este cadastro ainda não está disponível.'),
+        findsOneWidget,
+      );
+      expect(cadastros.registros, isEmpty);
+      expect(find.text('Salvar cadastro'), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'Erro da API mantém formulário de funcionário sem sucesso local',
+    (t) async {
+      await abrir(
+        t,
+        CentralCadastrosRecepcao(cadastrosService: _CadastroApiFalha()),
+      );
+      await tocar(t, 'Funcionário');
+      await preencher(t, 'Nome completo', 'Enfermeira Teste');
+      await preencher(t, 'E-mail para acesso', 'teste@example.test');
+      await preencher(t, 'Celular', '11999999999');
+      await preencher(t, 'Registro', 'ENF-001');
+      await tocar(t, 'Salvar cadastro');
+      expect(find.text('Serviço indisponível'), findsOneWidget);
+      expect(find.text('Salvar cadastro'), findsOneWidget);
+      expect(cadastros.registros, isEmpty);
+      expect(find.textContaining('Funcionário cadastrado.'), findsNothing);
+    },
+  );
   testWidgets(
     'Internação exige indicação e preserva previsão diferente da reserva',
     (t) async {
@@ -249,7 +318,10 @@ void main() {
   testWidgets(
     'CPF inválido (sequência repetida) é rejeitado no cadastro de Secretária',
     (t) async {
-      await abrir(t, const CentralCadastrosRecepcao());
+      await abrir(
+        t,
+        CentralCadastrosRecepcao(cadastrosService: _CadastroApiTeste()),
+      );
       await tocar(t, 'Funcionário');
       await tocar(t, 'Enfermeiro');
       await tocar(t, 'Secretária');
@@ -265,7 +337,10 @@ void main() {
   );
 
   testWidgets('CPF válido é aceito no cadastro de Secretária', (t) async {
-    await abrir(t, const CentralCadastrosRecepcao());
+    await abrir(
+      t,
+      CentralCadastrosRecepcao(cadastrosService: _CadastroApiTeste()),
+    );
     await tocar(t, 'Funcionário');
     await tocar(t, 'Enfermeiro');
     await tocar(t, 'Secretária');
@@ -274,14 +349,18 @@ void main() {
     await preencher(t, 'Celular', '11999999999');
     await preencher(t, 'CPF', '52998224725');
     await tocar(t, 'Salvar cadastro');
-    expect(cadastros.registros, isNotEmpty);
-    expect(cadastros.registros.single.dados['cpf'], '52998224725');
-    expect(cadastros.registros.single.dados['cargo'], 'Secretária');
+    expect(_CadastroApiTeste.funcionarios, isNotEmpty);
+    expect(cadastros.registros, isEmpty);
+    expect(_CadastroApiTeste.funcionarios.single['cpf'], '52998224725');
+    expect(_CadastroApiTeste.funcionarios.single['cargo'], 'Secretária');
     expect(t.takeException(), isNull);
   });
 
   testWidgets('Trocar cargo não vaza campos da função anterior', (t) async {
-    await abrir(t, const CentralCadastrosRecepcao());
+    await abrir(
+      t,
+      CentralCadastrosRecepcao(cadastrosService: _CadastroApiTeste()),
+    );
     await tocar(t, 'Funcionário');
     await tocar(t, 'Enfermeiro');
     await tocar(t, 'Veterinário');
@@ -293,9 +372,9 @@ void main() {
     await tocar(t, 'Enfermeiro');
     await preencher(t, 'Registro', 'ENF-VET-001');
     await tocar(t, 'Salvar cadastro');
-    expect(cadastros.registros.single.dados['cargo'], 'Enfermeiro');
-    expect(cadastros.registros.single.dados.containsKey('crmv'), isFalse);
-    expect(cadastros.registros.single.dados['registro'], 'ENF-VET-001');
+    expect(_CadastroApiTeste.funcionarios.single['cargo'], 'Enfermeiro');
+    expect(_CadastroApiTeste.funcionarios.single.containsKey('crmv'), isFalse);
+    expect(_CadastroApiTeste.funcionarios.single['registro'], 'ENF-VET-001');
     expect(t.takeException(), isNull);
   });
 
@@ -379,6 +458,16 @@ void main() {
 }
 
 class _CadastroApiTeste extends CadastrosRecepcaoService {
+  static final funcionarios = <Map<String, String>>[];
+  @override
+  Future<Map<String, dynamic>> cadastrarFuncionario(
+    Map<String, String> dados,
+    String id,
+  ) async {
+    funcionarios.add(Map.of(dados));
+    return {'funcionarioId': id};
+  }
+
   @override
   Future<Map<String, dynamic>> cadastrar(
     Map<String, String> dados,
@@ -393,10 +482,24 @@ class _CadastroApiTeste extends CadastrosRecepcaoService {
 
 class _CadastroApiFalha extends CadastrosRecepcaoService {
   @override
+  Future<Map<String, dynamic>> cadastrarFuncionario(
+    Map<String, String> dados,
+    String id,
+  ) async {
+    throw Exception('Serviço indisponível');
+  }
+
+  @override
   Future<Map<String, dynamic>> cadastrar(
     Map<String, String> dados,
     String solicitacaoId,
   ) async {
     throw Exception('Serviço indisponível');
   }
+}
+
+class _AgendaEmLeitura extends ConsultasClinicaService {
+  @override
+  Future<List<ConsultaClinicaApi>> listarDia(DateTime dia) =>
+      Completer<List<ConsultaClinicaApi>>().future;
 }

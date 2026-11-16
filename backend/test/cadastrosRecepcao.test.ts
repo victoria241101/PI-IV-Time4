@@ -15,7 +15,7 @@ function corresponde(d: Document,f: Document) { return Object.entries(f).every((
   : igual(d[k],v)); }
 async function preparar(t: TestContext, {papel='SECRETARIA', autenticado=true, falharHash=false}={}) {
   const docs: Record<string, Document[]>={usuarios:[],tutores:[],pets:[]};const senhas: string[]=[];let acessos=0;
-  const banco={collection(nome: string){acessos++;return {
+  const banco={collection(nome: string){acessos++;docs[nome] ??= [];return {
     find(f: Document){const rows=docs[nome]!.filter(d=>corresponde(d,f));return {limit(n: number){rows.splice(n);return this;},async toArray(){return rows;}};},
     async findOne(f: Document){return docs[nome]!.find(d=>corresponde(d,f))??null;},
     async insertOne(d: Document){docs[nome]!.push(d);return {insertedId:d._id};},
@@ -29,7 +29,7 @@ async function preparar(t: TestContext, {papel='SECRETARIA', autenticado=true, f
   const servidor=await new Promise<Server>(resolve=>{const s=app.listen(0,'127.0.0.1',()=>resolve(s));});
   t.after(()=>new Promise<void>((resolve, reject) => servidor.close(erro => erro ? reject(erro) : resolve())));
   const url=`http://127.0.0.1:${(servidor.address() as AddressInfo).port}/recepcao`;
-  async function enviar(body: unknown){const r=await fetch(url+'/tutores-pets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json()};}
+  async function enviar(body: unknown){const r=await fetch(url+'/tutores-pets',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});return {status:r.status,body:await r.json().catch(()=>null)};}
   return {docs,senhas,enviar,url,get acessos(){return acessos;}};
 }
 test('Cria conta, tutor e pet vinculados; senha aleatória não é retornada',async t=>{
@@ -74,4 +74,44 @@ test('Dados inválidos não chegam ao banco',async t=>{
   const h=await preparar(t);for(const parte of [{cpf:'11111111111'},{email:'invalido'},{pet:{nome:'Mel'}},{solicitacaoId:'x'}]) {
     assert.equal((await h.enviar({...corpo(),...parte})).status,400);
   }assert.equal(h.acessos,0);
+});
+
+const funcionario = (tipo='ENFERMEIRO') => ({
+  nome:'Funcionário Teste',email:'funcionario@example.test',telefone:'11999999999',
+  tipo,cpf:'52998224725',registro:'ENF-123',crmv:'CRMV-SP-123',especialidade:'Clínica geral',
+  solicitacaoId:new ObjectId().toString()
+});
+async function enviarFuncionario(h: Awaited<ReturnType<typeof preparar>>, body: unknown) {
+  const r=await fetch(h.url+'/funcionarios',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+  return {status:r.status,body:await r.json().catch(()=>null)};
+}
+test('Funcionários: cada perfil cria conta e vínculo e reenvio preserva senha',async t=>{
+  for(const [tipo,colecao] of [['SECRETARIA','secretaria'],['ENFERMEIRO','enfermeiros'],['VETERINARIO','veterinarios']] as const){
+    const h=await preparar(t),body=funcionario(tipo);
+    const r=await enviarFuncionario(h,body);assert.equal(r.status,201);
+    const u=h.docs.usuarios![0]!,p=h.docs[colecao]![0]!;
+    assert.equal(u.tipo,tipo);assert.equal(String(p.usuarioId),String(u._id));
+    assert.equal(u.senhaHash,'hash-de-teste');
+    assert.equal(JSON.stringify(r.body).includes(h.senhas[0]!),false);
+    assert.equal((await enviarFuncionario(h,body)).status,201);
+    assert.equal(h.docs.usuarios!.length,1);assert.equal(h.senhas.length,1);
+    assert.equal((await enviarFuncionario(h,{...body,nome:'Outro'})).status,409);
+  }
+});
+test('Funcionários: recusa contas existentes sem promover perfil ou trocar senha',async t=>{
+  const h=await preparar(t);const u={_id:new ObjectId(),email:'funcionario@example.test',tipo:'USUARIO',senhaHash:'original'};
+  h.docs.usuarios!.push(u);
+  assert.equal((await enviarFuncionario(h,funcionario())).status,409);
+  assert.deepEqual(h.docs.usuarios![0],u);assert.equal(h.senhas.length,0);
+});
+test('Funcionários: erros e permissões não deixam gravação parcial',async t=>{
+  for(const opcoes of [{papel:'ENFERMEIRO'},{papel:'VETERINARIO'},{papel:'USUARIO'},{autenticado:false}]){
+    const h=await preparar(t,opcoes);assert.equal((await enviarFuncionario(h,funcionario())).status,opcoes.autenticado===false?401:403);
+    assert.equal(h.acessos,0);
+  }
+  const h=await preparar(t,{falharHash:true});
+  assert.equal((await enviarFuncionario(h,funcionario())).status,503);
+  assert.equal(h.docs.usuarios!.length,0);
+  assert.equal((await enviarFuncionario(h,{...funcionario(),tipo:'ADMIN'})).status,400);
+  assert.equal((await enviarFuncionario(h,{...funcionario(),registro:''})).status,400);
 });

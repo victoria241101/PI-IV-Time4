@@ -1,3 +1,12 @@
+import 'package:http/http.dart' as http;
+import 'package:http/testing.dart';
+
+import 'dart:async';
+
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/services/clinica/consulta_clinica_api.dart';
 import 'package:pet_care/services/clinica/consultas_clinica_service.dart';
 // Confere navegação, ações de cada perfil e notas compartilhadas após a padronização.
 import 'package:flutter/material.dart';
@@ -31,7 +40,11 @@ void main() {
     TipografiaApp.button = const TextStyle(fontSize: 16);
     TipografiaApp.buttonSmall = const TextStyle(fontSize: 14);
   });
-  setUp(() {
+  setUp(() async {
+    SharedPreferences.setMockInitialValues({});
+    FlutterSecureStorage.setMockInitialValues({});
+    await SessaoUsuario.instancia.sair();
+
     servicoAnterior = agenda.servico;
     agenda.servico = _ApiClinicaTeste();
     anteriores = List.of(agenda.consultas);
@@ -67,6 +80,26 @@ void main() {
     Widget pagina, {
     double largura = 390,
   }) async {
+    final salvas = List<ConsultaRecepcao>.of(agenda.consultas);
+    final notas = Map<String, ProntuarioCompartilhado>.of(agenda.prontuarios);
+    await SessaoUsuario.instancia.entrar(
+      nome: pagina is ProntuarioInternacao
+          ? (pagina.responsavel ?? 'Profissional teste')
+          : 'Profissional teste',
+      email: 'teste@example.test',
+      token: 'token-teste',
+      tipoUsuario: pagina is InicioRecepcao
+          ? 'SECRETARIA'
+          : pagina is InicioEnfermeiro
+          ? 'ENFERMEIRO'
+          : 'VETERINARIO',
+    );
+    agenda.consultas
+      ..clear()
+      ..addAll(salvas);
+    agenda.prontuarios
+      ..clear()
+      ..addAll(notas);
     tester.view.physicalSize = Size(largura, 844);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -78,28 +111,36 @@ void main() {
   testWidgets('Três fluxos abrem todas as abas sem erro em tela estreita', (
     tester,
   ) async {
-    consulta.status = StatusConsultaRecepcao.aguardandoTriagem;
-    for (final pagina in <Widget>[
-      const InicioRecepcao(),
-      const InicioEnfermeiro(),
-      const InicioVeterinario(profissional: 'Dra. Camila'),
-    ]) {
-      await abrir(tester, pagina, largura: 360);
-      for (final aba in [1, 2, 3, 0]) {
-        await tester.tap(find.byType(NavigationDestination).at(aba));
-        await tester.pumpAndSettle();
-        expect(
-          tester.takeException(),
-          isNull,
-          reason: "${pagina.runtimeType}, aba $aba",
-        );
-      }
-      expect(
-        find.text('Fale com a recepção e com os veterinários'),
-        findsNothing,
-      );
-      await tester.pumpWidget(const SizedBox());
-    }
+    await http.runWithClient(
+      () async {
+        consulta.status = StatusConsultaRecepcao.aguardandoTriagem;
+        for (final pagina in <Widget>[
+          const InicioRecepcao(),
+          const InicioEnfermeiro(),
+          const InicioVeterinario(profissional: 'Dra. Camila'),
+        ]) {
+          await abrir(tester, pagina, largura: 360);
+          for (final aba in [1, 2, 3, 0]) {
+            await tester.tap(find.byType(NavigationDestination).at(aba));
+            await tester.pumpAndSettle();
+            expect(
+              tester.takeException(),
+              isNull,
+              reason: "${pagina.runtimeType}, aba $aba",
+            );
+          }
+          expect(
+            find.text('Fale com a recepção e com os veterinários'),
+            findsNothing,
+          );
+          await tester.pumpWidget(const SizedBox());
+        }
+      },
+      () => MockClient((request) async {
+        expect(request.url.path, startsWith('/chat/'));
+        return http.Response('{"conversas":[],"contatos":[]}', 200);
+      }),
+    );
   });
   testWidgets('Recepção apenas confirma chegada e mantém os demais status', (
     tester,
@@ -239,6 +280,12 @@ void main() {
 }
 
 class _ApiClinicaTeste extends ConsultasClinicaService {
+  // Estes testes exercitam ações sobre a agenda já carregada.
+  // A leitura da API é testada em agenda_clinica_integracao_test.dart.
+  @override
+  Future<List<ConsultaClinicaApi>> listarDia(DateTime dia) =>
+      Completer<List<ConsultaClinicaApi>>().future;
+
   @override
   Future<Map<String, dynamic>> lerProntuario(String id) async => {
     'triagem': null,

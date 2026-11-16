@@ -1,3 +1,4 @@
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:pet_care/screens/recepcao/agenda/novo_agendamento_api.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 // tela principal da recepção com agenda, cadastro, calendário e chat
@@ -37,7 +38,7 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
     _consultas = AgendaClinica.instancia.consultas;
     AgendaClinica.instancia.addListener(_atualizarAgendaCompartilhada);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
+      if (mounted && AcessoClinico.permitido('SECRETARIA')) _carregarAgenda();
     });
   }
 
@@ -148,7 +149,10 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      AcessoClinico(perfil: 'SECRETARIA', builder: _construirTela);
+
+  Widget _construirTela(BuildContext context) {
     final consultasDeHoje = _consultas
         .where((consulta) => DateUtils.isSameDay(consulta.data, _hoje))
         .toList();

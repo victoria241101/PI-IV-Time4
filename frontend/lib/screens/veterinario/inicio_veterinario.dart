@@ -1,3 +1,4 @@
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 // consultas, agenda, clientes e chat do veterinario
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/formatadores/data_app.dart';
@@ -21,6 +22,7 @@ class InicioVeterinario extends StatefulWidget {
   const InicioVeterinario({
     super.key,
     this.profissional,
+    this.perfilAcesso = 'VETERINARIO',
     this.mostrarTodasConsultas = false,
     this.descricaoClientes,
     this.paginaConsultaBuilder,
@@ -31,6 +33,7 @@ class InicioVeterinario extends StatefulWidget {
     this.resumoHojeBuilder,
   });
 
+  final String perfilAcesso;
   final String? profissional;
   final bool mostrarTodasConsultas;
   final String? descricaoClientes;
@@ -55,7 +58,9 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     _hoje = DateUtils.dateOnly(DateTime.now());
     AgendaClinica.instancia.addListener(_atualizarAgenda);
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
+      if (mounted && AcessoClinico.permitido(widget.perfilAcesso)) {
+        _carregarAgenda();
+      }
     });
   }
 
@@ -65,7 +70,9 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     } catch (erro) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(erro.toString().replaceFirst('Exception: ', ''))),
+          SnackBar(
+            content: Text(erro.toString().replaceFirst('Exception: ', '')),
+          ),
         );
       }
     }
@@ -137,7 +144,10 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      AcessoClinico(perfil: widget.perfilAcesso, builder: _construirTela);
+
+  Widget _construirTela(BuildContext context) {
     final consultas = _consultasDoPerfil;
     final consultasVisiveis = _consultasVisiveis;
     final consultasAtivasHoje = _consultasAtivasDeHoje;

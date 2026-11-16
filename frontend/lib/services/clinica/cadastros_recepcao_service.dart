@@ -1,3 +1,5 @@
+import 'package:pet_care/core/constantes/api_config.dart';
+
 import 'dart:convert';
 import 'dart:math';
 
@@ -6,7 +8,8 @@ import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/services/api_http.dart';
 
 class CadastrosRecepcaoService {
-  CadastrosRecepcaoService({this.baseUrl = apiBaseUrl});
+  CadastrosRecepcaoService({String? baseUrl})
+    : baseUrl = baseUrl ?? ApiConfig.baseUrl;
   final String baseUrl;
 
   static String novaSolicitacao() {
@@ -54,6 +57,36 @@ class CadastrosRecepcaoService {
     if (resultado is! Map ||
         resultado['tutorId'] is! String ||
         resultado['petId'] is! String) {
+      throw const FormatException('Resposta de cadastro inválida.');
+    }
+    return Map<String, dynamic>.from(resultado);
+  }
+
+  Future<Map<String, dynamic>> cadastrarFuncionario(
+    Map<String, String> dados,
+    String solicitacaoId,
+  ) async {
+    final token = SessaoUsuario.instancia.token;
+    final resposta = await http
+        .post(
+          Uri.parse('$baseUrl/recepcao/funcionarios'),
+          headers: _headers,
+          body: jsonEncode({
+            ...dados,
+            'tipo': {
+              'Secretária': 'SECRETARIA',
+              'Enfermeiro': 'ENFERMEIRO',
+              'Veterinário': 'VETERINARIO',
+            }[dados['cargo']],
+            'solicitacaoId': solicitacaoId,
+          }),
+        )
+        .timeout(const Duration(seconds: 30));
+    if (SessaoUsuario.instancia.token != token) {
+      throw StateError('A sessão mudou. Entre novamente.');
+    }
+    final resultado = processarRespostaJson(resposta);
+    if (resultado is! Map || resultado['funcionarioId'] is! String) {
       throw const FormatException('Resposta de cadastro inválida.');
     }
     return Map<String, dynamic>.from(resultado);

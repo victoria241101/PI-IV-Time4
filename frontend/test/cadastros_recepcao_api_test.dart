@@ -23,6 +23,31 @@ void main() {
   });
   tearDown(() async => SessaoUsuario.instancia.sair());
   test(
+    'Funcionário envia perfil e token para rota exclusiva da secretária',
+    () async {
+      final api = CadastrosRecepcaoService(baseUrl: 'https://api.example.test');
+      await http.runWithClient(
+        () async {
+          await api.cadastrarFuncionario({
+            'nome': 'Teste',
+            'email': 'teste@example.test',
+            'cargo': 'Veterinário',
+            'crmv': 'CRMV-SP-123',
+          }, '123456789012345678901234');
+        },
+        () => MockClient((r) async {
+          expect(r.url.path, '/recepcao/funcionarios');
+          expect(r.headers['Authorization'], 'Bearer teste');
+          final body = jsonDecode(r.body) as Map;
+          expect(body['tipo'], 'VETERINARIO');
+          expect(body.containsKey('senha'), false);
+          return http.Response('{"funcionarioId":"V1"}', 201);
+        }),
+      );
+    },
+  );
+
+  test(
     'Cadastro usa rota da recepção e não envia senha nem usuário da secretária',
     () async {
       final servico = CadastrosRecepcaoService(

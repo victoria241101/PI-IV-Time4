@@ -1,7 +1,6 @@
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:flutter/material.dart';
 import 'package:pet_care/main.dart';
-import 'package:pet_care/screens/autenticacao/login.dart';
-import 'package:pet_care/screens/gerais/inicio_geral.dart';
 import 'package:pet_care/screens/gerais/splash_screen.dart';
 import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
 import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
@@ -135,87 +134,87 @@ void main() {
     return tester.widget<MaterialApp>(find.byType(MaterialApp));
   }
 
-  Widget destino(MaterialApp aplicativo, BuildContext contexto, String rota) {
-    Widget tela = aplicativo.routes![rota]!(contexto);
-    while (tela is AnimatedBuilder) {
-      tela = tela.builder(contexto, null);
-    }
-    return tela;
-  }
-
-  const rotas = [
-    '/recepcao',
-    '/enfermeiro',
-    '/veterinario',
-    '/inicio-autenticado',
-    '/revisao-fluxos',
-  ];
-  testWidgets('Abertura usa splash existente para restaurar sessão', (
+  testWidgets('Abertura mantém a restauração de sessão da develop', (
     tester,
   ) async {
     final aplicativo = await app(tester);
     final contexto = tester.element(find.byType(MaterialApp));
-    final inicio = aplicativo.home as Builder;
-    expect(inicio.builder(contexto), isA<SplashScreen>());
+    expect((aplicativo.home as Builder).builder(contexto), isA<SplashScreen>());
   });
-  testWidgets('Visitante não acessa nenhuma entrada clínica', (tester) async {
-    final aplicativo = await app(tester);
-    final contexto = tester.element(find.byType(MaterialApp));
-    for (final rota in rotas) {
-      expect(destino(aplicativo, contexto, rota), isA<LoginScreen>());
-    }
-  });
+
+  for (final perfil in ['SECRETARIA', 'ENFERMEIRO', 'VETERINARIO']) {
+    testWidgets('$perfil: bloqueia visitante, outros perfis e logout', (
+      tester,
+    ) async {
+      await tester.pumpWidget(
+        MaterialApp(
+          home: AcessoClinico(
+            perfil: perfil,
+            builder: (_) => const Text('Conteúdo clínico'),
+          ),
+        ),
+      );
+      expect(find.text('Conteúdo clínico'), findsNothing);
+      for (final tipo in [
+        'SECRETARIA',
+        'ENFERMEIRO',
+        'VETERINARIO',
+        'USUARIO',
+      ]) {
+        await sessao.entrar(
+          nome: 'Teste',
+          email: 'teste@example.test',
+          token: 'token-teste',
+          tipoUsuario: tipo,
+        );
+        await tester.pump();
+        expect(
+          find.text('Conteúdo clínico'),
+          tipo == perfil ? findsOneWidget : findsNothing,
+        );
+      }
+      await sessao.sair();
+      await tester.pump();
+      expect(find.text('Conteúdo clínico'), findsNothing);
+      expect(find.text('Entrar'), findsOneWidget);
+    });
+  }
+
   for (final perfil in {
     'SECRETARIA': InicioRecepcao,
     'ENFERMEIRO': InicioEnfermeiro,
     'VETERINARIO': InicioVeterinario,
   }.entries) {
-    testWidgets(
-      '${perfil.key} acessa somente sua tela, inclusive por rota alheia',
-      (tester) async {
-        await sessao.entrar(
-          nome: 'Teste',
-          email: 'teste@example.test',
-          token: 'token-teste',
-          tipoUsuario: perfil.key,
-        );
-        final aplicativo = await app(tester);
-        final contexto = tester.element(find.byType(MaterialApp));
-        for (final rota in rotas) {
-          expect(destino(aplicativo, contexto, rota).runtimeType, perfil.value);
-        }
-        // Reavalia o mesmo guard após encerrar a sessão.
-        final guard =
-            aplicativo.routes!['/recepcao']!(contexto) as AnimatedBuilder;
-        expect(guard.listenable, same(sessao));
-        await sessao.sair();
-        expect(guard.builder(contexto, null), isA<LoginScreen>());
-      },
-    );
-  }
-  for (final tutor in [false, true]) {
-    testWidgets('Destino original de usuário (tutor=$tutor) preservado', (
+    testWidgets('Login direciona ${perfil.key} para o fluxo correto', (
       tester,
     ) async {
       await sessao.entrar(
         nome: 'Teste',
         email: 'teste@example.test',
-        token: 'token-teste',
-        tipoUsuario: 'USUARIO',
-        ehTutor: tutor,
+        token: 'teste',
+        tipoUsuario: perfil.key,
       );
       final aplicativo = await app(tester);
       final contexto = tester.element(find.byType(MaterialApp));
-      for (final rota in rotas) {
-        if (tutor) {
-          expect(
-            destino(aplicativo, contexto, rota).runtimeType.toString(),
-            '_InicioTutorComDadosReais',
-          );
-        } else {
-          expect(destino(aplicativo, contexto, rota), isA<InicioGeral>());
-        }
-      }
+      expect(
+        aplicativo.routes!['/inicio-autenticado']!(contexto).runtimeType,
+        perfil.value,
+      );
     });
   }
+  testWidgets('As três entradas clínicas bloqueiam visitantes', (tester) async {
+    for (final tela in <Widget>[
+      const InicioRecepcao(),
+      const InicioEnfermeiro(),
+      const InicioVeterinario(),
+    ]) {
+      await tester.pumpWidget(MaterialApp(home: tela));
+      await tester.pump();
+      expect(
+        find.text('Entre na sua conta para acessar a clínica.'),
+        findsOneWidget,
+      );
+      await tester.pumpWidget(const SizedBox());
+    }
+  });
 }

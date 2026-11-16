@@ -1,3 +1,5 @@
+import 'package:pet_care/core/constantes/api_config.dart';
+
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -9,10 +11,9 @@ import 'consulta_clinica_api.dart';
 
 /// Adaptador exclusivo dos fluxos clínicos. A autorização continua na API.
 class ConsultasClinicaService {
-  ConsultasClinicaService({
-    this.baseUrl = apiBaseUrl,
-    String? Function()? obterToken,
-  }) : _obterToken = obterToken ?? (() => SessaoUsuario.instancia.token);
+  ConsultasClinicaService({String? baseUrl, String? Function()? obterToken})
+    : baseUrl = baseUrl ?? ApiConfig.baseUrl,
+      _obterToken = obterToken ?? (() => SessaoUsuario.instancia.token);
   final String baseUrl;
   final String? Function() _obterToken;
 

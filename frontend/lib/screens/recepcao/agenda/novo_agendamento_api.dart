@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:pet_care/services/api_http.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/services/veterinarios_service.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:pet_care/controle/agenda_clinica.dart';
@@ -71,7 +71,7 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
         'Tutor não encontrado. Faça o cadastro de tutor e pet na aba Cadastro.',
       );
     }
-    final vets = await VeterinariosService(baseUrl: apiBaseUrl)
+    final vets = await VeterinariosService(baseUrl: ApiConfig.baseUrl)
         .listarVeterinarios();
     if (!mounted) return;
     setState(() {

@@ -252,9 +252,7 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
       final Widget destino = !sessao.estaLogado
           ? const InicioPublico()
-          : sessao.ehTutor
-          ? const _InicioTutorComDadosReais()
-          : const InicioGeral();
+          : _construirDestinoAutenticado(context);
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
@@ -281,6 +279,12 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
   }
 
   Widget _construirDestinoAutenticado(BuildContext context) {
+    final sessao = SessaoUsuario.instancia;
+    if (sessao.estaLogado) {
+      if (sessao.ehSecretaria) return const InicioRecepcao();
+      if (sessao.ehEnfermeiro) return const InicioEnfermeiro();
+      if (sessao.ehVeterinario) return const InicioVeterinario();
+    }
     return SessaoUsuario.instancia.ehTutor
         ? const _InicioTutorComDadosReais()
         : const InicioGeral();

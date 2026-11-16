@@ -1,3 +1,7 @@
+import 'package:flutter/foundation.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
+import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
+
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -21,6 +25,13 @@ Map<String, dynamic> consulta([String id = 'C001']) => {
   'podeContinuarTriagem': false,
 };
 void main() {
+  test('Serviços clínicos reutilizam a URL da develop no Android', () {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    addTearDown(() => debugDefaultTargetPlatformOverride = null);
+    expect(ConsultasClinicaService().baseUrl, ApiConfig.baseUrl);
+    expect(CadastrosRecepcaoService().baseUrl, ApiConfig.baseUrl);
+  });
+
   final api = ConsultasClinicaService(
     baseUrl: 'https://clinica.example.test/',
     obterToken: () => 'token',

@@ -13,6 +13,7 @@ class InicioEnfermeiro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InicioVeterinario(
+    perfilAcesso: 'ENFERMEIRO',
     profissional: SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro',
     mostrarTodasConsultas: true,
     paginaConsultaBuilder: _paginaTriagem,

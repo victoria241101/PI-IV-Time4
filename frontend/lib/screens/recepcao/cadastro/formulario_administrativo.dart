@@ -1,3 +1,4 @@
+import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pet_care/controle/cadastros_recepcao_local.dart';
@@ -6,9 +7,14 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
-/// Formulários da recepção: apenas prévia local até conectar os serviços.
+/// Funcionários são salvos na API; os demais cadastros mantêm o fluxo existente.
 class FormularioAdministrativo extends StatefulWidget {
-  const FormularioAdministrativo({super.key, required this.tipo});
+  const FormularioAdministrativo({
+    super.key,
+    required this.tipo,
+    this.cadastrosService,
+  });
+  final CadastrosRecepcaoService? cadastrosService;
   final TipoCadastroRecepcao tipo;
   @override
   State<FormularioAdministrativo> createState() =>
@@ -16,6 +22,8 @@ class FormularioAdministrativo extends StatefulWidget {
 }
 
 class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
+  bool _salvando = false;
+  final _solicitacaoId = CadastrosRecepcaoService.novaSolicitacao();
   final _form = GlobalKey<FormState>();
   final _campos = <String, TextEditingController>{};
   String _cargo = 'Enfermeiro';
@@ -143,7 +151,16 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
     }
   }
 
-  void _salvar() {
+  Future<void> _salvar() async {
+    if (_salvando) return;
+    if (!_funcionario) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Este cadastro ainda não está disponível.'),
+        ),
+      );
+      return;
+    }
     final valido = _form.currentState!.validate();
     if (_campanha &&
         (_inicio == null || _fim == null || _fim!.isBefore(_inicio!))) {
@@ -169,21 +186,6 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
       if (_cargo != 'Enfermeiro') {
         dados.remove('registro');
       }
-      final repetido = CadastrosRecepcaoLocal.instancia.registros.any(
-        (r) =>
-            r.tipo == TipoCadastroRecepcao.funcionario &&
-            r.dados['email']?.toLowerCase() == dados['email']?.toLowerCase(),
-      );
-      if (repetido) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Já existe um funcionário com este e-mail nesta prévia.',
-            ),
-          ),
-        );
-        return;
-      }
     } else if (_campanha) {
       dados['dataInicio'] = _inicio!.toIso8601String();
       dados['dataFim'] = _fim!.toIso8601String();
@@ -195,6 +197,26 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
       if (_campanhaVinculadaId != null) {
         dados['campanhaVinculadaId'] = _campanhaVinculadaId!;
       }
+    }
+    if (_funcionario) {
+      setState(() => _salvando = true);
+      try {
+        final resultado =
+            await (widget.cadastrosService ?? CadastrosRecepcaoService())
+                .cadastrarFuncionario(dados, _solicitacaoId);
+        dados['id'] = resultado['funcionarioId'] as String;
+      } catch (erro) {
+        if (mounted) {
+          setState(() => _salvando = false);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(erro.toString().replaceFirst('Exception: ', '')),
+            ),
+          );
+        }
+        return;
+      }
+      if (!mounted) return;
     }
     Navigator.pop(
       context,
@@ -214,186 +236,191 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
   Widget build(BuildContext context) => Scaffold(
     backgroundColor: CoresApp.background,
     appBar: cabecalhoClinica(_titulo),
-    body: SingleChildScrollView(
-      padding: const EdgeInsets.all(20),
-      child: Center(
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 640),
-          child: Form(
-            key: _form,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  _funcionario
-                      ? 'Dados do profissional'
-                      : _campanha
-                      ? 'Ajuda financeira para o tratamento do pet'
-                      : 'Novo banner',
-                  style: TipografiaApp.heading2,
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Prévia local: os dados ficam disponíveis nesta sessão e não são publicados.',
-                  style: TipografiaApp.caption,
-                ),
-                const SizedBox(height: 24),
-                if (_funcionario) ...[
-                  _opcoes(
-                    'Função',
-                    _cargo,
-                    ['Enfermeiro', 'Veterinário', 'Secretária'],
-                    (v) {
-                      _cargo = v;
-                      if (v != 'Veterinário') {
-                        _campo('crmv').clear();
-                        _campo('especialidade').clear();
-                      }
-                      if (v != 'Enfermeiro') {
-                        _campo('registro').clear();
-                      }
-                      if (v != 'Secretária') {
-                        _campo('cpf').clear();
-                      }
-                    },
-                  ),
-                  _texto('nome', 'Nome completo'),
-                  _texto(
-                    'email',
-                    'E-mail para acesso',
-                    teclado: TextInputType.emailAddress,
-                    validar: _email,
-                  ),
-                  _texto(
-                    'telefone',
-                    'Celular',
-                    teclado: TextInputType.phone,
-                    validar: (v) =>
-                        (v ?? '').replaceAll(RegExp(r'\D'), '').length >= 10
-                        ? null
-                        : 'Informe o celular com DDD',
-                  ),
-                  if (_cargo == 'Veterinário') ...[
-                    _texto('crmv', 'CRMV'),
-                    _texto(
-                      'especialidade',
-                      'Especialidade',
-                      obrigatorio: false,
-                    ),
-                  ],
-                  if (_cargo == 'Enfermeiro') _texto('registro', 'Registro'),
-                  if (_cargo == 'Secretária')
-                    _texto(
-                      'cpf',
-                      'CPF',
-                      teclado: TextInputType.number,
-                      formato: [
-                        FilteringTextInputFormatter.digitsOnly,
-                        LengthLimitingTextInputFormatter(11),
-                      ],
-                      validar: _validarCpf,
-                    ),
+    body: AbsorbPointer(
+      absorbing: _salvando,
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 640),
+            child: Form(
+              key: _form,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
                   Text(
-                    'A conta de acesso será criada quando conectarmos este cadastro ao serviço de login.',
+                    _funcionario
+                        ? 'Dados do profissional'
+                        : _campanha
+                        ? 'Ajuda financeira para o tratamento do pet'
+                        : 'Novo banner',
+                    style: TipografiaApp.heading2,
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Prévia local: os dados ficam disponíveis nesta sessão e não são publicados.',
                     style: TipografiaApp.caption,
                   ),
-                ] else if (_campanha) ...[
-                  _texto('titulo', 'Título da campanha'),
-                  _texto('descricao', 'Descrição e objetivo', linhas: 4),
-                  _texto(
-                    'metaValor',
-                    'Meta de arrecadação (R\$)',
-                    teclado: const TextInputType.numberWithOptions(
-                      decimal: true,
-                    ),
-                    validar: (v) {
-                      final n = double.tryParse((v ?? '').replaceAll(',', '.'));
-                      return n != null && n.isFinite && n > 0
-                          ? null
-                          : 'Informe um valor maior que zero';
-                    },
-                  ),
-                  _texto(
-                    'imagemCapa',
-                    'Link da imagem de capa (opcional)',
-                    obrigatorio: false,
-                    teclado: TextInputType.url,
-                    validar: _url,
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Data de início'),
-                    subtitle: Text(_data(_inicio)),
-                    trailing: const Icon(Icons.calendar_month),
-                    onTap: () => _escolherData(true),
-                  ),
-                  ListTile(
-                    contentPadding: EdgeInsets.zero,
-                    title: const Text('Data de término'),
-                    subtitle: Text(_data(_fim)),
-                    trailing: const Icon(Icons.calendar_month),
-                    onTap: () => _escolherData(false),
-                  ),
-                  if (_erroDatas != null)
-                    Text(
-                      _erroDatas!,
-                      style: const TextStyle(color: CoresApp.danger),
-                    ),
-                ] else ...[
-                  // Banner
-                  _texto('identificacao', 'Identificação do banner'),
-                  _texto(
-                    'imagem',
-                    'URL da imagem',
-                    teclado: TextInputType.url,
-                    validar: (v) => _obrigatorio(v) ?? _url(v),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 16),
-                    child: Builder(
-                      builder: (context) {
-                        final campanhas =
-                            CadastrosRecepcaoLocal.instancia.campanhasLocais;
-                        if (campanhas.isEmpty) {
-                          return const Text(
-                            'Nenhuma campanha cadastrada nesta sessão.',
-                          );
+                  const SizedBox(height: 24),
+                  if (_funcionario) ...[
+                    _opcoes(
+                      'Função',
+                      _cargo,
+                      ['Enfermeiro', 'Veterinário', 'Secretária'],
+                      (v) {
+                        _cargo = v;
+                        if (v != 'Veterinário') {
+                          _campo('crmv').clear();
+                          _campo('especialidade').clear();
                         }
-                        return DropdownButtonFormField<String>(
-                          initialValue: _campanhaVinculadaId,
-                          isExpanded: true,
-                          decoration: const InputDecoration(
-                            labelText: 'Campanha vinculada (opcional)',
-                            border: OutlineInputBorder(),
-                          ),
-                          items: [
-                            const DropdownMenuItem<String>(
-                              value: null,
-                              child: Text('Nenhuma'),
-                            ),
-                            ...campanhas.map(
-                              (c) => DropdownMenuItem<String>(
-                                value: c.dados['id'],
-                                child: Text(c.nome),
-                              ),
-                            ),
-                          ],
-                          onChanged: (v) =>
-                              setState(() => _campanhaVinculadaId = v),
-                        );
+                        if (v != 'Enfermeiro') {
+                          _campo('registro').clear();
+                        }
+                        if (v != 'Secretária') {
+                          _campo('cpf').clear();
+                        }
                       },
                     ),
+                    _texto('nome', 'Nome completo'),
+                    _texto(
+                      'email',
+                      'E-mail para acesso',
+                      teclado: TextInputType.emailAddress,
+                      validar: _email,
+                    ),
+                    _texto(
+                      'telefone',
+                      'Celular',
+                      teclado: TextInputType.phone,
+                      validar: (v) =>
+                          (v ?? '').replaceAll(RegExp(r'\D'), '').length >= 10
+                          ? null
+                          : 'Informe o celular com DDD',
+                    ),
+                    if (_cargo == 'Veterinário') ...[
+                      _texto('crmv', 'CRMV'),
+                      _texto(
+                        'especialidade',
+                        'Especialidade',
+                        obrigatorio: false,
+                      ),
+                    ],
+                    if (_cargo == 'Enfermeiro') _texto('registro', 'Registro'),
+                    if (_cargo == 'Secretária')
+                      _texto(
+                        'cpf',
+                        'CPF',
+                        teclado: TextInputType.number,
+                        formato: [
+                          FilteringTextInputFormatter.digitsOnly,
+                          LengthLimitingTextInputFormatter(11),
+                        ],
+                        validar: _validarCpf,
+                      ),
+                    Text(
+                      'A conta de acesso será criada quando conectarmos este cadastro ao serviço de login.',
+                      style: TipografiaApp.caption,
+                    ),
+                  ] else if (_campanha) ...[
+                    _texto('titulo', 'Título da campanha'),
+                    _texto('descricao', 'Descrição e objetivo', linhas: 4),
+                    _texto(
+                      'metaValor',
+                      'Meta de arrecadação (R\$)',
+                      teclado: const TextInputType.numberWithOptions(
+                        decimal: true,
+                      ),
+                      validar: (v) {
+                        final n = double.tryParse(
+                          (v ?? '').replaceAll(',', '.'),
+                        );
+                        return n != null && n.isFinite && n > 0
+                            ? null
+                            : 'Informe um valor maior que zero';
+                      },
+                    ),
+                    _texto(
+                      'imagemCapa',
+                      'Link da imagem de capa (opcional)',
+                      obrigatorio: false,
+                      teclado: TextInputType.url,
+                      validar: _url,
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Data de início'),
+                      subtitle: Text(_data(_inicio)),
+                      trailing: const Icon(Icons.calendar_month),
+                      onTap: () => _escolherData(true),
+                    ),
+                    ListTile(
+                      contentPadding: EdgeInsets.zero,
+                      title: const Text('Data de término'),
+                      subtitle: Text(_data(_fim)),
+                      trailing: const Icon(Icons.calendar_month),
+                      onTap: () => _escolherData(false),
+                    ),
+                    if (_erroDatas != null)
+                      Text(
+                        _erroDatas!,
+                        style: const TextStyle(color: CoresApp.danger),
+                      ),
+                  ] else ...[
+                    // Banner
+                    _texto('identificacao', 'Identificação do banner'),
+                    _texto(
+                      'imagem',
+                      'URL da imagem',
+                      teclado: TextInputType.url,
+                      validar: (v) => _obrigatorio(v) ?? _url(v),
+                    ),
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 16),
+                      child: Builder(
+                        builder: (context) {
+                          final campanhas =
+                              CadastrosRecepcaoLocal.instancia.campanhasLocais;
+                          if (campanhas.isEmpty) {
+                            return const Text(
+                              'Nenhuma campanha cadastrada nesta sessão.',
+                            );
+                          }
+                          return DropdownButtonFormField<String>(
+                            initialValue: _campanhaVinculadaId,
+                            isExpanded: true,
+                            decoration: const InputDecoration(
+                              labelText: 'Campanha vinculada (opcional)',
+                              border: OutlineInputBorder(),
+                            ),
+                            items: [
+                              const DropdownMenuItem<String>(
+                                value: null,
+                                child: Text('Nenhuma'),
+                              ),
+                              ...campanhas.map(
+                                (c) => DropdownMenuItem<String>(
+                                  value: c.dados['id'],
+                                  child: Text(c.nome),
+                                ),
+                              ),
+                            ],
+                            onChanged: (v) =>
+                                setState(() => _campanhaVinculadaId = v),
+                          );
+                        },
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 24),
+                  BotaoClinica(
+                    label: _salvando ? 'Salvando...' : 'Salvar cadastro',
+                    icon: Icons.check_rounded,
+                    expanded: true,
+                    onPressed: _salvar,
                   ),
+                  const SizedBox(height: 24),
                 ],
-                const SizedBox(height: 24),
-                BotaoClinica(
-                  label: 'Salvar cadastro',
-                  icon: Icons.check_rounded,
-                  expanded: true,
-                  onPressed: _salvar,
-                ),
-                const SizedBox(height: 24),
-              ],
+              ),
             ),
           ),
         ),
