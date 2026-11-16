@@ -1,13 +1,18 @@
 
 import 'package:flutter/material.dart';
-
+import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/cabecalho_petcare.dart';
 
 class NovaSenhaScreen extends StatefulWidget {
-  const NovaSenhaScreen({super.key});
+  const NovaSenhaScreen({
+    super.key,
+    required this.token,
+  });
+
+  final String token;
 
   @override
   State<NovaSenhaScreen> createState() => _NovaSenhaScreenState();
@@ -15,7 +20,7 @@ class NovaSenhaScreen extends StatefulWidget {
 
 class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
   final _formKey = GlobalKey<FormState>();
-
+  bool _carregando = false;
   final _senhaController = TextEditingController();
   final _confirmarSenhaController = TextEditingController();
 
@@ -76,28 +81,52 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
     return CoresApp.primary;
   }
 
-  void _resetarSenha() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _resetarSenha() async {
+    if (!_formKey.currentState!.validate() || _carregando) return;
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Senha alterada com sucesso!'),
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    setState(() => _carregando = true);
 
-    Future.delayed(
-      const Duration(milliseconds: 700),
-          () {
-        if (!mounted) return;
+    try {
+      await AuthService.instancia.redefinirSenha(
+        token: widget.token,
+        novaSenha: _senhaController.text,
+        confirmarSenha: _confirmarSenhaController.text,
+      );
 
-        Navigator.pushNamedAndRemoveUntil(
-          context,
-          '/login',
-              (route) => false,
-        );
-      },
-    );
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Senha alterada com sucesso!'),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+
+      await Future.delayed(const Duration(milliseconds: 700));
+
+      if (!mounted) return;
+
+      Navigator.pushNamedAndRemoveUntil(
+        context,
+        '/login',
+            (route) => false,
+      );
+    } catch (erro) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            erro.toString().replaceFirst('Exception: ', ''),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _carregando = false);
+      }
+    }
   }
 
   InputDecoration _decoracaoCampo({
@@ -443,8 +472,9 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed:
-                              _senhaValida ? _resetarSenha : null,
+                              onPressed: _senhaValida && !_carregando
+                                  ? _resetarSenha
+                                  : null,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: CoresApp.darkBlue,
                                 disabledBackgroundColor:
@@ -455,7 +485,11 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
-                              child: const Row(
+                              child: _carregando
+                                  ? const CircularProgressIndicator(
+                                color: Colors.white,
+                              )
+                                  : const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
@@ -466,10 +500,7 @@ class _NovaSenhaScreenState extends State<NovaSenhaScreen> {
                                     ),
                                   ),
                                   SizedBox(width: 10),
-                                  Icon(
-                                    Icons.check_rounded,
-                                    size: 20,
-                                  ),
+                                  Icon(Icons.check_rounded, size: 20),
                                 ],
                               ),
                             ),

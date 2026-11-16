@@ -1,6 +1,6 @@
 
 import 'package:flutter/material.dart';
-
+import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
@@ -16,6 +16,7 @@ class EsqueciSenhaScreen extends StatefulWidget {
 }
 
 class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
+  bool _carregando = false;
   final _formKey = GlobalKey<FormState>();
   final _emailController = TextEditingController();
 
@@ -48,17 +49,42 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
     return null;
   }
 
-  void _enviarCodigo() {
-    if (!_formKey.currentState!.validate()) return;
+  Future<void> _enviarCodigo() async {
+    if (!_formKey.currentState!.validate() || _carregando) return;
 
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => VerificacaoScreen(
-          email: _emailController.text.trim(),
+    setState(() => _carregando = true);
+
+    try {
+      final email = _emailController.text.trim();
+
+      await AuthService.instancia.solicitarRecuperacaoSenha(
+        email: email,
+      );
+
+      if (!mounted) return;
+
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => VerificacaoScreen(email: email),
         ),
-      ),
-    );
+      );
+    } catch (erro) {
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(
+            erro.toString().replaceFirst('Exception: ', ''),
+          ),
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    } finally {
+      if (mounted) {
+        setState(() => _carregando = false);
+      }
+    }
   }
 
   InputDecoration _decoracaoCampo() {
@@ -290,7 +316,7 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                             width: double.infinity,
                             height: 56,
                             child: ElevatedButton(
-                              onPressed: _enviarCodigo,
+                              onPressed: _carregando ? null : _enviarCodigo,
                               style: ElevatedButton.styleFrom(
                                 backgroundColor: CoresApp.darkBlue,
                                 foregroundColor: Colors.white,
@@ -299,21 +325,20 @@ class _EsqueciSenhaScreenState extends State<EsqueciSenhaScreen> {
                                   borderRadius: BorderRadius.circular(16),
                                 ),
                               ),
-                              child: const Row(
+                              child: _carregando
+                                  ? const CircularProgressIndicator(color: Colors.white)
+                                  : const Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
                                   Text(
-                                    'Enviar código',
+                                    'Enviar link de recuperação',
                                     style: TextStyle(
                                       fontSize: 16,
                                       fontWeight: FontWeight.w700,
                                     ),
                                   ),
                                   SizedBox(width: 10),
-                                  Icon(
-                                    Icons.arrow_forward_rounded,
-                                    size: 20,
-                                  ),
+                                  Icon(Icons.arrow_forward_rounded, size: 20),
                                 ],
                               ),
                             ),

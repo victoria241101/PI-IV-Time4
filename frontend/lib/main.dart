@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
-
+import 'package:pet_care/screens/autenticacao/nova_senha.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
@@ -90,12 +90,27 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
   void _receberLink(Uri uri) {
     final linkNativo = uri.scheme == 'petcare';
+
+    final linkRecuperacao =
+        uri.path.endsWith('/redefinir-senha') &&
+            (uri.queryParameters['token']?.isNotEmpty ?? false);
+
     final linkWeb = kIsWeb &&
-        uri.queryParameters.containsKey('tipo');
+        (uri.queryParameters.containsKey('tipo') ||
+            linkRecuperacao);
 
-    if (!linkNativo && !linkWeb) return;
+    final linkRecuperacaoAndroid = !kIsWeb &&
+        linkRecuperacao &&
+        (uri.scheme == 'http' || uri.scheme == 'https');
 
-    if (!_inicioPronto || _navigatorKey.currentState == null) {
+    if (!linkNativo &&
+        !linkWeb &&
+        !linkRecuperacaoAndroid) {
+      return;
+    }
+
+    if (!_inicioPronto ||
+        _navigatorKey.currentState == null) {
       _linkPendente = uri;
       return;
     }
@@ -109,10 +124,32 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       return;
     }
 
+    final token = uri.queryParameters['token'];
+
+    // Recuperação de senha: fluxo independente do PerfilService.
+    if (uri.path.endsWith('/redefinir-senha')) {
+      if (token == null || token.isEmpty) return;
+
+      final navigator = _navigatorKey.currentState;
+
+      if (navigator == null || !navigator.mounted) {
+        _linkPendente = uri;
+        return;
+      }
+
+      navigator.push(
+        MaterialPageRoute(
+          builder: (_) => NovaSenhaScreen(token: token),
+        ),
+      );
+
+      return;
+    }
+
+    // Confirmações existentes do perfil e da alteração de senha.
     final tipo = uri.scheme == 'petcare'
         ? uri.host
         : uri.queryParameters['tipo'];
-    final token = uri.queryParameters['token'];
 
     if (token == null ||
         token.isEmpty ||
@@ -166,7 +203,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
       if (tipo == 'confirmar-alteracao') {
         final resposta =
-        await servico.confirmarAlteracaoPerfil(token: token);
+        await servico.confirmarAlteracaoPerfil(
+          token: token,
+        );
 
         mensagem = resposta['mensagem']?.toString() ??
             'Perfil confirmado com sucesso!';
@@ -176,7 +215,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
         }
       } else {
         final resposta =
-        await servico.confirmarAlteracaoSenha(token: token);
+        await servico.confirmarAlteracaoSenha(
+          token: token,
+        );
 
         mensagem = resposta['mensagem']?.toString() ??
             'Senha alterada com sucesso!';
@@ -188,7 +229,10 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
       sucesso = true;
     } catch (erro) {
-      mensagem = erro.toString().replaceFirst('Exception: ', '');
+      mensagem = erro.toString().replaceFirst(
+        'Exception: ',
+        '',
+      );
     } finally {
       if (dialogCarregamentoAberto && navigator.mounted) {
         Navigator.of(
@@ -203,7 +247,9 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
           barrierDismissible: false,
           builder: (dialogContext) => AlertDialog(
             title: Text(
-              sucesso ? 'Tudo certo!' : 'Não foi possível confirmar',
+              sucesso
+                  ? 'Tudo certo!'
+                  : 'Não foi possível confirmar',
             ),
             content: Text(mensagem),
             actions: [
@@ -217,7 +263,8 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
           ),
         );
 
-        if (sucesso && tipo == 'confirmar-alteracao-senha') {
+        if (sucesso &&
+            tipo == 'confirmar-alteracao-senha') {
           navigator.pushNamedAndRemoveUntil(
             '/login',
                 (route) => false,
