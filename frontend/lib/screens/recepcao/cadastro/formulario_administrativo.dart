@@ -258,7 +258,9 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Prévia local: os dados ficam disponíveis nesta sessão e não são publicados.',
+                    _funcionario
+                        ? 'O cadastro será salvo no sistema após a confirmação do servidor.'
+                        : 'Prévia local: os dados ficam disponíveis nesta sessão e não são publicados.',
                     style: TipografiaApp.caption,
                   ),
                   const SizedBox(height: 24),
@@ -318,7 +320,7 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
                         validar: _validarCpf,
                       ),
                     Text(
-                      'A conta de acesso será criada quando conectarmos este cadastro ao serviço de login.',
+                      'Após salvar, o profissional poderá definir sua senha pela opção “Esqueci minha senha” na tela de login.',
                       style: TipografiaApp.caption,
                     ),
                   ] else if (_campanha) ...[

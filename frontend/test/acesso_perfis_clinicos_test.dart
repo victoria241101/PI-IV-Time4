@@ -1,3 +1,4 @@
+import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:flutter/material.dart';
 import 'package:pet_care/main.dart';
@@ -5,7 +6,7 @@ import 'package:pet_care/screens/gerais/splash_screen.dart';
 import 'package:pet_care/screens/recepcao/inicio_recepcao.dart';
 import 'package:pet_care/screens/enfermeiro/inicio_enfermeiro.dart';
 import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
-import 'package:pet_care/services/api_http.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 import 'dart:convert';
 
@@ -38,7 +39,7 @@ void main() {
         },
         () => MockClient((req) async {
           chamadas++;
-          expect(req.url.origin, Uri.parse(apiBaseUrl).origin);
+          expect(req.url.origin, Uri.parse(ApiConfig.baseUrl).origin);
           if (req.url.path == '/usuarios/login') {
             expect(req.method, 'POST');
             return http.Response(jsonEncode({'token': 'token-teste'}), 200);
@@ -85,6 +86,60 @@ void main() {
       expect(sessao.estaLogado, isFalse);
       expect(sessao.ehEquipeClinica, isFalse);
       expect(sessao.token, isNull);
+    });
+  }
+  for (final tipo in ['SECRETARIA', 'ENFERMEIRO', 'VETERINARIO']) {
+    testWidgets('$tipo pode cancelar ou confirmar saída e voltar ao login', (
+      tester,
+    ) async {
+      await sessao.entrar(
+        nome: 'Profissional Teste',
+        email: 'equipe@example.test',
+        token: 'token-teste',
+        tipoUsuario: tipo,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          routes: {
+            '/login': (_) => const Scaffold(body: Text('Tela de login')),
+          },
+          home: AcessoClinico(
+            perfil: tipo,
+            builder: (_) => LayoutClinica(
+              nomePadrao: 'Equipe',
+              abaAtual: 0,
+              onSelecionarAba: (_) {},
+              paginas: const [SizedBox(), SizedBox(), SizedBox(), SizedBox()],
+              terceiraAba: const BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Cadastro',
+              ),
+              onNotificacao: () {},
+            ),
+          ),
+        ),
+      );
+      await tester.tap(find.text('Sair da conta'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Cancelar'));
+      await tester.pumpAndSettle();
+      expect(sessao.estaLogado, isTrue);
+      expect(sessao.token, 'token-teste');
+
+      await tester.tap(find.text('Sair da conta'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Sair'));
+      await tester.pumpAndSettle();
+      expect(find.text('Tela de login'), findsOneWidget);
+      expect(find.byType(LayoutClinica), findsNothing);
+      expect(
+        Navigator.of(tester.element(find.text('Tela de login'))).canPop(),
+        isFalse,
+      );
+      await sessao.carregar();
+      expect(sessao.estaLogado, isFalse);
+      expect(sessao.token, isNull);
+      expect(tester.takeException(), isNull);
     });
   }
   for (final status in [401, 403]) {

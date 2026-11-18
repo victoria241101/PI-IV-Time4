@@ -22,6 +22,33 @@ class LayoutClinica extends StatelessWidget {
   final List<Widget> paginas;
   final BottomNavigationBarItem terceiraAba;
   final VoidCallback onNotificacao;
+  Future<void> _sair(BuildContext context) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: CoresApp.surface,
+        title: const Text('Sair da conta'),
+        content: const Text('Tem certeza que deseja sair da sua conta?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Sair'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !context.mounted) return;
+    // A proteção de acesso pode remover esta tela ao encerrar a sessão.
+    final navegador = Navigator.of(context);
+    await SessaoUsuario.instancia.sair();
+    if (!navegador.mounted) return;
+    navegador.pushNamedAndRemoveUntil('/login', (_) => false);
+  }
+
   @override
   Widget build(BuildContext context) {
     final hora = TimeOfDay.now().hour;
@@ -50,6 +77,19 @@ class LayoutClinica extends StatelessWidget {
                     onNotificationTap: onNotificacao,
                   );
                 },
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: EspacamentosApp.md,
+              ),
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: TextButton.icon(
+                  onPressed: () => _sair(context),
+                  icon: const Icon(Icons.logout),
+                  label: const Text('Sair da conta'),
+                ),
               ),
             ),
             Expanded(
