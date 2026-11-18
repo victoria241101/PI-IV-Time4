@@ -7,6 +7,14 @@ import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/services/api_http.dart';
 
+class SessaoCadastroExpirada implements Exception {
+  const SessaoCadastroExpirada(this.token);
+  final String? token;
+
+  @override
+  String toString() => 'Sua sessão expirou. Entre novamente para cadastrar.';
+}
+
 class CadastrosRecepcaoService {
   CadastrosRecepcaoService({String? baseUrl})
     : baseUrl = baseUrl ?? ApiConfig.baseUrl;
@@ -84,6 +92,9 @@ class CadastrosRecepcaoService {
         .timeout(const Duration(seconds: 30));
     if (SessaoUsuario.instancia.token != token) {
       throw StateError('A sessão mudou. Entre novamente.');
+    }
+    if (resposta.statusCode == 401) {
+      throw SessaoCadastroExpirada(token);
     }
     final resultado = processarRespostaJson(resposta);
     if (resultado is! Map || resultado['funcionarioId'] is! String) {

@@ -1,3 +1,4 @@
+import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -211,6 +212,12 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
               content: Text(erro.toString().replaceFirst('Exception: ', '')),
+              action: erro is SessaoCadastroExpirada
+                  ? SnackBarAction(
+                      label: 'Entrar',
+                      onPressed: () => _entrarNovamente(erro),
+                    )
+                  : null,
             ),
           );
         }
@@ -230,6 +237,36 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
         dados: dados,
       ),
     );
+  }
+
+  Future<void> _entrarNovamente(SessaoCadastroExpirada erro) async {
+    // Uma resposta antiga não deve encerrar uma sessão nova.
+    final sessao = SessaoUsuario.instancia;
+    if (!mounted || sessao.token != erro.token) return;
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Entrar novamente'),
+        content: const Text(
+          'Este cadastro não foi salvo. Ao voltar ao login, será necessário preencher o formulário novamente.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, true),
+            child: const Text('Ir para o login'),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted || sessao.token != erro.token) return;
+    final navegador = Navigator.of(context);
+    await sessao.sair();
+    if (!navegador.mounted) return;
+    navegador.pushNamedAndRemoveUntil('/login', (_) => false);
   }
 
   @override
