@@ -1,10 +1,9 @@
 package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;
-import petcare.servidor.servicos.ConflitoHorarioService;
 import petcare.servidor.servicos.ProgressoCampanhaService;
-import main.java.petcare.servidor.servicos.HashSenhaService;
-import main.java.petcare.servidor.servicos.VacinaService;
+import petcare.servidor.servicos.HashSenhaService;
+import petcare.servidor.servicos.VacinaService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -167,9 +166,6 @@ public class ClienteHandler implements Runnable {
                                         // =====================================================================
                                         case "CALCULAR_STATUS_VACINA":
                                             respostaJson = VacinaService.calcularStatus(dados);
-                                            break;
-                                        case "VERIFICAR_CONFLITO_HORARIO":
-                                            respostaJson = ConflitoHorarioService.verificarConflito(dados);
                                             break;
                                         case "GERAR_HASH_SENHA":
                                             respostaJson = HashSenhaService.gerar(dados);
