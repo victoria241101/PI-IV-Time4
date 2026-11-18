@@ -3,7 +3,6 @@ package petcare.servidor;
 import petcare.servidor.protocolo.CodigoErro;
 import petcare.servidor.servicos.ProgressoCampanhaService;
 import petcare.servidor.servicos.HashSenhaService;
-import petcare.servidor.servicos.VacinaService;
 
 import com.google.gson.Gson;
 import com.google.gson.JsonElement;
@@ -156,17 +155,11 @@ public class ClienteHandler implements Runnable {
                                         // 1. Remova o comando da lista de previstos abaixo.
                                         // 2. Adicione um novo 'case' aqui chamando o método estático do Service.
                                         // Exemplo:
-                                        // case "CALCULAR_STATUS_VACINA":
-                                        //     respostaJson = VacinaService.calcularStatus(dados);
+                                        // case "CALCULAR_PROGRESSO_CAMPANHA":
+                                        //     respostaJson = ProgressoCampanhaService.calcularProgresso(dados);
                                         //     break;
                                         // =====================================================================
 
-                                        // =====================================================================
-                                        // COMANDOS PREVISTOS (aguardando implementação dos serviços de cálculo)
-                                        // =====================================================================
-                                        case "CALCULAR_STATUS_VACINA":
-                                            respostaJson = VacinaService.calcularStatus(dados);
-                                            break;
                                         case "GERAR_HASH_SENHA":
                                             respostaJson = HashSenhaService.gerar(dados);
                                             break;
