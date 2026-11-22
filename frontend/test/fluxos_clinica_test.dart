@@ -310,7 +310,7 @@ class _ApiClinicaTeste extends ConsultasClinicaService {
     String observacoes = '',
   }) async {}
   @override
-  Future<void> salvarAtendimento(
+  Future<String> salvarAtendimento(
     String id, {
     required String anamnese,
     required String exameFisico,
@@ -319,7 +319,7 @@ class _ApiClinicaTeste extends ConsultasClinicaService {
     required String tratamento,
     String observacoes = '',
     String? codigoICDVet,
-  }) async {}
+  }) async => 'ATENDIMENTO1';
 }
 
 class _ApiClinicaFalha extends _ApiClinicaTeste {

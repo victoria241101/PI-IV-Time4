@@ -35,7 +35,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
       nome: TextEditingController(),
   };
   bool _salvando = false;
-  bool _atendimentoSalvo = false;
+  bool get _atendimentoSalvo => _prontuario.atendimentoId != null;
   bool _dadosCarregados = false;
   late final TextEditingController _descricaoController;
   late final TextEditingController _retornoController;
@@ -83,6 +83,9 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
           'Peso: ${triagem['peso']} kg\nTemperatura: ${triagem['temperatura']} °C\nSintomas: ${triagem['sintomas']}\n${triagem['observacoes'] ?? ''}';
     }
     final atendimento = dados['atendimento'];
+    _prontuario.atendimentoId = atendimento is Map
+        ? atendimento['_id'] as String
+        : null;
     if (atendimento is Map) {
       const chaves = {
         'Anamnese': 'anamnese',
@@ -97,7 +100,6 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
       }
       _descricaoController.text = '${atendimento['anamnese'] ?? ''}';
       _observacoesController.text = '${atendimento['observacoes'] ?? ''}';
-      _atendimentoSalvo = true;
     }
     setState(() => _dadosCarregados = true);
   }
@@ -519,7 +521,8 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     if (_salvando) return;
     setState(() => _salvando = true);
     try {
-      if (!_dadosCarregados) await _carregarProntuario();
+      // Recupera um possível salvamento cuja resposta não chegou ao aplicativo.
+      if (!_dadosCarregados || !_atendimentoSalvo) await _carregarProntuario();
       if (!mounted) return;
       final servico = AgendaClinica.instancia.servico;
       {
@@ -530,7 +533,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               'Preencha os cinco campos do atendimento.',
             );
           }
-          await servico.salvarAtendimento(
+          _prontuario.atendimentoId = await servico.salvarAtendimento(
             widget.consulta.id,
             anamnese: valor('Anamnese'),
             exameFisico: valor('Exame físico'),
@@ -545,7 +548,6 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               _observacoesController.text.trim(),
             ].where((texto) => texto.isNotEmpty).join('\n'),
           );
-          _atendimentoSalvo = true;
         }
         await servico.finalizarAtendimento(widget.consulta.id);
       }

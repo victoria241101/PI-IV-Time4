@@ -2,6 +2,7 @@
 
 class ProntuarioCompartilhado {
   ProntuarioCompartilhado({
+    this.atendimentoId,
     this.observacoesTriagem = '',
     this.descricaoConsulta = '',
     this.retornoRecomendado = '',
@@ -23,6 +24,7 @@ class ProntuarioCompartilhado {
        medicacoesInternacao = medicacoesInternacao ?? [],
        notasInternacao = notasInternacao ?? [];
 
+  String? atendimentoId;
   String observacoesTriagem;
   String descricaoConsulta;
   String retornoRecomendado;
@@ -40,6 +42,7 @@ class ProntuarioCompartilhado {
   final List<NotaInternacao> notasInternacao;
 
   ProntuarioCompartilhado copiar() => ProntuarioCompartilhado(
+    atendimentoId: atendimentoId,
     observacoesTriagem: observacoesTriagem,
     descricaoConsulta: descricaoConsulta,
     retornoRecomendado: retornoRecomendado,

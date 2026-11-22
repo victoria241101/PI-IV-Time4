@@ -127,7 +127,7 @@ void main() {
         );
         await api.finalizarTriagem('C001');
         await api.iniciarAtendimento('C001');
-        await api.salvarAtendimento(
+        final atendimentoId = await api.salvarAtendimento(
           'C001',
           anamnese: 'a',
           exameFisico: 'e',
@@ -135,6 +135,7 @@ void main() {
           prognostico: 'p',
           tratamento: 't',
         );
+        expect(atendimentoId, 'A001');
         await api.finalizarAtendimento('C001');
       },
       () => MockClient((r) async {
@@ -159,6 +160,9 @@ void main() {
               ]),
             );
           }
+        }
+        if (r.url.path.endsWith('/atendimento')) {
+          return http.Response('{"atendimentoId":"A001"}', 201);
         }
         return http.Response('{"mensagem":"ok"}', 200);
       }),

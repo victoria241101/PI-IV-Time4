@@ -107,6 +107,13 @@ class ConsultasClinicaService {
         !dados.containsKey('atendimento')) {
       throw const FormatException('Resposta de prontuário inválida.');
     }
+    final atendimento = dados['atendimento'];
+    if (atendimento != null &&
+        (atendimento is! Map ||
+            atendimento['_id'] is! String ||
+            (atendimento['_id'] as String).trim().isEmpty)) {
+      throw const FormatException('Atendimento sem identificador válido.');
+    }
     return Map<String, dynamic>.from(dados);
   }
 
@@ -149,7 +156,7 @@ class ConsultasClinicaService {
     );
   }
 
-  Future<void> salvarAtendimento(
+  Future<String> salvarAtendimento(
     String id, {
     required String anamnese,
     required String exameFisico,
@@ -159,7 +166,7 @@ class ConsultasClinicaService {
     String observacoes = '',
     String? codigoICDVet,
   }) async {
-    await _enviar(
+    final resposta = await _enviar(
       id,
       'atendimento',
       dados: {
@@ -172,5 +179,10 @@ class ConsultasClinicaService {
         'codigoICDVet': ?codigoICDVet,
       },
     );
+    final atendimentoId = resposta['atendimentoId'];
+    if (atendimentoId is! String || atendimentoId.trim().isEmpty) {
+      throw const FormatException('Atendimento sem identificador válido.');
+    }
+    return atendimentoId;
   }
 }

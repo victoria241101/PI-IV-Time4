@@ -25,7 +25,7 @@ export function criarLeituraProntuario(obterBanco: () => Db, autenticar: Request
                     _id: 0, peso: 1, temperatura: 1, sintomas: 1, observacoes: 1
                 } }),
                 banco.collection('atendimentos').findOne(filtro, { projection: {
-                    _id: 0, anamnese: 1, exameFisico: 1, diagnostico: 1,
+                    _id: 1, anamnese: 1, exameFisico: 1, diagnostico: 1,
                     prognostico: 1, tratamento: 1, observacoes: 1
                 } })
             ]);
