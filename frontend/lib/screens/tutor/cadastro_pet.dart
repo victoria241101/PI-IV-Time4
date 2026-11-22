@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/espacamentos_app.dart';
@@ -346,7 +347,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
-        color: CoresApp.surface,
+        color: CoresApp.background,
         borderRadius: BorderRadius.circular(22),
         border: Border.all(color: CoresApp.divider),
         boxShadow: [
@@ -520,7 +521,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
               ),
               const SizedBox(height: 25),
               SizedBox(
-                height: 56,
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _salvando ? null : _cadastrarPet,
                   style: ElevatedButton.styleFrom(
@@ -529,6 +530,10 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                     disabledBackgroundColor:
                     CoresApp.primary.withAlpha(120),
                     elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(17),
                     ),
@@ -544,14 +549,19 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   )
                       : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.pets_rounded, size: 21),
                       SizedBox(width: 10),
-                      Text(
-                        'Cadastrar pet',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
+                      Flexible(
+                        child: Text(
+                          'Cadastrar pet',
+                          textAlign: TextAlign.center,
+                          softWrap: true,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       SizedBox(width: 8),
