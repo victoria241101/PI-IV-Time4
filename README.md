@@ -8,15 +8,18 @@ O sistema reúne funcionalidades como cadastro e autenticação de usuários, ac
 
 Desenvolvido com Flutter, Node.js, TypeScript, MongoDB e Java, o projeto utiliza uma arquitetura integrada, na qual o aplicativo mobile se comunica com o backend para gerenciar informações e executar regras de negócio específicas por meio de um servidor Java.
 
-## Equipe
+## 👥 Equipe
 
-**Time 4**
-Alinne Monteiro de Melo | RA: 24801649
-Alycia Santos Bond | RA: 25016465
-Gabriel Benevides Bosso | RA: 24013653
-Victoria Beatriz Nobre Andrade | RA: 25016398
+**Time 4 — PI-IV-Time4**
 
-Projeto desenvolvido como parte do Projeto Integrador IV do curso de Engenharia de Software.
+| Integrante | RA |
+|---|---|
+| Alinne Monteiro de Melo | 24801649 |
+| Alycia Santos Bond | 25016465 |
+| Gabriel Benevides Bosso | 24013653 |
+| Victoria Beatriz Nobre Andrade | 25016398 |
+
+Projeto desenvolvido como parte do **Projeto Integrador IV**, do curso de **Engenharia de Software**.
 
 ## Tecnologias utilizadas
 
