@@ -9,6 +9,8 @@ import 'package:pet_care/services/agendamentos_service.dart';
 
 import 'consulta_clinica_api.dart';
 
+import 'package:pet_care/modelos/prontuario_compartilhado.dart';
+
 /// Adaptador exclusivo dos fluxos clínicos. A autorização continua na API.
 class ConsultasClinicaService {
   ConsultasClinicaService({String? baseUrl, String? Function()? obterToken})
@@ -115,6 +117,86 @@ class ConsultasClinicaService {
       throw const FormatException('Atendimento sem identificador válido.');
     }
     return Map<String, dynamic>.from(dados);
+  }
+
+  Future<List<MedicamentoPrescrito>> listarPrescricoes(
+    String petId, {
+    String? atendimentoId,
+  }) async {
+    if (petId.trim().isEmpty) throw ArgumentError('Pet não identificado.');
+    final token = _token;
+    final resposta = await http
+        .get(
+          _uri('/prescricoes/pet/${Uri.encodeComponent(petId)}'),
+          headers: cabecalhosJson(token),
+        )
+        .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
+    final dados = processarRespostaJson(resposta);
+    if (dados is! Map || dados['prescricoes'] is! List) {
+      throw const FormatException('Resposta de prescrições inválida.');
+    }
+    return (dados['prescricoes'] as List)
+        .map((item) {
+          if (item is! Map) throw const FormatException('Prescrição inválida.');
+          final prescricao = MedicamentoPrescrito.fromJson(
+            Map<String, dynamic>.from(item),
+          );
+          if (prescricao.petId != petId) {
+            throw const FormatException('Prescrição de outro pet.');
+          }
+          return prescricao;
+        })
+        .where((p) => atendimentoId == null || p.atendimentoId == atendimentoId)
+        .toList();
+  }
+
+  Future<String> salvarPrescricao({
+    required String petId,
+    required String atendimentoId,
+    required String solicitacaoId,
+    required String medicamento,
+    required String dose,
+    required String frequencia,
+    required String duracao,
+    String orientacoes = '',
+  }) async {
+    if ([
+      petId,
+      atendimentoId,
+      medicamento,
+      dose,
+      frequencia,
+      duracao,
+    ].any((v) => v.trim().isEmpty)) {
+      throw const FormatException(
+        'Preencha medicamento, dose, frequência e duração.',
+      );
+    }
+    final token = _token;
+    final resposta = await http
+        .post(
+          _uri('/prescricoes'),
+          headers: cabecalhosJson(token),
+          body: jsonEncode({
+            'petId': petId,
+            'atendimentoId': atendimentoId,
+            'solicitacaoId': solicitacaoId,
+            'medicamento': medicamento.trim(),
+            'dose': dose.trim(),
+            'frequencia': frequencia.trim(),
+            'duracao': duracao.trim(),
+            'orientacoes': orientacoes.trim(),
+          }),
+        )
+        .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
+    final dados = processarRespostaJson(resposta);
+    final id = dados is Map ? dados['prescricaoId'] : null;
+    if (id is! String || id.trim().isEmpty) {
+      throw const FormatException('Prescrição sem identificador válido.');
+    }
+    return id;
   }
 
   Future<void> confirmarChegada(String id) async {

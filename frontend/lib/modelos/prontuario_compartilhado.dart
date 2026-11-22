@@ -53,15 +53,7 @@ class ProntuarioCompartilhado {
     internacaoIniciadaEm: internacaoIniciadaEm,
     internacaoFinalizadaEm: internacaoFinalizadaEm,
     observacoes: observacoes,
-    medicamentos: medicamentos
-        .map(
-          (item) => MedicamentoPrescrito(
-            nome: item.nome,
-            dosagem: item.dosagem,
-            orientacao: item.orientacao,
-          ),
-        )
-        .toList(),
+    medicamentos: medicamentos.map((item) => item.copiar()).toList(),
     exames: List<String>.of(exames),
     procedimentosInternacao: procedimentosInternacao
         .map((item) => item.copiar())
@@ -78,11 +70,50 @@ class MedicamentoPrescrito {
     required this.nome,
     required this.dosagem,
     required this.orientacao,
+    this.id,
+    this.petId,
+    this.atendimentoId,
+    this.frequencia = '',
+    this.duracao = '',
+    this.status = 'ativa',
   });
 
-  final String nome;
-  final String dosagem;
-  final String orientacao;
+  final String nome, dosagem, orientacao, frequencia, duracao, status;
+  final String? id, petId, atendimentoId;
+
+  factory MedicamentoPrescrito.fromJson(Map<String, dynamic> dados) {
+    String texto(String campo) {
+      final valor = dados[campo];
+      if (valor is! String || valor.trim().isEmpty) {
+        throw FormatException('Prescrição sem $campo válido.');
+      }
+      return valor;
+    }
+
+    return MedicamentoPrescrito(
+      id: texto('_id'),
+      petId: texto('petId'),
+      atendimentoId: texto('atendimentoId'),
+      nome: texto('medicamento'),
+      dosagem: texto('dose'),
+      frequencia: texto('frequencia'),
+      duracao: texto('duracao'),
+      orientacao: dados['orientacoes'] as String? ?? '',
+      status: dados['status'] as String? ?? 'ativa',
+    );
+  }
+
+  MedicamentoPrescrito copiar() => MedicamentoPrescrito(
+    id: id,
+    petId: petId,
+    atendimentoId: atendimentoId,
+    nome: nome,
+    dosagem: dosagem,
+    orientacao: orientacao,
+    frequencia: frequencia,
+    duracao: duracao,
+    status: status,
+  );
 }
 
 class ProcedimentoInternacao {

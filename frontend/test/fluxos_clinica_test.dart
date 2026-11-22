@@ -287,6 +287,12 @@ class _ApiClinicaTeste extends ConsultasClinicaService {
       Completer<List<ConsultaClinicaApi>>().future;
 
   @override
+  Future<List<MedicamentoPrescrito>> listarPrescricoes(
+    String petId, {
+    String? atendimentoId,
+  }) async => [];
+
+  @override
   Future<Map<String, dynamic>> lerProntuario(String id) async => {
     'triagem': null,
     'atendimento': null,

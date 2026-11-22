@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/widgets/clinica/dialogo_campos_clinica.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
+import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
@@ -101,6 +102,19 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
       _descricaoController.text = '${atendimento['anamnese'] ?? ''}';
       _observacoesController.text = '${atendimento['observacoes'] ?? ''}';
     }
+    if (_prontuario.atendimentoId != null && widget.consulta.petId != null) {
+      final prescricoes = await AgendaClinica.instancia.servico
+          .listarPrescricoes(
+            widget.consulta.petId!,
+            atendimentoId: _prontuario.atendimentoId,
+          );
+      if (!mounted) return;
+      _prontuario.medicamentos
+        ..clear()
+        ..addAll(prescricoes);
+    } else {
+      _prontuario.medicamentos.clear();
+    }
     setState(() => _dadosCarregados = true);
   }
 
@@ -168,7 +182,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               _secaoDescricao(),
               const SizedBox(height: EspacamentosApp.sm),
               Text(
-                'Medicações, exames e internação abaixo ainda são rascunhos locais.',
+                'Exames e internação abaixo ainda são rascunhos locais.',
                 style: TipografiaApp.caption,
               ),
               _secaoMedicamentos(),
@@ -271,7 +285,9 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     return _secao(
       titulo: 'Medicações',
       icone: Icons.medication_outlined,
-      trailing: _finalizada ? null : _adicionarBotao(_adicionarMedicamento),
+      trailing: _emConsulta && _dadosCarregados && !_salvando
+          ? _adicionarBotao(_adicionarMedicamento)
+          : null,
       child: _prontuario.medicamentos.isEmpty
           ? Text('Nenhuma medicação registrada', style: TipografiaApp.bodySmall)
           : Column(
@@ -279,7 +295,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
                 for (final medicamento in _prontuario.medicamentos)
                   _itemPlano(
                     medicamento.nome,
-                    '${medicamento.dosagem} · ${medicamento.orientacao}',
+                    '${medicamento.dosagem} · ${medicamento.frequencia} · ${medicamento.duracao}\n${medicamento.orientacao} · ${medicamento.status}',
                     Icons.medication_liquid_outlined,
                   ),
               ],
@@ -521,36 +537,11 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     if (_salvando) return;
     setState(() => _salvando = true);
     try {
-      // Recupera um possível salvamento cuja resposta não chegou ao aplicativo.
-      if (!_dadosCarregados || !_atendimentoSalvo) await _carregarProntuario();
+      await _garantirAtendimentoSalvo();
       if (!mounted) return;
-      final servico = AgendaClinica.instancia.servico;
-      {
-        if (!_atendimentoSalvo) {
-          String valor(String nome) => _camposAtendimento[nome]!.text.trim();
-          if (_camposAtendimento.values.any((c) => c.text.trim().isEmpty)) {
-            throw const FormatException(
-              'Preencha os cinco campos do atendimento.',
-            );
-          }
-          _prontuario.atendimentoId = await servico.salvarAtendimento(
-            widget.consulta.id,
-            anamnese: valor('Anamnese'),
-            exameFisico: valor('Exame físico'),
-            diagnostico: valor('Diagnóstico'),
-            prognostico: valor('Prognóstico'),
-            tratamento: valor('Tratamento'),
-            observacoes: [
-              if (_descricaoController.text.trim().isNotEmpty)
-                'Descrição: ${_descricaoController.text.trim()}',
-              if (_retornoController.text.trim().isNotEmpty)
-                'Retorno: ${_retornoController.text.trim()}',
-              _observacoesController.text.trim(),
-            ].where((texto) => texto.isNotEmpty).join('\n'),
-          );
-        }
-        await servico.finalizarAtendimento(widget.consulta.id);
-      }
+      await AgendaClinica.instancia.servico.finalizarAtendimento(
+        widget.consulta.id,
+      );
       if (!mounted) return;
       _atualizarProntuario();
       AgendaClinica.instancia.finalizarConsulta(widget.consulta, _prontuario);
@@ -563,6 +554,38 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     }
   }
 
+  Future<void> _garantirAtendimentoSalvo() async {
+    // Recupera um possível salvamento cuja resposta não chegou ao aplicativo.
+    if (!_dadosCarregados || !_atendimentoSalvo) await _carregarProntuario();
+    if (!mounted) return;
+    final servico = AgendaClinica.instancia.servico;
+    {
+      if (!_atendimentoSalvo) {
+        String valor(String nome) => _camposAtendimento[nome]!.text.trim();
+        if (_camposAtendimento.values.any((c) => c.text.trim().isEmpty)) {
+          throw const FormatException(
+            'Preencha os cinco campos do atendimento.',
+          );
+        }
+        _prontuario.atendimentoId = await servico.salvarAtendimento(
+          widget.consulta.id,
+          anamnese: valor('Anamnese'),
+          exameFisico: valor('Exame físico'),
+          diagnostico: valor('Diagnóstico'),
+          prognostico: valor('Prognóstico'),
+          tratamento: valor('Tratamento'),
+          observacoes: [
+            if (_descricaoController.text.trim().isNotEmpty)
+              'Descrição: ${_descricaoController.text.trim()}',
+            if (_retornoController.text.trim().isNotEmpty)
+              'Retorno: ${_retornoController.text.trim()}',
+            _observacoesController.text.trim(),
+          ].where((texto) => texto.isNotEmpty).join('\n'),
+        );
+      }
+    }
+  }
+
   void _atualizarProntuario() {
     _prontuario
       ..descricaoConsulta = _descricaoController.text.trim()
@@ -571,20 +594,76 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   }
 
   Future<void> _adicionarMedicamento() async {
-    final campos = await _dialogoCampos(
-      titulo: 'Adicionar medicação',
-      rotulos: const ['Medicamento', 'Dose ou frequência', 'Orientações'],
-    );
-    if (campos == null || campos[0].isEmpty) return;
-    setState(() {
-      _prontuario.medicamentos.add(
-        MedicamentoPrescrito(
-          nome: campos[0],
-          dosagem: campos[1],
-          orientacao: campos[2],
+    if (_salvando || !_emConsulta || !_dadosCarregados) return;
+    final petId = widget.consulta.petId;
+    if (petId == null || petId.isEmpty) {
+      _mensagem('Pet não identificado. Atualize a agenda.');
+      return;
+    }
+    if (!_atendimentoSalvo &&
+        _camposAtendimento.values.any((c) => c.text.trim().isEmpty)) {
+      _mensagem('Preencha os cinco campos do atendimento antes de prescrever.');
+      return;
+    }
+    final solicitacaoId = CadastrosRecepcaoService.novaSolicitacao();
+    MedicamentoPrescrito? salva;
+    setState(() => _salvando = true);
+    try {
+      await showDialog<List<String>>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => DialogoCamposClinica(
+          titulo: 'Adicionar medicação',
+          rotulos: const [
+            'Medicamento',
+            'Dose',
+            'Frequência',
+            'Duração',
+            'Orientações',
+          ],
+          camposObrigatorios: const [0, 1, 2, 3],
+          labelAcao: 'Salvar prescrição',
+          aviso: 'Medicamento, dose, frequência e duração são obrigatórios. A avaliação será salva junto da primeira prescrição e não poderá ser editada depois.',
+          bloquearEdicaoAposEnvio: true,
+          onSalvar: (campos) async {
+            await _garantirAtendimentoSalvo();
+            if (!mounted) return;
+            final atendimentoId = _prontuario.atendimentoId;
+            if (atendimentoId == null) {
+              throw StateError('Atendimento não identificado.');
+            }
+            final id = await AgendaClinica.instancia.servico.salvarPrescricao(
+              petId: petId,
+              atendimentoId: atendimentoId,
+              solicitacaoId: solicitacaoId,
+              medicamento: campos[0],
+              dose: campos[1],
+              frequencia: campos[2],
+              duracao: campos[3],
+              orientacoes: campos[4],
+            );
+            salva = MedicamentoPrescrito(
+              id: id,
+              petId: petId,
+              atendimentoId: atendimentoId,
+              nome: campos[0],
+              dosagem: campos[1],
+              frequencia: campos[2],
+              duracao: campos[3],
+              orientacao: campos[4],
+            );
+          },
         ),
       );
-    });
+      if (!mounted || salva == null) return;
+      setState(() {
+        _prontuario.medicamentos.removeWhere((p) => p.id == salva!.id);
+        _prontuario.medicamentos.add(salva!);
+      });
+      _mensagem('Prescrição salva no sistema.');
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
   }
 
   Future<void> _adicionarExame() async {

@@ -1,3 +1,5 @@
+import 'package:pet_care/modelos/prontuario_compartilhado.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -221,6 +223,12 @@ class _ApiAtendimento extends ConsultasClinicaService {
   Map<String, dynamic>? registro;
   int salvamentos = 0, finalizacoes = 0;
   bool perderResposta = false, falharFinalizacao = false;
+
+  @override
+  Future<List<MedicamentoPrescrito>> listarPrescricoes(
+    String petId, {
+    String? atendimentoId,
+  }) async => [];
 
   @override
   Future<Map<String, dynamic>> lerProntuario(String id) async => {

@@ -1,5 +1,8 @@
 // inicio do enfermeiro com agenda e triagem dos atendimentos
 import 'package:flutter/material.dart';
+
+import 'prescricoes_enfermeiro.dart';
+
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -27,12 +30,30 @@ class InicioEnfermeiro extends StatelessWidget {
       activeIcon: Icon(Icons.local_hospital_rounded),
       label: 'Internados',
     ),
-    terceiraAbaBuilder: (consultas) => ClientesVeterinario(
-      consultas: consultas,
-      profissional: SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro',
-      mostrarInternadosInicialmente: true,
-      somenteInternados: true,
-      descricao: 'Prontuários compartilhados dos pacientes internados',
+    terceiraAbaBuilder: (consultas) => Column(
+      children: [
+        Align(
+          alignment: Alignment.centerRight,
+          child: TextButton.icon(
+            icon: const Icon(Icons.medication_outlined),
+            label: const Text('Consultar prescrições'),
+            onPressed: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                builder: (_) => PrescricoesEnfermeiro(consultas: consultas),
+              ),
+            ),
+          ),
+        ),
+        Expanded(
+          child: ClientesVeterinario(
+            consultas: consultas,
+            profissional: SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro',
+            mostrarInternadosInicialmente: true,
+            somenteInternados: true,
+            descricao: 'Prontuários compartilhados dos pacientes internados',
+          ),
+        ),
+      ],
     ),
     rotuloAcaoConsulta: (consulta) => switch (consulta.status) {
       StatusConsultaRecepcao.aguardandoTriagem => 'Iniciar triagem',

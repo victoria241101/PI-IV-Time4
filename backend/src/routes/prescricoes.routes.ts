@@ -1,10 +1,16 @@
-import { Router } from "express";
-import { ObjectId } from "mongodb";
+import { Router, type RequestHandler } from "express";
+import { ObjectId, MongoServerError, type Db, type Document } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
-import { notificarDosePrescrita } from "../notificacoes/eventos.js";
+import { notificarDosePrescrita as notificarDosePrescritaPadrao } from "../notificacoes/eventos.js";
 
+export function criarRotasPrescricoes(deps: {
+    autenticar: RequestHandler;
+    obterBanco: () => Db;
+    notificarDosePrescrita: typeof notificarDosePrescritaPadrao;
+}) {
+const { autenticar, obterBanco, notificarDosePrescrita } = deps;
 const router = Router();
 
 router.post(
@@ -20,8 +26,9 @@ router.post(
                 dose,
                 frequencia,
                 duracao,
-                orientacoes
-            } = req.body;
+                orientacoes,
+                solicitacaoId
+            } = req.body ?? {};
 
             // Verifica os campos obrigatórios
             const campos = [
@@ -52,6 +59,12 @@ router.post(
                 return res.status(400).json({
                     mensagem: "As orientações devem ser um texto."
                 });
+            }
+
+            // Opcional para preservar os clientes existentes. O _id já é único no MongoDB.
+            if (solicitacaoId !== undefined &&
+                (typeof solicitacaoId !== "string" || !/^[a-f\d]{24}$/.test(solicitacaoId))) {
+                return res.status(400).json({ mensagem: "Solicitação inválida." });
             }
 
             const banco = obterBanco();
@@ -117,21 +130,45 @@ router.post(
                 });
             }
 
-            // Salva a prescrição
-            const resultado = await banco
-                .collection("prescricoes")
-                .insertOne({
-                    petId: pet._id,
-                    atendimentoId: atendimento._id,
-                    veterinarioId: veterinario._id,
-                    medicamento: medicamento.trim(),
-                    dose: dose.trim(),
-                    frequencia: frequencia.trim(),
-                    duracao: duracao.trim(),
-                    orientacoes: orientacoes?.trim() ?? "",
+            const prescricoes = banco.collection("prescricoes");
+            const documento = {
+                petId: pet._id,
+                atendimentoId: atendimento._id,
+                veterinarioId: veterinario._id,
+                medicamento: medicamento.trim(),
+                dose: dose.trim(),
+                frequencia: frequencia.trim(),
+                duracao: duracao.trim(),
+                orientacoes: orientacoes?.trim() ?? ""
+            };
+            const idSolicitacao = solicitacaoId ? new ObjectId(solicitacaoId) : null;
+            const responderExistente = (existente: Document) => {
+                const mesmoPedido = Object.entries(documento).every(([campo, valor]) =>
+                    String(existente[campo]) === String(valor));
+                return mesmoPedido
+                    ? res.status(200).json({ mensagem: "Prescrição cadastrada com sucesso!", prescricaoId: existente._id })
+                    : res.status(409).json({ mensagem: "Solicitação já utilizada para outra prescrição." });
+            };
+            if (idSolicitacao) {
+                const existente = await prescricoes.findOne({ _id: idSolicitacao });
+                if (existente) return responderExistente(existente);
+            }
+            let resultado;
+            try {
+                resultado = await prescricoes.insertOne({
+                    ...(idSolicitacao ? { _id: idSolicitacao } : {}),
+                    ...documento,
                     dataPrescricao: new Date(),
                     status: "ativa"
                 });
+            } catch (erro) {
+                // Dois envios simultâneos da mesma solicitação também geram um só registro.
+                if (idSolicitacao && erro instanceof MongoServerError && erro.code === 11000) {
+                    const existente = await prescricoes.findOne({ _id: idSolicitacao });
+                    if (existente) return responderExistente(existente);
+                }
+                throw erro;
+            }
 
             await notificarDosePrescrita(
                 banco,
@@ -240,4 +277,9 @@ router.get(
     }
 );
 
-export default router;
+return router;
+}
+
+export default criarRotasPrescricoes({
+    autenticar, obterBanco, notificarDosePrescrita: notificarDosePrescritaPadrao
+});
