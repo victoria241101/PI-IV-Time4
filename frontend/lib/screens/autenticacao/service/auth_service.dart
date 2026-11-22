@@ -2,31 +2,15 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class AuthService {
   AuthService._();
 
   static final AuthService instancia = AuthService._();
-
-  // =====================================================
-  // CONFIGURAÇÃO DA API
-  // =====================================================
-
-  static String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000';
-    }
-
-    return 'http://localhost:3000';
-  }
 
   final SessaoUsuario _sessao = SessaoUsuario.instancia;
 
@@ -41,7 +25,7 @@ class AuthService {
     try {
       final respostaLogin = await http
           .post(
-        Uri.parse('$_baseUrl/usuarios/login'),
+        Uri.parse('${ApiConfig.baseUrl}/usuarios/login'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -69,7 +53,7 @@ class AuthService {
 
       final respostaPerfil = await http
           .get(
-        Uri.parse('$_baseUrl/usuarios/perfil'),
+        Uri.parse('${ApiConfig.baseUrl}/usuarios/perfil'),
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -157,7 +141,7 @@ class AuthService {
     try {
       final resposta = await http
           .post(
-        Uri.parse('$_baseUrl/usuarios/cadastro'),
+        Uri.parse('${ApiConfig.baseUrl}/usuarios/cadastro'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -219,7 +203,7 @@ class AuthService {
 
       final resposta = await http
           .post(
-        Uri.parse('$_baseUrl/pets'),
+        Uri.parse('${ApiConfig.baseUrl}/pets'),
         headers: {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
@@ -270,7 +254,7 @@ class AuthService {
     try {
       final resposta = await http
           .post(
-        Uri.parse('$_baseUrl/usuarios/esqueci-senha'),
+        Uri.parse('${ApiConfig.baseUrl}/usuarios/esqueci-senha'),
         headers: {
           'Content-Type': 'application/json',
         },
@@ -314,7 +298,7 @@ class AuthService {
     try {
       final resposta = await http
           .post(
-        Uri.parse('$_baseUrl/usuarios/redefinir-senha'),
+        Uri.parse('${ApiConfig.baseUrl}/usuarios/redefinir-senha'),
         headers: {
           'Content-Type': 'application/json',
         },

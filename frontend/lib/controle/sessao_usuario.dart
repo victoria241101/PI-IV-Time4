@@ -129,7 +129,6 @@ class SessaoUsuario extends ChangeNotifier {
     }
 
     final servico = PerfilService.autenticado(
-      baseUrl: 'http://localhost:3000',
       token: _token ?? '',
     );
 
@@ -184,7 +183,6 @@ class SessaoUsuario extends ChangeNotifier {
     }
 
     final resposta = await PerfilService.autenticado(
-      baseUrl: 'http://localhost:3000',
       token: _token ?? '',
     ).buscarPerfil();
 

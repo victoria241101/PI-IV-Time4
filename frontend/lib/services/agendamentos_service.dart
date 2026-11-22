@@ -1,15 +1,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class AgendamentosService {
   final String baseUrl;
   final String token;
 
   AgendamentosService({
-    required this.baseUrl,
+    String? baseUrl,
     required this.token,
-  });
+  }) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -17,7 +18,7 @@ class AgendamentosService {
   };
 
   factory AgendamentosService.autenticado({
-    required String baseUrl,
+    String? baseUrl,
   }) {
     final token = SessaoUsuario.instancia.token;
 

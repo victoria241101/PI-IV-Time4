@@ -1,16 +1,18 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
+import 'package:pet_care/core/constantes/api_config.dart';
+
 class PerfilService {
   final String baseUrl;
   final String token;
 
   PerfilService({
-    required this.baseUrl,
+    String? baseUrl,
     required this.token,
-  });
+  }) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   factory PerfilService.autenticado({
-    required String baseUrl,
+    String? baseUrl,
     required String token,
   }) {
     if (token.isEmpty) {

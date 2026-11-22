@@ -2,15 +2,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class CampanhasService {
   final String baseUrl;
   final String? token;
 
   CampanhasService({
-    required this.baseUrl,
+    String? baseUrl,
     this.token,
-  });
+  }) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -19,7 +20,7 @@ class CampanhasService {
   };
 
   factory CampanhasService.criar({
-    required String baseUrl,
+    String? baseUrl,
   }) {
     return CampanhasService(
       baseUrl: baseUrl,

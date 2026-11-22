@@ -67,11 +67,9 @@ class _DetalhesAgendamentoTutorState
     'Retorno',
   ];
 
-  final _veterinariosService = VeterinariosService(
-    baseUrl: 'http://localhost:3000',
-  );
+  final _veterinariosService = VeterinariosService();
 
-  final _petsService = PetsService(baseUrl: 'http://localhost:3000');
+  final _petsService = PetsService();
 
   List<String> _pets = [];
   final Map<String, String> _idsPets = {};
@@ -211,7 +209,6 @@ class _DetalhesAgendamentoTutorState
       }
 
       final service = AgendamentosService(
-        baseUrl: 'http://localhost:3000',
         token: token,
       );
 
