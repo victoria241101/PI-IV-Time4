@@ -66,6 +66,8 @@ void main() {
             'especie': 'Cachorro',
             'raca': 'SRD',
             'sexo': 'Fêmea',
+            'possuiMicrochip': 'true',
+            'microchip': '001234567890123',
             'dataNascimento': '2022-05-10T00:00:00.000',
           }, id);
           expect(r['petId'], 'P1');
@@ -82,6 +84,8 @@ void main() {
             'especie': 'cachorro',
             'raca': 'SRD',
             'sexo': 'femea',
+            'possuiMicrochip': true,
+            'microchip': '001234567890123',
             'dataNascimento': '2022-05-10',
           });
           return http.Response(

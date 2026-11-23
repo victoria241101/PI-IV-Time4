@@ -55,6 +55,10 @@ class CadastrosRecepcaoService {
               'especie': dados['especie']?.toLowerCase(),
               'raca': dados['raca'],
               'sexo': dados['sexo']?.toLowerCase().replaceAll('ê', 'e'),
+              'possuiMicrochip': dados['possuiMicrochip'] == 'true',
+              'microchip': dados['possuiMicrochip'] == 'true'
+                  ? dados['microchip']?.trim()
+                  : '',
               if (dados['dataNascimento']?.isNotEmpty == true)
                 'dataNascimento': dados['dataNascimento']!.substring(0, 10),
             },

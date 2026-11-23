@@ -9,7 +9,10 @@ import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 class PerfilGeral extends StatefulWidget {
   const PerfilGeral({
     super.key,
+    this.modoCompacto = false,
   });
+
+  final bool modoCompacto;
 
   @override
   State<PerfilGeral> createState() => _PerfilGeralState();
@@ -418,14 +421,14 @@ class _PerfilGeralState extends State<PerfilGeral> {
       },
     );
 
-    if (confirmar != true) return;
+    if (confirmar != true || !mounted) return;
 
+    final navegador = Navigator.of(context);
     await SessaoUsuario.instancia.sair();
 
-    if (!mounted) return;
+    if ((!widget.modoCompacto && !mounted) || !navegador.mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
+    navegador.pushNamedAndRemoveUntil(
       '/login',
           (route) => false,
     );
@@ -438,6 +441,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.modoCompacto ? AppBar(title: const Text('Perfil')) : null,
       backgroundColor: CoresApp.background,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -465,6 +469,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (!widget.modoCompacto) ...[
                   const CabecalhoGeral(),
 
                   const SizedBox(
@@ -492,6 +497,8 @@ class _PerfilGeralState extends State<PerfilGeral> {
                       color: CoresApp.textSecondary,
                     ),
                   ),
+
+                  ],
 
                   const SizedBox(
                     height: EspacamentosApp.lg,

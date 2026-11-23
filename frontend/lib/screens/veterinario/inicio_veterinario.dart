@@ -169,6 +169,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
       paginas: [
         _listaDeConsultas(consultasAtivasHoje),
         CalendarioAgendamentos(
+          mostrarCabecalho: false,
           onSelecionarDia: _carregarAgenda,
           consultas: consultasVisiveis
               .where((c) => c.status != StatusConsultaRecepcao.finalizado)

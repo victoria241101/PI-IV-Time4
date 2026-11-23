@@ -78,9 +78,14 @@ class AgendaRecepcao extends StatelessWidget {
               Expanded(
                 child: Text('Atendimentos', style: TipografiaApp.heading3),
               ),
-              Text(
-                '${consultas.length} consulta${consultas.length == 1 ? '' : 's'}',
-                style: TipografiaApp.caption,
+              Flexible(
+                child: Text(
+                  '${consultas.length} consulta${consultas.length == 1 ? '' : 's'}',
+                  textAlign: TextAlign.end,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: TipografiaApp.caption,
+                ),
               ),
             ],
           ),
@@ -108,9 +113,14 @@ class AgendaRecepcao extends StatelessWidget {
                           ),
                         ),
                         const Spacer(),
-                        Text(
-                          '${grupo.value.length} atendimento${grupo.value.length == 1 ? '' : 's'}',
-                          style: TipografiaApp.caption,
+                        Flexible(
+                          child: Text(
+                            '${grupo.value.length} atendimento${grupo.value.length == 1 ? '' : 's'}',
+                            textAlign: TextAlign.end,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: TipografiaApp.caption,
+                          ),
                         ),
                       ],
                     ),

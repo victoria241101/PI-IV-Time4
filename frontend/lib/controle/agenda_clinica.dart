@@ -97,12 +97,6 @@ class AgendaClinica extends ChangeNotifier {
     ConsultaRecepcao consulta,
     ProntuarioCompartilhado prontuario,
   ) {
-    if (prontuario.internacao.isNotEmpty) {
-      prontuario
-        ..internacaoAtiva = true
-        ..internacaoIniciadaEm ??= DateTime.now()
-        ..internacaoFinalizadaEm = null;
-    }
     prontuarios[consulta.id] = prontuario;
     consulta.status = StatusConsultaRecepcao.finalizado;
     notifyListeners();

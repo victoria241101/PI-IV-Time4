@@ -112,6 +112,8 @@ class PerfilPetCadastro extends StatelessWidget {
     required this.emailResponsavel,
     required this.nomePetController,
     required this.racaController,
+    required this.microchipController,
+    required this.possuiMicrochip,
     required this.dataNascimento,
     required this.especie,
     required this.sexo,
@@ -119,6 +121,7 @@ class PerfilPetCadastro extends StatelessWidget {
     required this.onEditarResponsavel,
     required this.onEspecieChanged,
     required this.onSexoChanged,
+    required this.onPossuiMicrochipChanged,
     required this.onDataNascimentoChanged,
     required this.onContinuar,
     this.rotuloContinuar = 'Continuar',
@@ -131,6 +134,8 @@ class PerfilPetCadastro extends StatelessWidget {
   final String emailResponsavel;
   final TextEditingController nomePetController;
   final TextEditingController racaController;
+  final TextEditingController microchipController;
+  final bool possuiMicrochip;
   final DateTime? dataNascimento;
   final String especie;
   final String sexo;
@@ -138,6 +143,7 @@ class PerfilPetCadastro extends StatelessWidget {
   final VoidCallback onEditarResponsavel;
   final ValueChanged<String> onEspecieChanged;
   final ValueChanged<String> onSexoChanged;
+  final ValueChanged<bool> onPossuiMicrochipChanged;
   final ValueChanged<DateTime?> onDataNascimentoChanged;
   final VoidCallback onContinuar;
   final String rotuloContinuar;
@@ -206,6 +212,27 @@ class PerfilPetCadastro extends StatelessWidget {
                   prefixIcon: Icons.search_rounded,
                   textCapitalization: TextCapitalization.words,
                 ),
+                const SizedBox(height: EspacamentosApp.md),
+                Row(
+                  children: [
+                    const Expanded(child: Text('O pet possui microchip?')),
+                    Switch(
+                      value: possuiMicrochip,
+                      onChanged: onPossuiMicrochipChanged,
+                    ),
+                  ],
+                ),
+                if (possuiMicrochip) ...[
+                  const SizedBox(height: EspacamentosApp.sm),
+                  CampoFormularioApp(
+                    controller: microchipController,
+                    label: 'Número do microchip',
+                    prefixIcon: Icons.memory_rounded,
+                    validator: (valor) => valor?.trim().isNotEmpty == true
+                        ? null
+                        : 'Informe o número do microchip.',
+                  ),
+                ],
                 const SizedBox(height: EspacamentosApp.md),
                 SeletorNascimentoPet(
                   dataNascimento: dataNascimento,

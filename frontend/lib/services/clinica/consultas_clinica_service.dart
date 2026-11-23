@@ -1,5 +1,5 @@
-import 'package:pet_care/core/constantes/api_config.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
@@ -34,6 +34,56 @@ class ConsultasClinicaService {
   Uri _uri(String caminho) =>
       Uri.parse('${baseUrl.replaceFirst(RegExp(r'/+$'), '')}$caminho');
 
+  Future<Map<String, dynamic>> _internacaoHttp(String caminho, {Map<String, dynamic>? corpo, bool criar = false}) async {
+    final token = _token;
+    final uri = _uri(caminho);
+    final headers = cabecalhosJson(token);
+    final resposta = await (corpo == null
+        ? http.get(uri, headers: headers)
+        : criar ? http.post(uri, headers: headers, body: jsonEncode(corpo))
+        : http.patch(uri, headers: headers, body: jsonEncode(corpo)))
+        .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
+
+    final dados = processarRespostaJson(resposta);
+    if (dados is! Map) throw const FormatException('Resposta de internação inválida.');
+    return Map<String, dynamic>.from(dados);
+  }
+
+  Future<List<Map<String, dynamic>>> listarInternacoes({String? petId}) async {
+    final dados = await _internacaoHttp(petId == null ? '/internacoes' : '/internacoes/pet/${Uri.encodeComponent(petId)}');
+    if (dados['internacoes'] is! List) throw const FormatException('Lista de internações inválida.');
+    return (dados['internacoes'] as List).map((e) {
+      if (e is! Map || e['_id'] is! String || e['petId'] is! String ||
+          (petId != null && e['petId'] != petId)) {
+        throw const FormatException('Internação sem vínculo válido.');
+      }
+      return Map<String, dynamic>.from(e);
+    }).toList();
+  }
+
+  Future<String> criarInternacao({required String petId, required String motivo, required String leito, String observacoes = ''}) async {
+    if ([petId, motivo, leito].any((v) => v.trim().isEmpty)) throw const FormatException('Informe o pet, o motivo e o leito.');
+    final dados = await _internacaoHttp('/internacoes', criar: true, corpo: {
+      'petId': petId, 'motivo': motivo.trim(), 'leito': leito.trim(), 'observacoes': observacoes.trim(),
+    });
+    final id = dados['internacaoId'];
+    if (id is! String || id.isEmpty) throw const FormatException('Internação sem identificador.');
+    return id;
+  }
+
+  Future<void> salvarProntuarioInternacao(ProntuarioCompartilhado prontuario) async {
+    final id = prontuario.internacaoId;
+    if (id == null) throw StateError('Internação não identificada.');
+    await _internacaoHttp('/internacoes/${Uri.encodeComponent(id)}/prontuario', corpo: {
+      'versao': prontuario.versaoInternacao, 'prontuario': prontuario.dadosInternacao(),
+    });
+  }
+
+  Future<void> darAltaInternacao(String id) async {
+    await _internacaoHttp('/internacoes/${Uri.encodeComponent(id)}/alta', corpo: {});
+  }
+
   Future<List<ConsultaClinicaApi>> listarDia(DateTime data) async {
     final dia =
         '${data.year.toString().padLeft(4, '0')}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}';
@@ -51,7 +101,7 @@ class ConsultasClinicaService {
           )
           .timeout(const Duration(seconds: 20));
       if (_token != token) {
-        throw StateError('A sessão mudou. Atualize a agenda.');
+        throw StateError('A sessão mudou. Atualize a tela.');
       }
       final dados = processarRespostaJson(resposta);
       if (dados is! Map ||
@@ -242,7 +292,7 @@ class ConsultasClinicaService {
             'petId': petId,
             'atendimentoId': atendimentoId,
             'tipo': tipo.trim(),
-            'nome': nome.trim(),
+            'nome': nome,
             if (justificativa.trim().isNotEmpty)
               'justificativa': justificativa.trim(),
           }),

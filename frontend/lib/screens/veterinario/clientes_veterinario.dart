@@ -1,5 +1,7 @@
 // busca de clientes e historico clinico compartilhado pela equipe
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -36,25 +38,62 @@ class ClientesVeterinario extends StatefulWidget {
 class _ClientesVeterinarioState extends State<ClientesVeterinario> {
   final _buscaController = TextEditingController();
   late bool _mostrarInternados;
+  final _internados = <ConsultaRecepcao>[];
+  final _registrosInternacao = <String, Map<String, dynamic>>{};
+  Timer? _timer;
+  bool _carregandoInternacoes = false;
+  String? _erroInternacoes;
+
+  Future<void> _carregarInternacoes() async {
+    if (_carregandoInternacoes || !SessaoUsuario.instancia.estaLogado) return;
+    _carregandoInternacoes = true;
+    try {
+      final registros = await AgendaClinica.instancia.servico.listarInternacoes();
+      if (!mounted) return;
+      setState(() {
+        _erroInternacoes = null;
+        _internados.clear();
+        _registrosInternacao.clear();
+        for (final r in registros.where((r) => r['status'] == 'ativa')) {
+          final data = DateTime.parse(r['dataEntrada']).toLocal();
+          final id = 'internacao:${r['_id']}';
+          _registrosInternacao[id] = r;
+          // Adaptador de exibição; não cria consulta ou qualquer dado no banco.
+          _internados.add(ConsultaRecepcao(
+            id: id, petId: r['petId'], veterinarioId: r['veterinarioId'],
+            data: data, horario: '${data.hour.toString().padLeft(2, '0')}:${data.minute.toString().padLeft(2, '0')}',
+            duracaoMinutos: 0, pet: r['petNome'] ?? 'Não informado', especie: r['especie'] ?? '',
+            tutor: r['tutorNome'] ?? 'Não informado', profissional: r['veterinarioNome'] ?? 'Não informado',
+            motivo: r['motivo'] ?? '', sala: r['leito'] ?? '', status: StatusConsultaRecepcao.finalizado,
+            fotoPetUrl: r['fotoPet'],
+          ));
+        }
+      });
+    } catch (e) {
+      if (mounted) setState(() => _erroInternacoes = '$e');
+    } finally { _carregandoInternacoes = false; }
+  }
 
   @override
   void initState() {
     super.initState();
     _mostrarInternados =
         widget.somenteInternados || widget.mostrarInternadosInicialmente;
+    _carregarInternacoes();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) => _carregarInternacoes());
   }
 
   @override
   void dispose() {
+    _timer?.cancel();
     _buscaController.dispose();
     super.dispose();
   }
 
   List<_ClienteVeterinario> get _clientes {
     final grupos = <String, List<ConsultaRecepcao>>{};
-    for (final consulta in widget.consultas) {
-      final chave =
-          '${consulta.pet.toLowerCase()}|${consulta.tutor.toLowerCase()}';
+    for (final consulta in [..._internados, if (!widget.somenteInternados) ...widget.consultas]) {
+      final chave = consulta.petId ?? '${consulta.pet.toLowerCase()}|${consulta.tutor.toLowerCase()}';
       grupos.putIfAbsent(chave, () => []).add(consulta);
     }
 
@@ -90,12 +129,10 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
   }
 
   bool _temInternacaoAtiva(ConsultaRecepcao consulta) {
-    final prontuario = AgendaClinica.instancia.prontuarios[consulta.id];
-    return prontuario?.internacaoAtiva ?? false;
+    return _registrosInternacao.containsKey(consulta.id);
   }
 
-  List<ConsultaRecepcao> _consultasDoPet(_ClienteVeterinario cliente) =>
-      AgendaClinica.instancia.consultasDoPet(cliente.pet, cliente.tutor);
+  List<ConsultaRecepcao> _consultasDoPet(_ClienteVeterinario cliente) => cliente.consultas;
 
   @override
   Widget build(BuildContext context) {
@@ -111,15 +148,15 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            widget.somenteInternados ? 'Pacientes internados' : 'Clientes',
+            _mostrarInternados ? 'Pacientes internados' : 'Clientes',
             style: TipografiaApp.heading2,
           ),
-          const SizedBox(height: EspacamentosApp.xs),
-          Text(
-            widget.descricao ??
-                'Consulte os pets atendidos por ${widget.profissional}',
-            style: TipografiaApp.bodySmall,
-          ),
+          if (!_mostrarInternados && widget.descricao != null) ...[
+            const SizedBox(height: EspacamentosApp.xs),
+            Text(widget.descricao!, style: TipografiaApp.bodySmall),
+          ],
+          if (_erroInternacoes != null)
+            TextButton(onPressed: _carregarInternacoes, child: Text('Não foi possível atualizar internações. Tentar novamente: $_erroInternacoes')),
           const SizedBox(height: EspacamentosApp.md),
           CampoFormularioApp(
             controller: _buscaController,
@@ -172,7 +209,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
     final ultimaConsulta = historico.first;
     return CartaoClinica(
       color: CoresApp.surfaceSoft,
-      onTap: () => Navigator.of(context).push(
+      onTap: () => internado ? _abrirInternacao(cliente) : Navigator.of(context).push(
         MaterialPageRoute<void>(
           builder: (_) => _HistoricoPetVeterinario(
             cliente: cliente,
@@ -189,31 +226,23 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(cliente.pet, style: TipografiaApp.bodyMedium),
+                Text(cliente.pet, style: TipografiaApp.bodyMedium.copyWith(fontWeight: FontWeight.w700)),
                 Text(
-                  '${cliente.especie} · Tutor: ${cliente.tutor}',
+                  'Tutor: ${cliente.tutor}',
                   style: TipografiaApp.caption,
                 ),
                 Text(
-                  'Última consulta: ${_dataFormatada(ultimaConsulta.data)}',
+                  '${cliente.especie} · ${_temInternacaoAtiva(ultimaConsulta) ? 'Admissão' : 'Consulta'}: ${_dataFormatada(ultimaConsulta.data)}',
                   style: TipografiaApp.caption,
                 ),
               ],
             ),
           ),
           if (internado) ...[
-            const IndicadorStatus(label: 'Internado', color: CoresApp.primary),
             IconButton(
-              style: IconButton.styleFrom(
-                backgroundColor: CoresApp.primaryDark,
-                foregroundColor: CoresApp.textOnPrimary,
-              ),
               tooltip: 'Abrir prontuário da internação',
               onPressed: () => _abrirInternacao(cliente),
-              icon: Icon(
-                Icons.local_hospital_outlined,
-                color: CoresApp.textOnPrimary,
-              ),
+              icon: const Icon(Icons.chevron_right_rounded, color: CoresApp.iconDefault),
             ),
           ] else
             const Icon(
@@ -225,16 +254,18 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
     );
   }
 
-  void _abrirInternacao(_ClienteVeterinario cliente) {
+  Future<void> _abrirInternacao(_ClienteVeterinario cliente) async {
     final consulta = _consultasDoPet(cliente).where(_temInternacaoAtiva).first;
-    Navigator.of(context).push(
+    await Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => ProntuarioInternacao(
           consulta: consulta,
+          internacaoId: _registrosInternacao[consulta.id]!['_id'],
           responsavel: widget.profissional,
         ),
       ),
     );
+    await _carregarInternacoes();
   }
 
   Widget _vazio() {

@@ -3,6 +3,9 @@
 class ProntuarioCompartilhado {
   ProntuarioCompartilhado({
     this.atendimentoId,
+    this.internacaoId,
+    this.versaoInternacao = 0,
+    this.leito = '',
     this.observacoesTriagem = '',
     this.descricaoConsulta = '',
     this.retornoRecomendado = '',
@@ -25,6 +28,9 @@ class ProntuarioCompartilhado {
        notasInternacao = notasInternacao ?? [];
 
   String? atendimentoId;
+  String? internacaoId;
+  int versaoInternacao;
+  String leito;
   String observacoesTriagem;
   String descricaoConsulta;
   String retornoRecomendado;
@@ -41,8 +47,55 @@ class ProntuarioCompartilhado {
   final List<MedicacaoInternacao> medicacoesInternacao;
   final List<NotaInternacao> notasInternacao;
 
+  void lerInternacao(Map<String, dynamic> registro) {
+    internacaoId = registro['_id'] as String;
+    versaoInternacao = registro['versao'] as int? ?? 0;
+    leito = registro['leito'] as String? ?? '';
+    internacao = registro['motivo'] as String? ?? '';
+    internacaoAtiva = registro['status'] == 'ativa';
+    internacaoIniciadaEm = DateTime.tryParse('${registro['dataEntrada']}')?.toLocal();
+    internacaoFinalizadaEm = DateTime.tryParse('${registro['dataAlta']}')?.toLocal();
+    observacoes = registro['observacoes'] as String? ?? '';
+    final p = registro['prontuario'] as Map? ?? {};
+    observacoesTriagem = p['observacoesTriagem'] as String? ?? '';
+    descricaoConsulta = p['descricaoConsulta'] as String? ?? '';
+    procedimentosInternacao
+      ..clear()
+      ..addAll((p['procedimentosInternacao'] as List? ?? []).map((e) => ProcedimentoInternacao(
+        nome: e['nome'], detalhes: e['detalhes'], agendadoPara: DateTime.parse(e['agendadoPara']),
+        concluidoEm: e['concluidoEm'] == null ? null : DateTime.parse(e['concluidoEm']), detalhesConclusao: e['detalhesConclusao'])));
+    medicacoesInternacao
+      ..clear()
+      ..addAll((p['medicacoesInternacao'] as List? ?? []).map((e) => MedicacaoInternacao(
+        nome: e['nome'], dosagem: e['dosagem'], frequencia: e['frequencia'], detalhes: e['detalhes'],
+        administracoes: (e['administracoes'] as List).map((a) => AdministracaoMedicacao(
+          realizadaEm: DateTime.parse(a['realizadaEm']), responsavel: a['responsavel'], observacao: a['observacao'])).toList())));
+    notasInternacao
+      ..clear()
+      ..addAll((p['notasInternacao'] as List? ?? []).map((e) => NotaInternacao(texto: e['texto'], autor: e['autor'])));
+  }
+
+  Map<String, dynamic> dadosInternacao() => {
+    'observacoesTriagem': observacoesTriagem,
+    'descricaoConsulta': descricaoConsulta,
+    'procedimentosInternacao': procedimentosInternacao.map((p) => {
+      'nome': p.nome, 'detalhes': p.detalhes, 'agendadoPara': p.agendadoPara.toIso8601String(),
+      'concluidoEm': p.concluidoEm?.toIso8601String(), 'detalhesConclusao': p.detalhesConclusao,
+    }).toList(),
+    'medicacoesInternacao': medicacoesInternacao.map((m) => {
+      'nome': m.nome, 'dosagem': m.dosagem, 'frequencia': m.frequencia, 'detalhes': m.detalhes,
+      'administracoes': m.administracoes.map((a) => {
+        'realizadaEm': a.realizadaEm.toIso8601String(), 'responsavel': a.responsavel, 'observacao': a.observacao,
+      }).toList(),
+    }).toList(),
+    'notasInternacao': notasInternacao.map((n) => {'texto': n.texto, 'autor': n.autor}).toList(),
+  };
+
   ProntuarioCompartilhado copiar() => ProntuarioCompartilhado(
     atendimentoId: atendimentoId,
+    internacaoId: internacaoId,
+    versaoInternacao: versaoInternacao,
+    leito: leito,
     observacoesTriagem: observacoesTriagem,
     descricaoConsulta: descricaoConsulta,
     retornoRecomendado: retornoRecomendado,

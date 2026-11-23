@@ -3,7 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/cabecalho_app.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
+import 'package:pet_care/screens/gerais/perfil_geral.dart';
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:pet_care/widgets/barra_navegacao_app.dart';
 
 class LayoutClinica extends StatelessWidget {
@@ -22,31 +24,14 @@ class LayoutClinica extends StatelessWidget {
   final List<Widget> paginas;
   final BottomNavigationBarItem terceiraAba;
   final VoidCallback onNotificacao;
-  Future<void> _sair(BuildContext context) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (dialogContext) => AlertDialog(
-        backgroundColor: CoresApp.surface,
-        title: const Text('Sair da conta'),
-        content: const Text('Tem certeza que deseja sair da sua conta?'),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, false),
-            child: const Text('Cancelar'),
-          ),
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext, true),
-            child: const Text('Sair'),
-          ),
-        ],
+  void _abrirPerfil(BuildContext context) {
+    final perfil = SessaoUsuario.instancia.tipoUsuario;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AcessoClinico(
+        perfil: perfil,
+        builder: (_) => const PerfilGeral(modoCompacto: true),
       ),
-    );
-    if (confirmar != true || !context.mounted) return;
-    // A proteção de acesso pode remover esta tela ao encerrar a sessão.
-    final navegador = Navigator.of(context);
-    await SessaoUsuario.instancia.sair();
-    if (!navegador.mounted) return;
-    navegador.pushNamedAndRemoveUntil('/login', (_) => false);
+    ));
   }
 
   @override
@@ -71,25 +56,14 @@ class LayoutClinica extends StatelessWidget {
                 animation: SessaoUsuario.instancia,
                 builder: (context, _) {
                   final nome = SessaoUsuario.instancia.nomeUsuario;
-                  return CabecalhoApp(
-                    greeting: saudacao,
-                    name: nome == null || nome.isEmpty ? nomePadrao : nome,
+                  return CabecalhoPetCare(
+                    saudacao: saudacao,
+                    nome: nome,
+                    abreviarNome: false,
                     onNotificationTap: onNotificacao,
+                    onProfileTap: () => _abrirPerfil(context),
                   );
                 },
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.symmetric(
-                horizontal: EspacamentosApp.md,
-              ),
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: TextButton.icon(
-                  onPressed: () => _sair(context),
-                  icon: const Icon(Icons.logout),
-                  label: const Text('Sair da conta'),
-                ),
               ),
             ),
             Expanded(

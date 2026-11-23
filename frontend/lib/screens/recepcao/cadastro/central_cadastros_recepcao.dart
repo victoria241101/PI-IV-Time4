@@ -17,6 +17,55 @@ class CentralCadastrosRecepcao extends StatefulWidget {
 }
 
 class _CentralCadastrosRecepcaoState extends State<CentralCadastrosRecepcao> {
+  Future<void> _selecionarTutorPet() async {
+    final novoTutor = await showModalBottomSheet<bool>(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('Tutor e pet', style: TipografiaApp.heading3),
+              const SizedBox(height: 12),
+              CartaoOpcaoApp(
+                icon: Icons.person_add_alt_1_outlined,
+                titulo: 'Novo tutor',
+                descricao: 'Cadastre o responsável e o primeiro pet',
+                onTap: () => Navigator.pop(context, true),
+              ),
+              const SizedBox(height: 12),
+              CartaoOpcaoApp(
+                icon: Icons.person_search_outlined,
+                titulo: 'Tutor existente',
+                descricao: 'Localize pelo CPF e cadastre outro pet',
+                onTap: () => Navigator.pop(context, false),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted || novoTutor == null) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => Scaffold(
+          backgroundColor: CoresApp.background,
+          appBar: cabecalhoClinica(
+            novoTutor ? 'Cadastrar tutor e pet' : 'Cadastrar pet',
+          ),
+          body: CadastroRecepcao(
+            somenteCadastro: novoTutor,
+            somentePet: !novoTutor,
+            onRegistrarConsulta: (_) => false,
+            cadastrosService: widget.cadastrosService,
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _abrir(TipoCadastroRecepcao tipo) async {
     if (tipo != TipoCadastroRecepcao.tutorPet &&
         tipo != TipoCadastroRecepcao.funcionario) {
@@ -27,23 +76,7 @@ class _CentralCadastrosRecepcaoState extends State<CentralCadastrosRecepcao> {
       );
       return;
     }
-    if (tipo == TipoCadastroRecepcao.tutorPet) {
-      await Navigator.of(context).push(
-        MaterialPageRoute<void>(
-          builder: (_) => Scaffold(
-            backgroundColor: CoresApp.background,
-            appBar: cabecalhoClinica('Cadastrar tutor e pet'),
-            body: CadastroRecepcao(
-              somenteCadastro: true,
-              onRegistrarConsulta: (_) => false,
-              cadastrosService: widget.cadastrosService,
-            ),
-          ),
-        ),
-      );
-      if (mounted) setState(() {});
-      return;
-    }
+    if (tipo == TipoCadastroRecepcao.tutorPet) return _selecionarTutorPet();
     final registro = await Navigator.of(context).push<RegistroRecepcaoLocal>(
       MaterialPageRoute(
         builder: (_) => FormularioAdministrativo(
@@ -73,8 +106,7 @@ class _CentralCadastrosRecepcaoState extends State<CentralCadastrosRecepcao> {
       CartaoOpcaoApp(
         icon: Icons.person_add_alt_1_outlined,
         titulo: 'Tutor e pet',
-        descricao:
-            'Cadastre o responsável e seu pet, sem precisar agendar agora',
+        descricao: 'Cadastre um novo tutor ou adicione pet a tutor existente',
         onTap: () => _abrir(TipoCadastroRecepcao.tutorPet),
       ),
       const SizedBox(height: 12),

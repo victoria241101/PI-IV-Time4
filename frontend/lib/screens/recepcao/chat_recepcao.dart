@@ -18,6 +18,7 @@ class ChatRecepcao extends StatelessWidget {
       ),
       child: ListaConversas(
         titulo: 'Chat da equipe',
+        compactarCabecalho: true,
         onAbrirConversa: (conversa) async {
           await Navigator.of(context).push(
             MaterialPageRoute(

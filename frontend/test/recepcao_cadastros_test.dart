@@ -396,7 +396,8 @@ void main() {
     await tocar(t, 'Continuar para perfil do pet');
     await preencher(t, 'Nome do pet', 'Bolinha');
     await preencher(t, 'Raça', 'SRD');
-    expect(find.text('Possui microchip?'), findsNothing);
+    expect(find.text('O pet possui microchip?'), findsOneWidget);
+    expect(find.text('Número do microchip'), findsNothing);
     expect(find.text('Castrado(a)'), findsNothing);
     expect(find.text('Observações clínicas'), findsNothing);
     await tocar(t, 'Cadastrar tutor e pet');
@@ -411,10 +412,46 @@ void main() {
         'raca',
         'dataNascimento',
         'sexo',
+        'possuiMicrochip',
+        'microchip',
         'tutorId',
         'petId',
       ]),
     );
+    expect(salvo?.dados['possuiMicrochip'], 'false');
+    expect(salvo?.dados['microchip'], '');
+    expect(t.takeException(), isNull);
+  });
+
+  testWidgets('Microchip ligado exige e preserva o número como texto', (
+    t,
+  ) async {
+    RegistroRecepcaoLocal? salvo;
+    await abrir(
+      t,
+      CadastroRecepcao(
+        cadastrosService: _CadastroApiTeste(),
+        somenteCadastro: true,
+        onRegistrarConsulta: (_) => true,
+        onCadastroConcluido: (r) => salvo = r,
+      ),
+    );
+    await preencher(t, 'Nome completo', 'Tutor Microchip');
+    await preencher(t, 'E-mail', 'tutor@example.test');
+    await preencher(t, 'CPF', '52998224725');
+    await preencher(t, 'Celular', '11888888888');
+    await tocar(t, 'Continuar para perfil do pet');
+    await preencher(t, 'Nome do pet', 'Bolinha');
+    await preencher(t, 'Raça', 'SRD');
+    await t.ensureVisible(find.byType(Switch));
+    await t.tap(find.byType(Switch));
+    await t.pumpAndSettle();
+    await tocar(t, 'Cadastrar tutor e pet');
+    expect(find.text('Informe o número do microchip.'), findsOneWidget);
+    await preencher(t, 'Número do microchip', '000123456789');
+    await tocar(t, 'Cadastrar tutor e pet');
+    expect(salvo?.dados['possuiMicrochip'], 'true');
+    expect(salvo?.dados['microchip'], '000123456789');
     expect(t.takeException(), isNull);
   });
 

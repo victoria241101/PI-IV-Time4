@@ -10,17 +10,21 @@ class CabecalhoPetCare extends StatelessWidget {
     super.key,
     this.nome,
     this.saudacao = 'Olá',
+    this.abreviarNome = true,
     this.mostrarSaudacao = true,
     this.centralizado = false,
     this.onNotificationTap,
+    this.onProfileTap,
     this.onLoginTap,
   });
 
   final String? nome;
   final String saudacao;
+  final bool abreviarNome;
   final bool mostrarSaudacao;
   final bool centralizado;
   final VoidCallback? onNotificationTap;
+  final VoidCallback? onProfileTap;
   final VoidCallback? onLoginTap;
 
   String get _textoSaudacao {
@@ -28,7 +32,7 @@ class CabecalhoPetCare extends StatelessWidget {
 
     final primeiroNome = nomeCompleto.isEmpty
         ? ''
-        : nomeCompleto.split(RegExp(r'\s+')).first;
+        : abreviarNome ? nomeCompleto.split(RegExp(r'\s+')).first : nomeCompleto;
 
     final saudacaoLimpa = saudacao
         .trim()
@@ -71,7 +75,10 @@ class CabecalhoPetCare extends StatelessWidget {
           ? CrossAxisAlignment.center
           : CrossAxisAlignment.start,
       children: [
-        logo,
+        if (onProfileTap != null)
+          FittedBox(fit: BoxFit.scaleDown, alignment: Alignment.centerLeft, child: logo)
+        else
+          logo,
         if (mostrarSaudacao) ...[
           const SizedBox(height: 4),
           Text(
@@ -100,7 +107,17 @@ class CabecalhoPetCare extends StatelessWidget {
               alignment: centralizado
                   ? Alignment.center
                   : Alignment.centerLeft,
-              child: conteudo,
+              child: !abreviarNome &&
+                      (onNotificationTap != null || onProfileTap != null)
+                  ? Padding(
+                      padding: EdgeInsets.only(
+                        right: onProfileTap != null
+                            ? (onNotificationTap != null ? 96 : 48)
+                            : 40,
+                      ),
+                      child: conteudo,
+                    )
+                  : conteudo,
             ),
             if (onNotificationTap != null)
               Positioned(
@@ -110,6 +127,17 @@ class CabecalhoPetCare extends StatelessWidget {
                   cor: CoresApp.darkBlue,
                   tamanhoIcone: 25,
                   icone: Icons.notifications_none_rounded,
+                ),
+              ),
+            if (onProfileTap != null)
+              Positioned(
+                right: 48,
+                child: IconButton(
+                  onPressed: onProfileTap,
+                  tooltip: 'Perfil',
+                  color: CoresApp.darkBlue,
+                  iconSize: 25,
+                  icon: const Icon(Icons.account_circle_outlined),
                 ),
               ),
             if (onLoginTap != null)

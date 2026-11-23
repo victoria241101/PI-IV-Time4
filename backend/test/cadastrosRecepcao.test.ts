@@ -39,13 +39,18 @@ test('Cria conta, tutor e pet vinculados; senha aleatória não é retornada',as
   assert.equal(h.docs.usuarios![0]!.tipo,'USUARIO');
   assert.equal(String(h.docs.tutores![0]!.usuarioId),String(h.docs.usuarios![0]!._id));
   assert.equal(String(h.docs.pets![0]!.tutorId),String(h.docs.tutores![0]!._id));
+  assert.equal(h.docs.pets![0]!.possuiMicrochip,false);
+  assert.equal(h.docs.pets![0]!.microchip,'');
   assert.equal(JSON.stringify(r.body).includes('hash'),false);
   assert.equal(JSON.stringify(r.body).includes(h.senhas[0]!),false);
 });
 test('Reenvio não duplica conta, tutor ou pet e preserva a senha',async t=>{
-  const h=await preparar(t);const body=corpo();await h.enviar(body);const r=await h.enviar(body);
+  const h=await preparar(t);const base=corpo();const body={...base,pet:{...base.pet,possuiMicrochip:true,microchip:'000123456789'}};
+  await h.enviar(body);const r=await h.enviar(body);
   assert.equal(r.status,201);assert.equal(r.body.contaCriada,false);
   assert.deepEqual(Object.values(h.docs).map(x=>x.length),[1,1,1]);assert.equal(h.senhas.length,1);
+  assert.equal(h.docs.pets![0]!.microchip,'000123456789');
+  assert.equal(h.docs.pets![0]!.possuiMicrochip,true);
 });
 test('Conta existente é reutilizada e CPF/e-mail incompatíveis são recusados',async t=>{
   const h=await preparar(t);const id=new ObjectId();h.docs.usuarios!.push({_id:id,nome:'Ana',cpf:'52998224725',email:'ana@example.test',tipo:'USUARIO',ativo:true,senhaHash:'senha-anterior'});
@@ -65,15 +70,22 @@ test('Somente secretária autenticada pode criar e consultar',async t=>{
   }
 });
 test('Busca pelo CPF devolve somente o tutor e os pets vinculados',async t=>{
-  const h=await preparar(t);await h.enviar(corpo());h.docs.pets!.push({_id:'P2',tutorId:'outro',nome:'Outro pet'});
+  const h=await preparar(t);const base=corpo();await h.enviar({...base,pet:{...base.pet,possuiMicrochip:true,microchip:'000123456789'}});h.docs.pets!.push({_id:'P2',tutorId:'outro',nome:'Outro pet'});
   const r=await fetch(h.url+'/tutores?cpf=52998224725');const dados=await r.json();
   assert.equal(r.status,200);assert.equal(dados.tutor.nome,'Ana Teste');assert.equal(dados.pets.length,1);
+  assert.equal(dados.pets[0].microchip,'000123456789');assert.equal(dados.pets[0].possuiMicrochip,true);
   assert.equal(JSON.stringify(dados).includes('senhaHash'),false);
 });
 test('Dados inválidos não chegam ao banco',async t=>{
   const h=await preparar(t);for(const parte of [{cpf:'11111111111'},{email:'invalido'},{pet:{nome:'Mel'}},{solicitacaoId:'x'}]) {
     assert.equal((await h.enviar({...corpo(),...parte})).status,400);
-  }assert.equal(h.acessos,0);
+  }
+  const base=corpo();
+  for(const pet of [{...base.pet,possuiMicrochip:true},{...base.pet,possuiMicrochip:true,microchip:'   '},
+    {...base.pet,possuiMicrochip:'true',microchip:'123'},{...base.pet,microchip:123}]) {
+    assert.equal((await h.enviar({...base,pet})).status,400);
+  }
+  assert.equal(h.acessos,0);
 });
 
 const funcionario = (tipo='ENFERMEIRO') => ({

@@ -199,14 +199,6 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
               const SizedBox(height: EspacamentosApp.sm),
               _secaoExames(),
               const SizedBox(height: EspacamentosApp.sm),
-              if (!_finalizada)
-                Padding(
-                  padding: const EdgeInsets.only(bottom: EspacamentosApp.xs),
-                  child: Text(
-                    'Internação ainda é gerenciada localmente.',
-                    style: TipografiaApp.caption,
-                  ),
-                ),
               _secaoInternacao(),
               const SizedBox(height: EspacamentosApp.sm),
               _secaoRetorno(),
@@ -592,6 +584,37 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     try {
       await _garantirAtendimentoSalvo();
       if (!mounted) return;
+      if (_prontuario.internacao.isNotEmpty && !_prontuario.internacaoAtiva) {
+        final petId = widget.consulta.petId;
+        if (petId == null) throw StateError('Pet não identificado.');
+        final existentes = await AgendaClinica.instancia.servico.listarInternacoes(petId: petId);
+        final ativa = existentes.where((e) => e['status'] == 'ativa').firstOrNull;
+        if (ativa != null) {
+          _prontuario.lerInternacao(ativa);
+        } else {
+          if (!mounted) return;
+          final campos = await showDialog<List<String>>(
+            context: context, barrierDismissible: false,
+            builder: (_) => DialogoCamposClinica(
+              titulo: 'Registrar internação', rotulos: const ['Motivo', 'Leito', 'Observações'],
+              valoresIniciais: [_prontuario.internacao, '', _observacoesController.text],
+              camposObrigatorios: const [0, 1],
+            ),
+          );
+          if (campos == null) return;
+          final id = await AgendaClinica.instancia.servico.criarInternacao(
+            petId: petId, motivo: campos[0], leito: campos[1], observacoes: campos[2]);
+          _prontuario.internacaoId = id;
+          _prontuario.internacaoAtiva = true;
+          _prontuario.leito = campos[1];
+          final registros = await AgendaClinica.instancia.servico.listarInternacoes(petId: petId);
+          final registro = registros.firstWhere((e) => e['_id'] == id);
+          _prontuario.internacaoIniciadaEm = DateTime.parse(registro['dataEntrada']).toLocal();
+          _prontuario.descricaoConsulta = _camposAtendimento['Anamnese']!.text;
+          await AgendaClinica.instancia.servico.salvarProntuarioInternacao(_prontuario);
+          _prontuario.versaoInternacao++;
+        }
+      }
       await AgendaClinica.instancia.servico.finalizarAtendimento(
         widget.consulta.id,
       );

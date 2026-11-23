@@ -1,4 +1,6 @@
 import 'package:pet_care/widgets/clinica/layout_clinica.dart';
+import 'package:pet_care/screens/gerais/perfil_geral.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
 import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:flutter/material.dart';
 import 'package:pet_care/main.dart';
@@ -92,8 +94,10 @@ void main() {
     testWidgets('$tipo pode cancelar ou confirmar saída e voltar ao login', (
       tester,
     ) async {
+      await tester.binding.setSurfaceSize(const Size(320, 720));
+      addTearDown(() => tester.binding.setSurfaceSize(null));
       await sessao.entrar(
-        nome: 'Profissional Teste',
+        nome: 'Alycia $tipo',
         email: 'equipe@example.test',
         token: 'token-teste',
         tipoUsuario: tipo,
@@ -119,6 +123,23 @@ void main() {
           ),
         ),
       );
+      expect(find.textContaining('Alycia $tipo!'), findsOneWidget);
+      expect(find.text('Sair da conta'), findsNothing);
+      await sessao.entrar(nome: 'Bruna $tipo', email: 'nova@example.test', token: 'token-teste', tipoUsuario: tipo);
+      await tester.pumpAndSettle();
+      expect(find.textContaining('Alycia'), findsNothing);
+      expect(find.textContaining('Bruna $tipo!'), findsOneWidget);
+      await tester.tap(find.byTooltip('Perfil'));
+      await tester.pumpAndSettle();
+      expect(find.byType(PerfilGeral), findsOneWidget);
+      expect(find.text('Bruna $tipo'), findsOneWidget);
+      expect(find.text('nova@example.test'), findsOneWidget);
+      expect(find.text('Meu perfil'), findsNothing);
+      expect(find.text('Informações da sua conta.'), findsNothing);
+      expect(find.text('Editar perfil'), findsOneWidget);
+      expect(find.text('Alterar senha'), findsOneWidget);
+      await tester.scrollUntilVisible(find.text('Sair da conta'), 150, scrollable: find.byType(Scrollable).last);
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Sair da conta'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Cancelar'));
@@ -142,6 +163,23 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
+  testWidgets('Cabeçalho sem nome não inventa usuário e mantém padrão dos demais perfis', (tester) async {
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: CabecalhoPetCare(nome: ' ', saudacao: 'Bom dia', abreviarNome: false))));
+    expect(find.text('Bom dia!'), findsOneWidget);
+    await tester.pumpWidget(const MaterialApp(home: Scaffold(body: CabecalhoPetCare(nome: 'Ana Silva'))));
+    expect(find.text('Olá, Ana!'), findsOneWidget);
+  });
+  testWidgets('Perfil geral original mantém suas ações', (tester) async {
+    await sessao.entrar(nome: 'Ana Silva', email: 'ana@example.test', token: 'token-teste');
+    await tester.pumpWidget(const MaterialApp(home: PerfilGeral()));
+    await tester.pumpAndSettle();
+    expect(find.text('Editar perfil'), findsOneWidget);
+    expect(find.text('Alterar senha'), findsOneWidget);
+    expect(find.text('Telefone'), findsOneWidget);
+    expect(find.text('Meu perfil'), findsOneWidget);
+    expect(find.text('Gerencie suas informações e configurações da conta.'), findsOneWidget);
+    expect(find.text('Informações da sua conta.'), findsNothing);
+  });
   for (final status in [401, 403]) {
     test('Login recusado ($status) não cria sessão', () async {
       await http.runWithClient(

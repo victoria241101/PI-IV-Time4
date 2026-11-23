@@ -122,14 +122,15 @@ export function criarRotasCadastrosRecepcao(deps: {
 
             const pets = tutor ? await banco.collection('pets').find(
                 { tutorId: { $in: referencias(tutor._id) }, ativo: { $ne: false } },
-                { projection: { nome: 1, especie: 1, raca: 1, sexo: 1, dataNascimento: 1 } }
+                { projection: { nome: 1, especie: 1, raca: 1, sexo: 1, dataNascimento: 1, microchip: 1, possuiMicrochip: 1 } }
             ).toArray() : [];
 
             return res.json({ tutor: { id: tutor ? String(tutor._id) : null, cpf,
                 nome: usuario?.nome ?? tutor?.nome ?? '', email: usuario?.email ?? '',
                 telefone: tutor?.telefone ?? '' },
                 pets: pets.map(p => ({ id: String(p._id), nome: p.nome, especie: p.especie,
-                    raca: p.raca, sexo: p.sexo, dataNascimento: p.dataNascimento ?? null })) });
+                    raca: p.raca, sexo: p.sexo, dataNascimento: p.dataNascimento ?? null,
+                    microchip: p.microchip ?? '', possuiMicrochip: p.possuiMicrochip ?? Boolean(p.microchip) })) });
         } catch { return res.status(503).json({ mensagem: 'Não foi possível consultar o tutor.' }); }
     });
 
@@ -137,12 +138,17 @@ export function criarRotasCadastrosRecepcao(deps: {
         const { nome, email, cpf: cpfRecebido, telefone, pet, solicitacaoId } = req.body ?? {};
         const cpf = typeof cpfRecebido === 'string' ? cpfRecebido.replace(/\D/g, '') : '';
         const emailNormalizado = typeof email === 'string' ? email.trim().toLowerCase() : '';
+        const possuiMicrochip = pet?.possuiMicrochip ?? false;
+        const microchip = typeof pet?.microchip === 'string' ? pet.microchip.trim() : '';
 
         if (typeof nome !== 'string' || !nome.trim() || !cpfValido(cpf) ||
             !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailNormalizado) ||
             typeof telefone !== 'string' || !/^\d{10,11}$/.test(telefone.replace(/\D/g, '')) ||
             typeof solicitacaoId !== 'string' || !/^[a-f\d]{24}$/.test(solicitacaoId) ||
-            !pet || ['nome','especie','raca','sexo'].some(c => typeof pet[c] !== 'string' || !pet[c].trim())) {
+            !pet || ['nome','especie','raca','sexo'].some(c => typeof pet[c] !== 'string' || !pet[c].trim()) ||
+            typeof possuiMicrochip !== 'boolean' ||
+            (pet.microchip !== undefined && typeof pet.microchip !== 'string') ||
+            (possuiMicrochip && !microchip)) {
             return res.status(400).json({ mensagem: 'Preencha nome, CPF, e-mail, telefone e os dados do pet.' });
         }
 
@@ -199,12 +205,15 @@ export function criarRotasCadastrosRecepcao(deps: {
                 const petId = new ObjectId(solicitacaoId);
                 const documentoPet = { _id: petId, tutorId: tutor._id, nome: pet.nome.trim(),
                     especie: pet.especie.trim(), raca: pet.raca.trim(), sexo: pet.sexo.trim(),
+                    possuiMicrochip, microchip: possuiMicrochip ? microchip : '',
                     ...(pet.dataNascimento ? { dataNascimento: pet.dataNascimento } : {}), ativo: true };
                 const existente = await banco.collection('pets').findOne({ _id: petId }, opcoes);
 
                 if (existente) {
                     if (String(existente.tutorId) !== String(tutor._id) ||
-                        ['nome','especie','raca','sexo','dataNascimento'].some(c => existente[c] !== (documentoPet as Document)[c])) {
+                        ['nome','especie','raca','sexo','dataNascimento'].some(c => existente[c] !== (documentoPet as Document)[c]) ||
+                        (existente.possuiMicrochip ?? Boolean(existente.microchip)) !== possuiMicrochip ||
+                        (existente.microchip ?? '') !== (documentoPet as Document).microchip) {
                         throw new CadastroInvalido(409, 'Esta solicitação já foi usada para outro cadastro.');
                     }
                 } else { await banco.collection('pets').insertOne(documentoPet, opcoes); }

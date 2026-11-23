@@ -5,11 +5,22 @@ import 'package:pet_care/services/veterinarios_service.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
+import 'package:pet_care/widgets/cartao_opcao_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
+import 'package:pet_care/core/tema/espacamentos_app.dart';
+import 'package:pet_care/controle/cadastros_recepcao_local.dart';
+import 'package:pet_care/screens/recepcao/cadastro/cadastro_recepcao.dart';
+
+enum _ModoAgendamento { tutorExistente, novoTutor }
 
 class NovoAgendamentoApi extends StatefulWidget {
-  const NovoAgendamentoApi({super.key, required this.dia});
+  const NovoAgendamentoApi({
+    super.key,
+    required this.dia,
+    this.cadastrosService,
+  });
   final DateTime dia;
+  final CadastrosRecepcaoService? cadastrosService;
 
   @override
   State<NovoAgendamentoApi> createState() => _NovoAgendamentoApiState();
@@ -17,11 +28,14 @@ class NovoAgendamentoApi extends StatefulWidget {
 
 class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
   final _cpf = TextEditingController();
-  final _cadastros = CadastrosRecepcaoService();
+  late final _cadastros =
+      widget.cadastrosService ?? CadastrosRecepcaoService();
   List<Map<String, dynamic>> _pets = [], _veterinarios = [];
   List<String> _horarios = [];
   String? _pet, _vet, _horario;
+  String _nomePet = '';
   String _tutor = '';
+  _ModoAgendamento? _modo;
   bool _ocupado = false;
 
   @override
@@ -51,6 +65,7 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
   Future<void> _buscar() => _executar(() async {
     setState(() {
       _pet = null;
+      _nomePet = '';
       _pets = [];
       _tutor = '';
       _vet = null;
@@ -65,18 +80,93 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
       );
     }
 
-    final vets = await VeterinariosService(baseUrl: ApiConfig.baseUrl)
-        .listarVeterinarios();
-
     if (!mounted) return;
     setState(() {
       _tutor = dados['tutor']['nome'] as String;
       _pets = (dados['pets'] as List)
           .map((p) => Map<String, dynamic>.from(p as Map))
           .toList();
-      _veterinarios = vets;
     });
+    await _carregarVeterinarios();
   });
+
+  Future<void> _carregarVeterinarios() async {
+    final vets = await VeterinariosService(baseUrl: ApiConfig.baseUrl)
+        .listarVeterinarios();
+    if (mounted) setState(() => _veterinarios = vets);
+  }
+
+  void _selecionarTutorExistente() {
+    setState(() {
+      _modo = _ModoAgendamento.tutorExistente;
+      _pet = null;
+      _nomePet = '';
+      _tutor = '';
+      _pets = [];
+      _vet = null;
+      _horario = null;
+      _horarios = [];
+    });
+  }
+
+  Future<void> _cadastrarPaciente({required bool tutorExistente}) async {
+    await _executar(() async {
+      RegistroRecepcaoLocal? cadastro;
+      await Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => Scaffold(
+            appBar: cabecalhoClinica(
+              tutorExistente ? 'Cadastrar pet' : 'Cadastrar tutor e pet',
+            ),
+            body: CadastroRecepcao(
+              somenteCadastro: !tutorExistente,
+              somentePet: tutorExistente,
+              onRegistrarConsulta: (_) => false,
+              cadastrosService: _cadastros,
+              onCadastroConcluido: (registro) => cadastro = registro,
+            ),
+          ),
+        ),
+      );
+      if (!mounted || cadastro == null) {
+        if (mounted) setState(() => _modo = null);
+        return;
+      }
+      final petId = cadastro!.dados['petId'];
+      if (petId == null || petId.isEmpty) {
+        throw const FormatException('Resposta de cadastro sem identificador do pet.');
+      }
+      setState(() {
+        _modo = tutorExistente
+            ? _ModoAgendamento.tutorExistente
+            : _ModoAgendamento.novoTutor;
+        _pet = petId;
+        _nomePet = cadastro!.dados['pet'] ?? '';
+        _tutor = cadastro!.nome;
+        _vet = null;
+        _horario = null;
+        _horarios = [];
+      });
+      await _carregarVeterinarios();
+    });
+  }
+
+  Future<void> _cadastrarOutroPet() => _cadastrarPaciente(
+    tutorExistente: true,
+  );
+
+  void _voltarOpcoes() {
+    setState(() {
+      _modo = null;
+      _pet = null;
+      _nomePet = '';
+      _tutor = '';
+      _pets = [];
+      _vet = null;
+      _horario = null;
+      _horarios = [];
+    });
+  }
 
   Future<void> _disponibilidade() => _executar(() async {
     setState(() {
@@ -116,79 +206,141 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
     body: AbsorbPointer(
       absorbing: _ocupado,
       child: ListView(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.all(EspacamentosApp.md),
         children: [
-          Text(
-            'Data: ${widget.dia.day}/${widget.dia.month}/${widget.dia.year}',
-          ),
-          if (_ocupado) const LinearProgressIndicator(),
-
-          CampoFormularioApp(controller: _cpf, label: 'CPF do tutor'),
-
-          TextButton(
-            onPressed: _buscar,
-            child: const Text('Buscar tutor e pets'),
-          ),
-
-          if (_tutor.isNotEmpty) Text(_tutor),
-
-          if (_tutor.isNotEmpty && _pets.isEmpty)
-            const Text('Este tutor não tem pets cadastrados.'),
-
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            initialValue: _pet,
-            key: ValueKey('pet-$_pet-${_pets.length}'),
-            decoration: const InputDecoration(labelText: 'Pet'),
-            items: _pets
-                .map(
-                  (p) => DropdownMenuItem(
-                    value: p['id'] as String,
-                    child: Text(p['nome'] as String),
+          CartaoClinica(
+            child: Row(
+              children: [
+                const Icon(Icons.calendar_today_outlined),
+                const SizedBox(width: EspacamentosApp.sm),
+                Expanded(
+                  child: Text(
+                    'Data selecionada · ${widget.dia.day}/${widget.dia.month}/${widget.dia.year}',
                   ),
-                )
-                .toList(),
-            onChanged: (v) => setState(() => _pet = v),
-          ),
-
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            initialValue: _vet,
-            key: ValueKey('vet-$_vet'),
-            decoration: const InputDecoration(labelText: 'Veterinário'),
-            items: _veterinarios
-                .map(
-                  (v) => DropdownMenuItem(
-                    value: v['_id'].toString(),
-                    child: Text(v['nome'] as String),
-                  ),
-                )
-                .toList(),
-            onChanged: (v) {
-              setState(() => _vet = v);
-              _disponibilidade();
-            },
-          ),
-
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            initialValue: _horario,
-            key: ValueKey('horario-$_horario-${_horarios.join()}'),
-            decoration: const InputDecoration(labelText: 'Horário disponível'),
-            items: _horarios
-                .map((h) => DropdownMenuItem(value: h, child: Text(h)))
-                .toList(),
-            onChanged: (v) => setState(() => _horario = v),
-          ),
-
-          if (_vet != null && !_ocupado && _horarios.isEmpty)
-            const Text(
-              'Nenhum horário disponível para esta data e veterinário.',
+                ),
+              ],
             ),
-
-          const SizedBox(height: 20),
-
-          BotaoClinica(label: 'Confirmar agendamento', onPressed: _salvar),
+          ),
+          const SizedBox(height: EspacamentosApp.md),
+          if (_ocupado) const LinearProgressIndicator(),
+          if (_modo == null) ...[
+            Text('Como deseja identificar o paciente?'),
+            const SizedBox(height: EspacamentosApp.sm),
+            CartaoOpcaoApp(
+              icon: Icons.person_add_alt_1_outlined,
+              titulo: 'Novo tutor',
+              descricao: 'Cadastre o responsável e o pet',
+              onTap: () => _cadastrarPaciente(tutorExistente: false),
+            ),
+            const SizedBox(height: EspacamentosApp.sm),
+            CartaoOpcaoApp(
+              icon: Icons.pets_outlined,
+              titulo: 'Tutor existente',
+              descricao: 'Busque pelo CPF, selecione um pet ou cadastre outro',
+              onTap: _selecionarTutorExistente,
+            ),
+          ] else ...[
+            TextButton.icon(
+              onPressed: _voltarOpcoes,
+              icon: const Icon(Icons.arrow_back_rounded),
+              label: const Text('Alterar opção de paciente'),
+            ),
+            if (_modo == _ModoAgendamento.tutorExistente &&
+                _pet == null) ...[
+              CampoFormularioApp(controller: _cpf, label: 'CPF do tutor'),
+              const SizedBox(height: EspacamentosApp.sm),
+              BotaoClinica(
+                label: 'Buscar tutor e pets',
+                icon: Icons.search_rounded,
+                expanded: true,
+                onPressed: _buscar,
+              ),
+              if (_tutor.isNotEmpty) ...[
+                const SizedBox(height: EspacamentosApp.md),
+                Text('Tutor: $_tutor'),
+                if (_pets.isEmpty)
+                  const Text('Este tutor não tem pets cadastrados.'),
+                if (_pets.isNotEmpty) ...[
+                  const SizedBox(height: EspacamentosApp.sm),
+                  DropdownButtonFormField<String>(
+                    isExpanded: true,
+                    initialValue: _pet,
+                    key: ValueKey('pet-$_pet-${_pets.length}'),
+                    decoration: const InputDecoration(labelText: 'Pet'),
+                    items: _pets
+                        .map(
+                          (p) => DropdownMenuItem(
+                            value: p['id'] as String,
+                            child: Text(p['nome'] as String),
+                          ),
+                        )
+                        .toList(),
+                    onChanged: (v) => setState(() {
+                      _pet = v;
+                      _nomePet = _pets.firstWhere((p) => p['id'] == v)['nome']
+                          as String;
+                    }),
+                  ),
+                ],
+                const SizedBox(height: EspacamentosApp.sm),
+                OutlinedButton.icon(
+                  onPressed: _cadastrarOutroPet,
+                  icon: const Icon(Icons.add_rounded),
+                  label: const Text('Cadastrar outro pet'),
+                ),
+              ],
+            ],
+            if (_pet != null) ...[
+              const SizedBox(height: EspacamentosApp.md),
+              CartaoClinica(
+                child: Text('Paciente: $_nomePet · Tutor: $_tutor'),
+              ),
+            ],
+            if (_pet != null) ...[
+              const SizedBox(height: EspacamentosApp.md),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _vet,
+                key: ValueKey('vet-$_vet'),
+                decoration: const InputDecoration(labelText: 'Veterinário'),
+                items: _veterinarios
+                    .map(
+                      (v) => DropdownMenuItem(
+                        value: v['_id'].toString(),
+                        child: Text(v['nome'] as String),
+                      ),
+                    )
+                    .toList(),
+                onChanged: (v) {
+                  setState(() => _vet = v);
+                  _disponibilidade();
+                },
+              ),
+              const SizedBox(height: EspacamentosApp.md),
+              DropdownButtonFormField<String>(
+                isExpanded: true,
+                initialValue: _horario,
+                key: ValueKey('horario-$_horario-${_horarios.join()}'),
+                decoration: const InputDecoration(
+                  labelText: 'Horário disponível',
+                ),
+                items: _horarios
+                    .map((h) => DropdownMenuItem(value: h, child: Text(h)))
+                    .toList(),
+                onChanged: (v) => setState(() => _horario = v),
+              ),
+              if (_vet != null && !_ocupado && _horarios.isEmpty)
+                const Text(
+                  'Nenhum horário disponível para esta data e veterinário.',
+                ),
+              const SizedBox(height: EspacamentosApp.lg),
+              BotaoClinica(
+                label: 'Confirmar agendamento',
+                onPressed: _salvar,
+                expanded: true,
+              ),
+            ],
+          ],
         ],
       ),
     ),

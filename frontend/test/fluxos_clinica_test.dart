@@ -53,6 +53,7 @@ void main() {
     agenda.prontuarios.clear();
     consulta = ConsultaRecepcao(
       id: 'revisao',
+      petId: 'P1',
       data: DateTime.now(),
       horario: '10:00',
       duracaoMinutos: 30,
@@ -141,6 +142,30 @@ void main() {
         return http.Response('{"conversas":[],"contatos":[]}', 200);
       }),
     );
+  });
+  testWidgets('Agenda simplificada mantém calendário e perfil nos três fluxos em tela estreita', (tester) async {
+    consulta.status = StatusConsultaRecepcao.aguardandoTriagem;
+    for (final pagina in <Widget>[const InicioRecepcao(), const InicioEnfermeiro(), const InicioVeterinario()]) {
+      await abrir(tester, pagina, largura: 320);
+      await tester.tap(find.byType(NavigationDestination).at(1));
+      await tester.pumpAndSettle();
+      expect(find.text('Agendamentos'), findsNothing);
+      expect(find.text('Escolha um dia para ver os horários e atendimentos'), findsNothing);
+      expect(find.byTooltip('Perfil'), findsOneWidget);
+      final proximoMes = find.byTooltip('Próximo mês');
+      await tester.ensureVisible(proximoMes);
+      await tester.tap(proximoMes);await tester.pumpAndSettle();
+      await tester.tap(find.text('15'));await tester.pumpAndSettle();
+      expect(find.textContaining(', 15 de '), findsOneWidget);
+      expect(find.textContaining('Nenhum agendamento'), findsOneWidget);
+      if (pagina is InicioEnfermeiro) {
+        await tester.tap(find.byType(NavigationDestination).at(2));await tester.pumpAndSettle();
+        expect(find.text('Consultar prescrições'), findsNothing);
+        expect(find.text('Pacientes internados'), findsOneWidget);
+      }
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    }
   });
   testWidgets('Recepção apenas confirma chegada e mantém os demais status', (
     tester,
@@ -251,7 +276,11 @@ void main() {
   testWidgets('Nota identifica o autor e preserva data e hora digitadas', (
     tester,
   ) async {
-    agenda.prontuarioDa(consulta).internacaoAtiva = true;
+    final api = agenda.servico as _ApiClinicaTeste;
+    api.internacoes.add({
+      '_id': 'I1', 'petId': 'P1', 'status': 'ativa', 'motivo': 'Observação',
+      'leito': 'L1', 'dataEntrada': '2026-11-22T10:00:00Z', 'versao': 0,
+    });
     await abrir(
       tester,
       ProntuarioInternacao(consulta: consulta, responsavel: 'Enfermeira Ana'),
@@ -265,7 +294,8 @@ void main() {
     await tester.enterText(find.byType(TextField), nota);
     await tester.tap(find.text('Salvar'));
     await tester.pumpAndSettle();
-    final registro = agenda.prontuarioDa(consulta).notasInternacao.single;
+    final salvo = ProntuarioCompartilhado()..lerInternacao(api.internacoes.single);
+    final registro = salvo.notasInternacao.single;
     expect(registro.autor, 'Enfermeira Ana');
     expect(registro.texto, nota);
     await tester.pumpWidget(const SizedBox());
@@ -280,6 +310,15 @@ void main() {
 }
 
 class _ApiClinicaTeste extends ConsultasClinicaService {
+  final internacoes = <Map<String, dynamic>>[];
+  @override
+  Future<List<Map<String, dynamic>>> listarInternacoes({String? petId}) async => internacoes;
+  @override
+  Future<void> salvarProntuarioInternacao(ProntuarioCompartilhado p) async {
+    internacoes.single['prontuario'] = p.dadosInternacao();
+    internacoes.single['versao'] = p.versaoInternacao + 1;
+  }
+
   // Estes testes exercitam ações sobre a agenda já carregada.
   // A leitura da API é testada em agenda_clinica_integracao_test.dart.
   @override

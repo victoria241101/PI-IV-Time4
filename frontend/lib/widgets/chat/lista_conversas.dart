@@ -17,6 +17,7 @@ class ListaConversas extends StatefulWidget {
   final String? titulo;
   final ChatService? servico;
   final bool exibirBotaoNovaConversa;
+  final bool compactarCabecalho;
 
   const ListaConversas({
     super.key,
@@ -24,6 +25,7 @@ class ListaConversas extends StatefulWidget {
     this.titulo,
     this.servico,
     this.exibirBotaoNovaConversa = true,
+    this.compactarCabecalho = false,
   });
 
   @override
@@ -175,31 +177,52 @@ class _ListaConversasState extends State<ListaConversas> {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         if (widget.titulo != null || widget.exibirBotaoNovaConversa) ...[
-          Row(
-            children: [
-              if (widget.titulo != null)
-                Text(
-                  widget.titulo!,
-                  style: TipografiaApp.heading2,
-                ),
-              const Spacer(),
-              if (widget.exibirBotaoNovaConversa && !_deslogado)
-                FilledButton.icon(
-                  onPressed: _abrirSeletorContato,
-                  icon: const Icon(Icons.add, size: 18),
-                  label: const Text('Nova conversa'),
-                  style: FilledButton.styleFrom(
-                    backgroundColor: CoresApp.primary,
-                    foregroundColor: CoresApp.textOnPrimary,
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: EspacamentosApp.md,
-                      vertical: EspacamentosApp.xs,
+          if (widget.compactarCabecalho)
+            Row(
+              children: [
+                if (widget.titulo != null)
+                  Expanded(
+                    child: Text(
+                      widget.titulo!,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: TipografiaApp.heading2,
                     ),
-                    textStyle: TipografiaApp.captionBold,
                   ),
-                ),
-            ],
-          ),
+                if (widget.exibirBotaoNovaConversa && !_deslogado)
+                  IconButton(
+                    tooltip: 'Nova conversa',
+                    onPressed: _abrirSeletorContato,
+                    icon: const Icon(Icons.add_circle_outline_rounded),
+                  ),
+              ],
+            )
+          else
+            Row(
+              children: [
+                if (widget.titulo != null)
+                  Text(
+                    widget.titulo!,
+                    style: TipografiaApp.heading2,
+                  ),
+                const Spacer(),
+                if (widget.exibirBotaoNovaConversa && !_deslogado)
+                  FilledButton.icon(
+                    onPressed: _abrirSeletorContato,
+                    icon: const Icon(Icons.add, size: 18),
+                    label: const Text('Nova conversa'),
+                    style: FilledButton.styleFrom(
+                      backgroundColor: CoresApp.primary,
+                      foregroundColor: CoresApp.textOnPrimary,
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: EspacamentosApp.md,
+                        vertical: EspacamentosApp.xs,
+                      ),
+                      textStyle: TipografiaApp.captionBold,
+                    ),
+                  ),
+              ],
+            ),
           const SizedBox(height: EspacamentosApp.md),
         ],
         Expanded(
@@ -440,4 +463,3 @@ class _ListaConversasState extends State<ListaConversas> {
     );
   }
 }
-
