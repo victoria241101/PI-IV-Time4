@@ -1,12 +1,10 @@
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;
+import 'package:pet_care/core/constantes/api_config.dart';
 
 /// Configuração compartilhada; mantém o endereço local padrão.
-const apiBaseUrl = String.fromEnvironment(
-  'API_BASE_URL',
-  defaultValue: 'http://localhost:3000',
-);
+String get apiBaseUrl => ApiConfig.baseUrl;
 
 Map<String, String> cabecalhosJson(String? token) => {
   'Content-Type': 'application/json',

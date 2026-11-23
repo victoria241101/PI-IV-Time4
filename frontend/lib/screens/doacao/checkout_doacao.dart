@@ -1,6 +1,7 @@
 
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/screens/doacao/confirmacao_doacao.dart';
@@ -69,7 +70,7 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
 
     try {
       final service = DoacoesService.autenticado(
-        baseUrl: 'http://localhost:3000',
+        baseUrl: ApiConfig.baseUrl,
       );
 
       // Se já foi criada uma doação pendente, tenta confirmar a mesma.

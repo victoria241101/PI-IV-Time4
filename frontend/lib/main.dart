@@ -196,9 +196,7 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       final sessao = SessaoUsuario.instancia;
 
       final servico = PerfilService(
-        baseUrl: kIsWeb
-            ? 'http://localhost:3000'
-            : 'http://10.0.2.2:3000',
+        baseUrl: ApiConfig.baseUrl,
         token: sessao.token ?? '',
       );
 
@@ -461,13 +459,13 @@ class _InicioTutorComDadosReaisState
       }
 
       final resultados = await Future.wait<dynamic>([
-        PetsService(baseUrl: 'http://localhost:3000').listarPets(),
+        PetsService(baseUrl: ApiConfig.baseUrl).listarPets(),
         AgendamentosService(
-          baseUrl: 'http://localhost:3000',
+          baseUrl: ApiConfig.baseUrl,
           token: token,
         ).listarAgendamentos(),
         VeterinariosService(
-          baseUrl: 'http://localhost:3000',
+          baseUrl: ApiConfig.baseUrl,
         ).listarVeterinarios(),
       ]);
 

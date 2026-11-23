@@ -2,6 +2,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/screens/autenticacao/service/perfil_service.dart';
 
 class SessaoUsuario extends ChangeNotifier {
@@ -129,7 +130,7 @@ class SessaoUsuario extends ChangeNotifier {
     }
 
     final servico = PerfilService.autenticado(
-      baseUrl: 'http://localhost:3000',
+      baseUrl: ApiConfig.baseUrl,
       token: _token ?? '',
     );
 
@@ -184,7 +185,7 @@ class SessaoUsuario extends ChangeNotifier {
     }
 
     final resposta = await PerfilService.autenticado(
-      baseUrl: 'http://localhost:3000',
+      baseUrl: ApiConfig.baseUrl,
       token: _token ?? '',
     ).buscarPerfil();
 
