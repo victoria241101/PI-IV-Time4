@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import { randomBytes, createHash } from "node:crypto";
 import nodemailer from "nodemailer";
@@ -92,7 +93,10 @@ function configurarEmail() {
     };
 }
 
-// Cadastro de usuário e, opcionalmente, do primeiro pet.
+// =====================================================
+// CADASTRO DE USUÁRIO E, OPCIONALMENTE, PRIMEIRO PET
+// =====================================================
+
 router.post("/cadastro", async (req, res) => {
     try {
         const {
@@ -140,19 +144,51 @@ router.post("/cadastro", async (req, res) => {
             });
         }
 
-        if (
-            possuiPet &&
-            (
+        // Quando o usuário informa que possui um pet,
+        // todos os dados da ficha precisam ser enviados.
+        if (possuiPet) {
+            if (
                 !pet ||
+                typeof pet !== "object" ||
                 typeof pet.nome !== "string" || !pet.nome.trim() ||
                 typeof pet.especie !== "string" || !pet.especie.trim() ||
                 typeof pet.raca !== "string" || !pet.raca.trim() ||
-                typeof pet.sexo !== "string" || !pet.sexo.trim()
-            )
-        ) {
-            return res.status(400).json({
-                mensagem: "Preencha todos os dados do pet."
-            });
+                typeof pet.sexo !== "string" || !pet.sexo.trim() ||
+                typeof pet.dataNascimento !== "string" ||
+                !/^\d{4}-\d{2}-\d{2}$/.test(pet.dataNascimento) ||
+                typeof pet.peso !== "number" ||
+                !Number.isFinite(pet.peso) ||
+                pet.peso <= 0 ||
+                typeof pet.possuiMicrochip !== "boolean"
+            ) {
+                return res.status(400).json({
+                    mensagem: "Preencha todos os dados obrigatórios do pet."
+                });
+            }
+
+            // Validação da data de nascimento.
+            const [anoNascimento, mesNascimento, diaNascimento] =
+                pet.dataNascimento.split("-").map(Number);
+
+            const dataNascimento = new Date(
+                anoNascimento,
+                mesNascimento - 1,
+                diaNascimento
+            );
+
+            const hoje = new Date();
+            hoje.setHours(0, 0, 0, 0);
+
+            if (
+                dataNascimento.getFullYear() !== anoNascimento ||
+                dataNascimento.getMonth() !== mesNascimento - 1 ||
+                dataNascimento.getDate() !== diaNascimento ||
+                dataNascimento > hoje
+            ) {
+                return res.status(400).json({
+                    mensagem: "Informe uma data de nascimento válida."
+                });
+            }
         }
 
         const emailNormalizado = normalizarEmail(email);
@@ -202,6 +238,7 @@ router.post("/cadastro", async (req, res) => {
         };
 
         const tutorId = new ObjectId();
+
         const novoTutor = possuiPet
             ? { _id: tutorId, usuarioId }
             : null;
@@ -214,6 +251,9 @@ router.post("/cadastro", async (req, res) => {
                 especie: pet.especie.trim(),
                 raca: pet.raca.trim(),
                 sexo: pet.sexo.trim(),
+                dataNascimento: pet.dataNascimento,
+                peso: pet.peso,
+                possuiMicrochip: pet.possuiMicrochip,
                 ativo: true
             }
             : null;
@@ -258,7 +298,10 @@ router.post("/cadastro", async (req, res) => {
     }
 });
 
-// Login existente, mantendo a verificação de senha pelo Java.
+// =====================================================
+// LOGIN EXISTENTE, MANTENDO A VERIFICAÇÃO PELO JAVA
+// =====================================================
+
 router.post("/login", async (req, res) => {
     try {
         const { email, senha } = req.body ?? {};
@@ -309,7 +352,10 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// Consulta do perfil autenticado.
+// =====================================================
+// CONSULTA DO PERFIL AUTENTICADO
+// =====================================================
+
 router.get("/perfil", autenticar, async (_req, res) => {
     try {
         const banco = obterBanco();
@@ -356,7 +402,10 @@ router.get("/perfil", autenticar, async (_req, res) => {
     }
 });
 
-// Solicitação de alteração de nome e/ou e-mail.
+// =====================================================
+// SOLICITAÇÃO DE ALTERAÇÃO DE NOME E/OU E-MAIL
+// =====================================================
+
 router.patch("/perfil", autenticar, async (req, res) => {
     try {
         const { nome, email, cpf, tipo, ativo, senhaHash } = req.body ?? {};
@@ -515,7 +564,10 @@ router.patch("/perfil", autenticar, async (req, res) => {
     }
 });
 
-// Confirmação de alteração de nome e/ou e-mail.
+// =====================================================
+// CONFIRMAÇÃO DE ALTERAÇÃO DE NOME E/OU E-MAIL
+// =====================================================
+
 router.post("/confirmar-alteracao", async (req, res) => {
     try {
         const { token } = req.body ?? {};
@@ -643,9 +695,13 @@ router.post("/confirmar-alteracao", async (req, res) => {
     }
 });
 
-// Alteração de senha para quem ainda sabe a senha atual.
+// =====================================================
+// ALTERAÇÃO DE SENHA
+// =====================================================
+
 router.patch("/alterar-senha", autenticar, async (req, res) => {
     console.log("[TESTE SENHA] Requisição recebida!");
+
     try {
         const { senhaAtual, novaSenha, confirmarSenha } = req.body ?? {};
 
@@ -662,6 +718,7 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
         const banco = obterBanco();
         const usuarios = banco.collection("usuarios");
         const usuarioId = new ObjectId(res.locals.usuarioId);
+
         const usuario = await usuarios.findOne({
             _id: usuarioId,
             ativo: true
@@ -724,6 +781,7 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             const { transporte, remetente } = configurarEmail();
 
             console.log("[TESTE SENHA] Tentando enviar e-mail...");
+
             await transporte.sendMail({
                 from: remetente,
                 to: usuario.email,
@@ -734,7 +792,8 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
                     "O link expira em 15 minutos e só pode ser usado uma vez.\n" +
                     "Se você não solicitou essa alteração, ignore esta mensagem."
             });
-        console.log("[TESTE SENHA] SMTP aceitou o envio!");
+
+            console.log("[TESTE SENHA] SMTP aceitou o envio!");
         } catch (erro) {
             await pendentes.deleteOne({ tokenHash });
             throw erro;
@@ -753,7 +812,10 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
     }
 });
 
-// Confirma a alteração de senha por e-mail.
+// =====================================================
+// CONFIRMA ALTERAÇÃO DE SENHA POR E-MAIL
+// =====================================================
+
 router.post("/confirmar-alteracao-senha", async (req, res) => {
     try {
         const { token } = req.body ?? {};
@@ -835,7 +897,10 @@ router.post("/confirmar-alteracao-senha", async (req, res) => {
     }
 });
 
-// Solicitação pública de recuperação de senha.
+// =====================================================
+// SOLICITAÇÃO PÚBLICA DE RECUPERAÇÃO DE SENHA
+// =====================================================
+
 router.post("/esqueci-senha", async (req, res) => {
     const respostaGenerica = {
         mensagem: "Se o e-mail estiver cadastrado, enviaremos instruções de recuperação."
@@ -851,6 +916,7 @@ router.post("/esqueci-senha", async (req, res) => {
         }
 
         const banco = obterBanco();
+
         const usuario = await banco.collection("usuarios").findOne({
             email: normalizarEmail(email),
             ativo: true
@@ -873,6 +939,7 @@ router.post("/esqueci-senha", async (req, res) => {
 
         // Uma solicitação nova invalida os tokens anteriores do usuário.
         const recuperacoes = banco.collection("recuperacoesSenha");
+
         await recuperacoes.deleteMany({ usuarioId: usuario._id });
 
         await recuperacoes.insertOne({
@@ -911,7 +978,10 @@ router.post("/esqueci-senha", async (req, res) => {
     }
 });
 
-// Redefinição de senha com token temporário recebido por e-mail.
+// =====================================================
+// REDEFINIÇÃO DE SENHA COM TOKEN TEMPORÁRIO
+// =====================================================
+
 router.post("/redefinir-senha", async (req, res) => {
     try {
         const { token, novaSenha, confirmarSenha } = req.body ?? {};

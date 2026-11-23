@@ -1,3 +1,4 @@
+
 import { Router } from "express";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { obterBanco, obterCliente } from "../database.js";
@@ -6,18 +7,49 @@ import { ObjectId } from "mongodb";
 const router = Router();
 
 
+// ======================================================
+// CADASTRAR PET
+// ======================================================
+
 router.post("/", autenticar, async (req, res) => {
-    const { nome, especie, raca, sexo } = req.body;
+    const {
+        nome,
+        especie,
+        raca,
+        sexo,
+        dataNascimento,
+        peso,
+        possuiMicrochip
+    } = req.body;
 
     // Validar os dados do pet
     if (
         typeof nome !== "string" || !nome.trim() ||
         typeof especie !== "string" || !especie.trim() ||
         typeof raca !== "string" || !raca.trim() ||
-        typeof sexo !== "string" || !sexo.trim()
+        typeof sexo !== "string" || !sexo.trim() ||
+        typeof dataNascimento !== "string" ||
+        !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento) ||
+        typeof peso !== "number" ||
+        !Number.isFinite(peso) ||
+        peso <= 0 ||
+        typeof possuiMicrochip !== "boolean"
     ) {
         return res.status(400).json({
-            mensagem: "Preencha todos os campos do pet."
+            mensagem: "Preencha todos os campos do pet corretamente."
+        });
+    }
+
+    // Validar a data de nascimento
+    const dataNascimentoDate = new Date(`${dataNascimento}T00:00:00`);
+
+    if (
+        Number.isNaN(dataNascimentoDate.getTime()) ||
+        dataNascimentoDate.toISOString().slice(0, 10) !== dataNascimento ||
+        dataNascimentoDate > new Date(new Date().toDateString())
+    ) {
+        return res.status(400).json({
+            mensagem: "Informe uma data de nascimento válida."
         });
     }
 
@@ -65,6 +97,9 @@ router.post("/", autenticar, async (req, res) => {
                     especie: especie.trim(),
                     raca: raca.trim(),
                     sexo: sexo.trim(),
+                    dataNascimento,
+                    peso,
+                    possuiMicrochip,
                     ativo: true
                 },
                 { session: sessao }
@@ -88,6 +123,10 @@ router.post("/", autenticar, async (req, res) => {
     }
 });
 
+
+// ======================================================
+// LISTAR PETS DO USUÁRIO
+// ======================================================
 
 router.get("/", autenticar, async (req, res) => {
     try {
@@ -132,6 +171,10 @@ router.get("/", autenticar, async (req, res) => {
 });
 
 
+// ======================================================
+// ATUALIZAR PET
+// ======================================================
+
 router.put("/:id", autenticar, async (req, res) => {
     const { nome, especie, raca, sexo } = req.body;
 
@@ -151,10 +194,10 @@ router.put("/:id", autenticar, async (req, res) => {
     const petId = req.params.id;
 
     if (typeof petId !== "string" || !ObjectId.isValid(petId)) {
-    return res.status(400).json({
-        mensagem: "ID do pet inválido."
-    });
-}
+        return res.status(400).json({
+            mensagem: "ID do pet inválido."
+        });
+    }
 
     try {
         const banco = obterBanco();
@@ -209,15 +252,19 @@ router.put("/:id", autenticar, async (req, res) => {
 });
 
 
+// ======================================================
+// EXCLUIR PET
+// ======================================================
+
 router.delete("/:id", autenticar, async (req, res) => {
     const petId = req.params.id;
 
     // Validar o ID recebido
     if (typeof petId !== "string" || !ObjectId.isValid(petId)) {
-    return res.status(400).json({
-        mensagem: "ID do pet inválido."
-    });
-}
+        return res.status(400).json({
+            mensagem: "ID do pet inválido."
+        });
+    }
 
     try {
         const banco = obterBanco();
@@ -269,6 +316,11 @@ router.delete("/:id", autenticar, async (req, res) => {
     }
 });
 
+
+// ======================================================
+// HISTÓRICO CLÍNICO DO PET
+// ======================================================
+
 router.get("/:id/historico-clinico", autenticar, async (req, res) => {
     try {
         const petId = req.params.id;
@@ -289,7 +341,13 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             idsPossiveis.push(new ObjectId(petId));
         }
 
-        const pet = await banco.collection<{ _id: string | ObjectId; tutorId: string | ObjectId; nome: string; especie: string; raca: string }>("pets").findOne({
+        const pet = await banco.collection<{
+            _id: string | ObjectId;
+            tutorId: string | ObjectId;
+            nome: string;
+            especie: string;
+            raca: string;
+        }>("pets").findOne({
             _id: { $in: idsPossiveis }
         });
 
@@ -327,8 +385,7 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             })
             .sort({ dataHora: -1 })
             .toArray();
-        
-        
+
         // Busca os procedimentos realizados no pet
         const procedimentos = await banco.collection("procedimentos")
             .find({
@@ -337,15 +394,14 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             .sort({ dataHora: -1 })
             .toArray();
 
-
         // Busca as internações do pet
         const internacoes = await banco.collection("internacoes")
             .find({
                 petId: { $in: idsPossiveis }
             })
             .sort({ dataEntrada: -1 })
-            .toArray();    
-        
+            .toArray();
+
         // Busca as prescrições veterinárias do pet
         const prescricoes = await banco.collection("prescricoes")
             .find({
@@ -353,7 +409,7 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             })
             .sort({ dataPrescricao: -1 })
             .toArray();
-        
+
         // Busca os exames solicitados para o pet
         const exames = await banco.collection("exames")
             .find({
@@ -377,8 +433,8 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
                 petId: { $in: idsPossiveis }
             })
             .sort({ dataCriacao: -1 })
-            .toArray();  
-            
+            .toArray();
+
         // Busca os planos de tratamento do pet
         const planosTratamento = await banco
             .collection("planosTratamento")
@@ -387,7 +443,7 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             })
             .sort({ dataCriacao: -1 })
             .toArray();
-        
+
         // Busca as orientações de alta do pet
         const orientacoesAlta = await banco
             .collection("orientacoesAlta")
@@ -395,11 +451,10 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
                 petId: { $in: idsPossiveis }
             })
             .sort({ dataRegistro: -1 })
-            .toArray();    
+            .toArray();
 
         const historico = await Promise.all(
             consultas.map(async (consulta) => {
-
                 const triagem = await banco.collection("triagens")
                     .findOne({ consultaId: consulta._id });
 
