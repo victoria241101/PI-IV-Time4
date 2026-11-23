@@ -11,6 +11,32 @@ export interface ContextoTexto {
     motivo?: string;
     nomeCampanha?: string;
     rotuloLembrete?: string;
+    dataProximaDose?: string | Date;
+}
+
+/**
+ * Formata uma data no padrão brasileiro apenas com dia/mês/ano (dd/MM/yyyy).
+ * Aceita string no formato ISO (yyyy-MM-dd) ou instância de Date.
+ * Trata o fuso horário de Brasília (UTC-3) quando Date é fornecido.
+ */
+export function formatarDataBR(data: unknown): string {
+    if (typeof data === "string") {
+        const correspondencia = data.trim().match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (correspondencia) {
+            const [, ano, mes, dia] = correspondencia;
+            return `${dia}/${mes}/${ano}`;
+        }
+    }
+
+    if (data instanceof Date && !Number.isNaN(data.getTime())) {
+        const dataUTC3 = new Date(data.getTime() + DESLOCAMENTO_UTC3_MS);
+        const dia = String(dataUTC3.getUTCDate()).padStart(2, "0");
+        const mes = String(dataUTC3.getUTCMonth() + 1).padStart(2, "0");
+        const ano = String(dataUTC3.getUTCFullYear());
+        return `${dia}/${mes}/${ano}`;
+    }
+
+    return "";
 }
 
 /**
@@ -83,6 +109,9 @@ export function montarTexto(
     const dataHora = ctx.dataHora instanceof Date && !Number.isNaN(ctx.dataHora.getTime())
         ? formatarDataHoraBR(ctx.dataHora)
         : undefined;
+    const dataProxima = ctx.dataProximaDose
+        ? formatarDataBR(ctx.dataProximaDose)
+        : (ctx.dataHora ? formatarDataBR(ctx.dataHora) : "");
 
     let titulo = "";
     let mensagem = "";
@@ -231,6 +260,32 @@ export function montarTexto(
                 mensagem = `Lembrete: vacinação contra ${motivo} prevista em breve.`;
             } else {
                 mensagem = "Lembrete: seu pet possui uma vacina com aplicação prevista em breve.";
+            }
+            break;
+
+        case "vacina_proxima_dose":
+            titulo = pet ? `Próxima vacina: ${pet}` : "Próxima vacina";
+            if (pet && dataProxima) {
+                mensagem = `No dia ${dataProxima} será a próxima aplicação da vacina de ${pet}.`;
+            } else if (dataProxima) {
+                mensagem = `No dia ${dataProxima} será a próxima aplicação da vacina.`;
+            } else if (pet) {
+                mensagem = `Em breve será a próxima aplicação da vacina de ${pet}.`;
+            } else {
+                mensagem = "Em breve será a próxima aplicação da vacina.";
+            }
+            break;
+
+        case "vacina_marcar_retorno":
+            titulo = pet ? `Marcar vacina: ${pet}` : "Marcar vacina";
+            if (pet && dataProxima) {
+                mensagem = `Marcar a próxima vacina de ${pet} para a data ${dataProxima}.`;
+            } else if (dataProxima) {
+                mensagem = `Marcar a próxima vacina para a data ${dataProxima}.`;
+            } else if (pet) {
+                mensagem = `Marcar a próxima vacina de ${pet}.`;
+            } else {
+                mensagem = "Marcar a próxima vacina.";
             }
             break;
     }

@@ -125,6 +125,7 @@ function limparContexto(ctx: {
     motivo?: string | null | undefined;
     nomeCampanha?: string | null | undefined;
     rotuloLembrete?: string | null | undefined;
+    dataProximaDose?: string | Date | null | undefined;
 }): ContextoTexto {
     const res: ContextoTexto = {};
     if (ctx.nomePet) res.nomePet = ctx.nomePet;
@@ -134,6 +135,7 @@ function limparContexto(ctx: {
     if (ctx.motivo) res.motivo = ctx.motivo;
     if (ctx.nomeCampanha) res.nomeCampanha = ctx.nomeCampanha;
     if (ctx.rotuloLembrete) res.rotuloLembrete = ctx.rotuloLembrete;
+    if (ctx.dataProximaDose) res.dataProximaDose = ctx.dataProximaDose;
     return res;
 }
 
@@ -599,5 +601,97 @@ export async function notificarCampanha(
         );
     } catch {
         console.error("Erro interno ao notificar evento de campanha.");
+    }
+}
+
+/**
+ * Notifica o tutor e a equipe de secretaria sobre a aplicação de vacina e agendamento da próxima dose.
+ * - Envia para o tutor do pet: 'vacina_proxima_dose' (chave: vacina_proxima_dose:<procedimentoId>:<destinatarioId>)
+ * - Envia para cada secretária ativa: 'vacina_marcar_retorno' (chave: vacina_marcar_retorno:<procedimentoId>:<destinatarioId>)
+ * - Exclui o remetente caso ele seja destinatário.
+ * - Nunca lança exceção (protegido por try/catch interno com log de console.warn sem dados pessoais).
+ */
+export async function notificarVacinaAplicada(
+    db: Db,
+    params: {
+        petId: unknown;
+        nomePet?: string | null;
+        procedimentoId: unknown;
+        dataProximaDose: string | Date;
+        remetenteId?: ObjectId | string | null;
+    }
+): Promise<void> {
+    try {
+        const remetenteId = normalizarRemetenteId(params.remetenteId);
+        const petIdStr = params.petId !== undefined && params.petId !== null
+            ? String(params.petId)
+            : null;
+        const procedimentoIdStr = String(params.procedimentoId ?? "");
+
+        let nomePet = typeof params.nomePet === "string" && params.nomePet.trim()
+            ? params.nomePet.trim()
+            : undefined;
+
+        if (!nomePet && params.petId) {
+            nomePet = await buscarNomePet(db, params.petId);
+        }
+
+        // 1. Notificação para o tutor do pet (se resolvido)
+        const tutorUsuarioId = await resolverUsuarioDoTutorDoPet(db, params.petId);
+        const destinatariosTutor = tutorUsuarioId
+            ? filtrarDestinatarios([tutorUsuarioId], remetenteId)
+            : [];
+
+        if (destinatariosTutor.length > 0) {
+            const { titulo, mensagem } = montarTexto(
+                "vacina_proxima_dose",
+                limparContexto({ nomePet, dataProximaDose: params.dataProximaDose })
+            );
+
+            const chaveBaseTutor = montarChaveEvento("vacina_proxima_dose", procedimentoIdStr);
+
+            await criarParaVarios(
+                db,
+                destinatariosTutor,
+                {
+                    remetenteId,
+                    tipo: "vacina_proxima_dose",
+                    titulo,
+                    mensagem,
+                    petId: petIdStr,
+                    consultaId: null
+                },
+                chaveBaseTutor
+            );
+        }
+
+        // 2. Notificação para cada secretária ativa
+        const secretarias = await listarUsuariosPorTipo(db, ["secretaria"]);
+        const destinatariosSecretaria = filtrarDestinatarios(secretarias, remetenteId);
+
+        if (destinatariosSecretaria.length > 0) {
+            const { titulo, mensagem } = montarTexto(
+                "vacina_marcar_retorno",
+                limparContexto({ nomePet, dataProximaDose: params.dataProximaDose })
+            );
+
+            const chaveBaseSecretaria = montarChaveEvento("vacina_marcar_retorno", procedimentoIdStr);
+
+            await criarParaVarios(
+                db,
+                destinatariosSecretaria,
+                {
+                    remetenteId,
+                    tipo: "vacina_marcar_retorno",
+                    titulo,
+                    mensagem,
+                    petId: petIdStr,
+                    consultaId: null
+                },
+                chaveBaseSecretaria
+            );
+        }
+    } catch {
+        console.warn("Aviso interno: falha ao processar notificações de vacina aplicada.");
     }
 }

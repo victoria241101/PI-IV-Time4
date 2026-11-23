@@ -33,6 +33,10 @@ IconData iconeParaTipoNotificacao(String tipo) {
       return Icons.alarm_outlined;
     case 'lembrete_vacina':
       return Icons.vaccines_outlined;
+    case 'vacina_proxima_dose':
+      return Icons.vaccines_outlined;
+    case 'vacina_marcar_retorno':
+      return Icons.event_available_outlined;
     default:
       return Icons.notifications_outlined;
   }
