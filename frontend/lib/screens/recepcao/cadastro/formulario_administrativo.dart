@@ -1,5 +1,7 @@
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
+import 'package:pet_care/services/campanhas_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:pet_care/controle/cadastros_recepcao_local.dart';
@@ -8,7 +10,7 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
-/// Funcionários são salvos na API; os demais cadastros mantêm o fluxo existente.
+/// Funcionários e campanhas são salvos na API; banners mantêm o fluxo existente.
 class FormularioAdministrativo extends StatefulWidget {
   const FormularioAdministrativo({
     super.key,
@@ -154,7 +156,7 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
 
   Future<void> _salvar() async {
     if (_salvando) return;
-    if (!_funcionario) {
+    if (!_funcionario && !_campanha) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Este cadastro ainda não está disponível.'),
@@ -188,24 +190,45 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
         dados.remove('registro');
       }
     } else if (_campanha) {
-      dados['dataInicio'] = _inicio!.toIso8601String();
-      dados['dataFim'] = _fim!.toIso8601String();
-      dados['status'] = 'ativa';
-      dados['valorArrecadado'] = '0';
-      dados['id'] = 'local-${DateTime.now().microsecondsSinceEpoch}';
+      dados['dataInicio'] = DateTime(
+        _inicio!.year,
+        _inicio!.month,
+        _inicio!.day,
+      ).toIso8601String();
+      dados['dataFim'] = DateTime(
+        _fim!.year,
+        _fim!.month,
+        _fim!.day,
+        23,
+        59,
+        59,
+      ).toIso8601String();
     } else {
       // banner
       if (_campanhaVinculadaId != null) {
         dados['campanhaVinculadaId'] = _campanhaVinculadaId!;
       }
     }
-    if (_funcionario) {
+    if (_funcionario || _campanha) {
       setState(() => _salvando = true);
       try {
-        final resultado =
-            await (widget.cadastrosService ?? CadastrosRecepcaoService())
-                .cadastrarFuncionario(dados, _solicitacaoId);
-        dados['id'] = resultado['funcionarioId'] as String;
+        if (_funcionario) {
+          final resultado =
+              await (widget.cadastrosService ?? CadastrosRecepcaoService())
+                  .cadastrarFuncionario(dados, _solicitacaoId);
+          dados['id'] = resultado['funcionarioId'] as String;
+        } else {
+          dados['id'] = await CampanhasService.criar(
+            baseUrl: ApiConfig.baseUrl,
+          ).criarCampanha(
+            titulo: dados['titulo']!,
+            descricao: dados['descricao']!,
+            metaValor: double.parse(dados['metaValor']!.replaceAll(',', '.')),
+            imagemCapa: dados['imagemCapa'],
+            dataInicio: DateTime.parse(dados['dataInicio']!),
+            dataFim: DateTime.parse(dados['dataFim']!),
+          );
+        }
       } catch (erro) {
         if (mounted) {
           setState(() => _salvando = false);
@@ -297,6 +320,8 @@ class _FormularioAdministrativoState extends State<FormularioAdministrativo> {
                   Text(
                     _funcionario
                         ? 'O cadastro será salvo no sistema após a confirmação do servidor.'
+                        : _campanha
+                        ? 'A campanha será publicada após a confirmação do servidor.'
                         : 'Prévia local: os dados ficam disponíveis nesta sessão e não são publicados.',
                     style: TipografiaApp.caption,
                   ),

@@ -8,6 +8,7 @@ import 'package:http/testing.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:pet_care/services/clinica/consulta_clinica_api.dart';
+import 'package:pet_care/services/campanhas_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
@@ -112,6 +113,36 @@ void main() {
       ),
     );
   });
+
+  test('Cadastro de campanha envia os campos para a API existente', () async {
+    final service = CampanhasService.criar(baseUrl: 'https://api.example.test');
+    final id = await http.runWithClient(
+      () => service.criarCampanha(
+        titulo: 'Tratamento da Mel',
+        descricao: 'Apoio para o tratamento veterinário.',
+        metaValor: 1250.50,
+        imagemCapa: null,
+        dataInicio: DateTime(2026, 12, 1),
+        dataFim: DateTime(2026, 12, 31, 23, 59, 59),
+      ),
+      () => MockClient((r) async {
+        expect(r.method, 'POST');
+        expect(r.url.path, '/campanhas');
+        expect(r.headers['Authorization'], isNotEmpty);
+        expect(jsonDecode(r.body), {
+          'titulo': 'Tratamento da Mel',
+          'descricao': 'Apoio para o tratamento veterinário.',
+          'metaValor': 1250.50,
+          'imagemCapa': null,
+          'dataInicio': '2026-12-01T00:00:00.000',
+          'dataFim': '2026-12-31T23:59:59.000',
+        });
+        return http.Response('{"campanhaId":"123456789012345678901234"}', 201);
+      }),
+    );
+    expect(id, '123456789012345678901234');
+  });
+
   test('Agenda mantém os nomes recebidos sem substituir os IDs', () {
     final c = ConsultaClinicaApi.fromJson({
       'id': 'C1',

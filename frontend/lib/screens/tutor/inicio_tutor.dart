@@ -29,10 +29,6 @@ import 'package:pet_care/widgets/barra_nav_tutor.dart';
 import '../doacao/doacao.dart';
 import 'detalhes_agendamento_tutor.dart';
 
-typedef ConfirmarConsulta = Future<ResumoConsulta> Function(
-    String consultaId,
-    );
-
 typedef AcaoConsulta = Future<void> Function(String consultaId);
 
 typedef AtualizarPets = Future<void> Function();
@@ -45,7 +41,6 @@ class InicioTutor extends StatefulWidget {
     required this.pets,
     this.proximaConsulta,
     required this.banners,
-    required this.onConfirmarConsulta,
     required this.carregarDetalhesPet,
     this.onReagendarConsulta,
     this.onCancelarConsulta,
@@ -64,7 +59,6 @@ class InicioTutor extends StatefulWidget {
   final ResumoConsulta? proximaConsulta;
   final List<DadosBanner> banners;
 
-  final ConfirmarConsulta onConfirmarConsulta;
   final CarregarDetalhesPet carregarDetalhesPet;
 
   final AcaoConsulta? onReagendarConsulta;
@@ -87,8 +81,6 @@ class InicioTutor extends StatefulWidget {
 
 class _EstadoInicioTutor extends State<InicioTutor> {
   int _currentNavIndex = 0;
-
-  bool _confirmandoConsulta = false;
 
   ResumoConsulta? _proximaConsulta;
   late List<ResumoConsulta> _consultas;
@@ -423,73 +415,6 @@ class _EstadoInicioTutor extends State<InicioTutor> {
   }
 
   // ============================================================
-  // CONFIRMAR CONSULTA
-  // ============================================================
-
-  Future<void> _onConfirmAppointment() async {
-    final consulta = _proximaConsulta;
-
-    if (consulta == null || _confirmandoConsulta) return;
-
-    setState(() {
-      _confirmandoConsulta = true;
-    });
-
-    try {
-      final consultaAtualizada = await widget.onConfirmarConsulta(
-        consulta.id,
-      );
-
-      if (!mounted) return;
-
-      setState(() {
-        _proximaConsulta = consultaAtualizada;
-        _confirmandoConsulta = false;
-
-        final indice = _consultas.indexWhere(
-              (consulta) => consulta.id == consultaAtualizada.id,
-        );
-
-        if (indice >= 0) {
-          _consultas[indice] = consultaAtualizada;
-        } else {
-          _consultas.insert(0, consultaAtualizada);
-        }
-      });
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          SnackBar(
-            content: Text(
-              'Consulta confirmada para '
-                  '${consultaAtualizada.date} '
-                  'às ${consultaAtualizada.time}.',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    } catch (_) {
-      if (!mounted) return;
-
-      setState(() {
-        _confirmandoConsulta = false;
-      });
-
-      ScaffoldMessenger.of(context)
-        ..hideCurrentSnackBar()
-        ..showSnackBar(
-          const SnackBar(
-            content: Text(
-              'Não foi possível confirmar a consulta. Tente novamente.',
-            ),
-            behavior: SnackBarBehavior.floating,
-          ),
-        );
-    }
-  }
-
-  // ============================================================
   // TELA INICIAL
   // ============================================================
 
@@ -536,8 +461,6 @@ class _EstadoInicioTutor extends State<InicioTutor> {
             CartaoProximaConsulta(
               appointment: _proximaConsulta!,
               onDetailsTap: _onAppointmentDetails,
-              onConfirmTap: _onConfirmAppointment,
-              isConfirming: _confirmandoConsulta,
             )
           else
             const Padding(

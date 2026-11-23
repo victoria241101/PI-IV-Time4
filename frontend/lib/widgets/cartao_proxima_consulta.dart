@@ -4,7 +4,6 @@ import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
-import 'package:pet_care/widgets/botao_principal.dart';
 
 /// Cartão destacado da próxima consulta.
 class CartaoProximaConsulta extends StatelessWidget {
@@ -12,14 +11,10 @@ class CartaoProximaConsulta extends StatelessWidget {
     super.key,
     required this.appointment,
     required this.onDetailsTap,
-    this.onConfirmTap,
-    this.isConfirming = false,
   });
 
   final ResumoConsulta appointment;
   final VoidCallback onDetailsTap;
-  final VoidCallback? onConfirmTap;
-  final bool isConfirming;
 
   @override
   Widget build(BuildContext context) {
@@ -68,8 +63,6 @@ class CartaoProximaConsulta extends StatelessWidget {
               color: CoresApp.cardHighlightText,
             ),
           ),
-          const SizedBox(height: EspacamentosApp.xs + 2),
-          _StatusConsulta(isConfirmed: appointment.isConfirmed),
           const SizedBox(height: EspacamentosApp.md),
           Wrap(
             spacing: EspacamentosApp.md,
@@ -99,48 +92,19 @@ class CartaoProximaConsulta extends StatelessWidget {
           LayoutBuilder(
             builder: (context, constraints) {
               final useVerticalLayout = constraints.maxWidth < 420;
-              final actions = <Widget>[
-                if (!appointment.isConfirmed)
-                  BotaoPrincipal(
-                    label: isConfirming
-                        ? 'Confirmando...'
-                        : 'Confirmar consulta',
-                    icon: isConfirming
-                        ? Icons.hourglass_top_rounded
-                        : Icons.check_rounded,
-                    onPressed: isConfirming ? null : onConfirmTap,
-                    expanded: useVerticalLayout,
-                    backgroundColor: CoresApp.cardHighlightText,
-                    textColor: CoresApp.cardHighlight,
-                  ),
-                _BotaoDetalhes(
-                  onPressed: onDetailsTap,
-                  expanded: useVerticalLayout,
-                ),
-              ];
-
               if (useVerticalLayout) {
-                return Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    for (var index = 0; index < actions.length; index++) ...[
-                      actions[index],
-                      if (index != actions.length - 1)
-                        const SizedBox(height: EspacamentosApp.sm),
-                    ],
-                  ],
+                return _BotaoDetalhes(
+                  onPressed: onDetailsTap,
+                  expanded: true,
                 );
               }
 
-              return Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  for (var index = 0; index < actions.length; index++) ...[
-                    actions[index],
-                    if (index != actions.length - 1)
-                      const SizedBox(width: EspacamentosApp.sm),
-                  ],
-                ],
+              return Align(
+                alignment: Alignment.centerRight,
+                child: _BotaoDetalhes(
+                  onPressed: onDetailsTap,
+                  expanded: false,
+                ),
               );
             },
           ),
@@ -174,36 +138,6 @@ class _InformacaoConsulta extends StatelessWidget {
             style: TipografiaApp.caption.copyWith(color: color),
             maxLines: 2,
             overflow: TextOverflow.ellipsis,
-          ),
-        ),
-      ],
-    );
-  }
-}
-
-class _StatusConsulta extends StatelessWidget {
-  const _StatusConsulta({required this.isConfirmed});
-
-  final bool isConfirmed;
-
-  @override
-  Widget build(BuildContext context) {
-    final color = isConfirmed
-        ? CoresApp.statusConfirmed
-        : CoresApp.statusPending;
-
-    return Row(
-      children: [
-        Icon(
-          isConfirmed ? Icons.check_circle_outline : Icons.schedule_rounded,
-          size: 15,
-          color: color,
-        ),
-        const SizedBox(width: EspacamentosApp.xs + 2),
-        Expanded(
-          child: Text(
-            isConfirmed ? 'Consulta confirmada' : 'Aguardando confirmação',
-            style: TipografiaApp.captionBold.copyWith(color: color),
           ),
         ),
       ],

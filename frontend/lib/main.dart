@@ -629,17 +629,6 @@ class _InicioTutorComDadosReaisState
       banners: const [],
       onAgendamentoConfirmado: (_) => _atualizar(),
       onReagendamentoConfirmado: (_, __) => _atualizar(),
-      onConfirmarConsulta: (consultaId) async {
-        // Não confirmar artificialmente: recarrega o registro real.
-        await _atualizar();
-
-        for (final consulta
-        in _dados?.consultas ?? <ResumoConsulta>[]) {
-          if (consulta.id == consultaId) return consulta;
-        }
-
-        throw StateError('Consulta não encontrada no servidor.');
-      },
       carregarDetalhesPet: (petId) async {
         return PetsService(baseUrl: ApiConfig.baseUrl).carregarDetalhesPet(petId);
       },

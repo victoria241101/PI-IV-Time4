@@ -68,7 +68,8 @@ class _CentralCadastrosRecepcaoState extends State<CentralCadastrosRecepcao> {
 
   Future<void> _abrir(TipoCadastroRecepcao tipo) async {
     if (tipo != TipoCadastroRecepcao.tutorPet &&
-        tipo != TipoCadastroRecepcao.funcionario) {
+        tipo != TipoCadastroRecepcao.funcionario &&
+        tipo != TipoCadastroRecepcao.campanha) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Este cadastro ainda não está disponível.'),
@@ -89,7 +90,9 @@ class _CentralCadastrosRecepcaoState extends State<CentralCadastrosRecepcao> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
-          'Funcionário cadastrado. Primeiro acesso pelo Esqueci a senha.',
+          tipo == TipoCadastroRecepcao.funcionario
+              ? 'Funcionário cadastrado. Primeiro acesso pelo Esqueci a senha.'
+              : 'Campanha cadastrada e publicada.',
         ),
       ),
     );

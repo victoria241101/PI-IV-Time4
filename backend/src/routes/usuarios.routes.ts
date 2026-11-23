@@ -334,6 +334,21 @@ router.get("/perfil", autenticar, async (_req, res) => {
             });
         }
 
+        const colecoesProfissionais: Record<string, string> = {
+            SECRETARIA: "secretaria",
+            ENFERMEIRO: "enfermeiros",
+            VETERINARIO: "veterinarios"
+        };
+        const colecao = colecoesProfissionais[String(usuario.tipo).toUpperCase()];
+        if (colecao) {
+            const profissional = await banco.collection(colecao).findOne(
+                { usuarioId: { $in: [usuario._id, usuario._id.toString()] }, ativo: true },
+                { projection: { telefone: 1, cpf: 1 } }
+            );
+            usuario.telefone = profissional?.telefone ?? null;
+            usuario.cpf = usuario.cpf ?? profissional?.cpf ?? null;
+        }
+
         // Verifica se existe um cadastro de tutor vinculado ao usuário.
         const tutor = await banco
             .collection("tutores")

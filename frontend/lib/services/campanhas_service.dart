@@ -73,6 +73,38 @@ class CampanhasService {
     return conteudo['campanhas'] as List<dynamic>;
   }
 
+  Future<String> criarCampanha({
+    required String titulo,
+    required String descricao,
+    required double metaValor,
+    String? imagemCapa,
+    required DateTime dataInicio,
+    required DateTime dataFim,
+  }) async {
+    if (token == null || token!.isEmpty) {
+      throw StateError('Entre como secretária para cadastrar uma campanha.');
+    }
+
+    final resposta = await http.post(
+      Uri.parse('$baseUrl/campanhas'),
+      headers: _headers,
+      body: jsonEncode({
+        'titulo': titulo,
+        'descricao': descricao,
+        'metaValor': metaValor,
+        'imagemCapa': imagemCapa,
+        'dataInicio': dataInicio.toIso8601String(),
+        'dataFim': dataFim.toIso8601String(),
+      }),
+    );
+    final conteudo = _processarResposta(resposta);
+    final campanhaId = conteudo is Map ? conteudo['campanhaId'] : null;
+    if (campanhaId is! String || campanhaId.isEmpty) {
+      throw const FormatException('Resposta de cadastro da campanha inválida.');
+    }
+    return campanhaId;
+  }
+
   Future<Map<String, dynamic>> buscarCampanha({
     required String campanhaId,
   }) async {

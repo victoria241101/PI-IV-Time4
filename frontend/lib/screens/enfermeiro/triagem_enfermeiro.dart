@@ -224,11 +224,13 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
                   label: 'Peso (kg)',
                   enabled: _podeEditar && !_salvando && !_triagemSalva,
                 ),
+                const SizedBox(height: EspacamentosApp.md),
                 CampoFormularioApp(
                   controller: _temperatura,
                   label: 'Temperatura (°C)',
                   enabled: _podeEditar && !_salvando && !_triagemSalva,
                 ),
+                const SizedBox(height: EspacamentosApp.md),
                 CampoFormularioApp(
                   controller: _sintomas,
                   label: 'Sintomas',
@@ -236,6 +238,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
                   maxLines: 3,
                 ),
               ],
+              const SizedBox(height: EspacamentosApp.md),
               CampoFormularioApp(
                 controller: _observacoesController,
                 label: 'Observações clínicas',

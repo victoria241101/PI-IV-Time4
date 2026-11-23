@@ -689,7 +689,6 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
           ],
           camposObrigatorios: const [0, 1, 2, 3],
           labelAcao: 'Salvar prescrição',
-          aviso: 'Medicamento, dose, frequência e duração são obrigatórios. A avaliação será salva junto da primeira prescrição e não poderá ser editada depois.',
           bloquearEdicaoAposEnvio: true,
           onSalvar: (campos) async {
             await _garantirAtendimentoSalvo();
@@ -761,9 +760,6 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
           rotulos: const ['Tipo do exame', 'Nome do exame', 'Justificativa'],
           camposObrigatorios: const [0, 1],
           labelAcao: 'Solicitar exame',
-          aviso: 'Tipo e nome são obrigatórios. '
-              'Em caso de falha sem confirmação, verifique a lista antes de reenviar '
-              '— um novo envio cria outro registro.',
           bloquearEdicaoAposEnvio: true,
           onSalvar: (campos) async {
             enviado = true;
