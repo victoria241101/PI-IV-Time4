@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/services/agendamentos_service.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 
@@ -269,7 +270,7 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       }
 
       await AgendamentosService(
-        baseUrl: 'http://localhost:3000',
+        baseUrl: ApiConfig.baseUrl,
         token: token,
       ).cancelarAgendamento(consultaId: consulta.id);
 

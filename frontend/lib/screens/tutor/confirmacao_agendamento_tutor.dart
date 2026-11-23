@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/screens/tutor/detalhes_agendamento_tutor.dart';
 import 'package:pet_care/services/agendamentos_service.dart';
@@ -73,7 +74,7 @@ class _ConfirmacaoAgendamentoTutorState
       }
 
       final service = AgendamentosService(
-        baseUrl: 'http://localhost:3000',
+        baseUrl: ApiConfig.baseUrl,
         token: token,
       );
 

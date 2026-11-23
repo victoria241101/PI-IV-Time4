@@ -2,10 +2,10 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter/cupertino.dart';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class AuthService {
   AuthService._();
@@ -16,17 +16,7 @@ class AuthService {
   // CONFIGURAÇÃO DA API
   // =====================================================
 
-  static String get _baseUrl {
-    if (kIsWeb) {
-      return 'http://localhost:3000';
-    }
-
-    if (defaultTargetPlatform == TargetPlatform.android) {
-      return 'http://10.0.2.2:3000';
-    }
-
-    return 'http://localhost:3000';
-  }
+  static String get _baseUrl => ApiConfig.baseUrl;
 
   final SessaoUsuario _sessao = SessaoUsuario.instancia;
 

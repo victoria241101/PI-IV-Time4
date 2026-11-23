@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
@@ -35,7 +36,7 @@ class Doacao extends StatefulWidget {
 
 class _DoacaoState extends State<Doacao> {
   final CampanhasService _campanhasService = CampanhasService.criar(
-    baseUrl: 'http://localhost:3000',
+    baseUrl: ApiConfig.baseUrl,
   );
 
   List<Map<String, dynamic>> _campanhas = [];

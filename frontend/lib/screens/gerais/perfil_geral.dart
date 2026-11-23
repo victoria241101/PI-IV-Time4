@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/screens/autenticacao/service/perfil_service.dart';
@@ -318,7 +319,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
 
                       try {
                         final servico = PerfilService.autenticado(
-                          baseUrl: 'http://localhost:3000',
+                          baseUrl: ApiConfig.baseUrl,
                           token: SessaoUsuario.instancia.token!,
                         );
 

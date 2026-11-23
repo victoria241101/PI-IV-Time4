@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
@@ -116,7 +117,7 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
 
     try {
       final service = VeterinariosService(
-        baseUrl: 'http://localhost:3000',
+        baseUrl: ApiConfig.baseUrl,
       );
 
       final veterinarios = await service.listarVeterinarios();
@@ -1032,7 +1033,7 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     if (token == null || token.isEmpty) {
       throw StateError('Faça login novamente.');
     }
-    return AgendamentosService(baseUrl: 'http://localhost:3000', token: token);
+    return AgendamentosService(baseUrl: ApiConfig.baseUrl, token: token);
   }
 
   void _mensagem(String texto) {
@@ -1160,12 +1161,12 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
       }
 
       final agendamentosService = AgendamentosService(
-        baseUrl: 'http://localhost:3000',
+        baseUrl: ApiConfig.baseUrl,
         token: token,
       );
-      final petsService = PetsService(baseUrl: 'http://localhost:3000');
+      final petsService = PetsService(baseUrl: ApiConfig.baseUrl);
       final veterinariosService = VeterinariosService(
-        baseUrl: 'http://localhost:3000',
+        baseUrl: ApiConfig.baseUrl,
       );
 
       final resultados = await Future.wait<dynamic>([
