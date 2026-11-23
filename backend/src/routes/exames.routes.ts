@@ -3,6 +3,9 @@ import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
+import { enviarComandoJava } from "../javaClient.js";
+import { notificarVacinaAplicada } from "../notificacoes/eventos.js";
+import { ehVacina, dateParaDataSP, INTERVALO_VACINA_PADRAO_DIAS } from "../notificacoes/vacina.js";
 
 const router = Router();
 
@@ -73,6 +76,7 @@ router.post(
             // Verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
+                nome?: string;
                 ativo?: boolean;
             }>("pets").findOne({
                 _id: { $in: idsPet },
@@ -110,6 +114,7 @@ router.post(
             }
 
             // Registra a solicitação do exame
+            const dataSolicitacao = new Date();
             const resultado = await banco
                 .collection("exames")
                 .insertOne({
@@ -119,16 +124,64 @@ router.post(
                     tipo: tipo.trim(),
                     nome: nome.trim(),
                     justificativa: justificativa?.trim() ?? "",
-                    dataSolicitacao: new Date(),
+                    dataSolicitacao,
                     status: "solicitado",
                     resultado: null,
                     dataResultado: null
                 });
 
-            return res.status(201).json({
+            // Resposta idêntica ao contrato original — não muda com vacina
+            res.status(201).json({
                 mensagem: "Exame solicitado com sucesso!",
                 exameId: resultado.insertedId
             });
+
+            // ----------------------------------------------------------------
+            // Bloco de notificação de vacina (fire-and-forget, pós-resposta).
+            // Qualquer falha é registrada com console.warn sem dados pessoais
+            // e nunca afeta o cliente (a resposta já foi enviada).
+            // ----------------------------------------------------------------
+            if (ehVacina(tipo, nome)) {
+                try {
+                    const dataBase = dateParaDataSP(dataSolicitacao);
+                    const remetenteId = new ObjectId(res.locals.usuarioId);
+
+                    const respostaJava = await enviarComandoJava(
+                        "CALCULAR_STATUS_VACINA",
+                        {
+                            dataUltimaAplicacao: dataBase,
+                            intervaloDias: INTERVALO_VACINA_PADRAO_DIAS
+                        }
+                    );
+
+                    const dados = respostaJava?.dados as
+                        | { dataProximaDose?: string }
+                        | undefined;
+
+                    if (respostaJava?.status === "OK" && dados?.dataProximaDose) {
+                        // Busca nome do pet: tolerante a _id legado (string) ou ObjectId
+                        const petParaNotif = await banco.collection<{
+                            _id: string | ObjectId;
+                            nome?: string;
+                        }>("pets").findOne(
+                            { _id: { $in: idsPet } },
+                            { projection: { nome: 1 } }
+                        );
+
+                        await notificarVacinaAplicada(banco, {
+                            petId: pet._id,
+                            nomePet: petParaNotif?.nome ?? null,
+                            procedimentoId: resultado.insertedId,
+                            dataProximaDose: dados.dataProximaDose,
+                            remetenteId
+                        });
+                    } else {
+                        console.warn("Aviso: Java/vacina retornou status fora de OK — notificação ignorada.");
+                    }
+                } catch {
+                    console.warn("Aviso: falha ao processar notificação de vacina para exame — ignorada.");
+                }
+            }
 
         } catch (erro) {
             console.error("Erro ao solicitar exame:", erro);
