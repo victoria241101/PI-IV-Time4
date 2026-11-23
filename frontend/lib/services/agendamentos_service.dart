@@ -1,3 +1,4 @@
+
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -69,21 +70,27 @@ class AgendamentosService {
 
     final uri = Uri.parse(
       '$baseUrl/agendamentos/disponibilidade',
-    ).replace(queryParameters: {
-      'veterinarioId': veterinarioId,
-      'data': dataFormatada,
-      'duracaoMinutos': duracaoMinutos.toString(),
-    });
+    ).replace(
+      queryParameters: {
+        'veterinarioId': veterinarioId,
+        'data': dataFormatada,
+        'duracaoMinutos': duracaoMinutos.toString(),
+      },
+    );
 
-    final resposta = await http.get(uri, headers: _headers);
+    final resposta = await http.get(
+      uri,
+      headers: _headers,
+    );
+
     final conteudo = _processarResposta(resposta);
 
     return (conteudo['horarios'] as List)
-      .map((horario) {
-        final valor = horario.toString();
-        return valor.substring(11, 16);
-      })
-      .toList();
+        .map((horario) {
+          final valor = horario.toString();
+          return valor.substring(11, 16);
+        })
+        .toList();
   }
 
   Future<Map<String, dynamic>> criarAgendamento({
@@ -91,7 +98,7 @@ class AgendamentosService {
     required String veterinarioId,
     required DateTime data,
     required String horario,
-    required String tipo,
+    String tipo = 'consulta_geral',
     int duracaoMinutos = 30,
     String observacoes = '',
   }) async {
@@ -125,13 +132,14 @@ class AgendamentosService {
     );
 
     final conteudo = _processarResposta(resposta);
+
     return conteudo['agendamentos'] as List<dynamic>;
   }
 
   Future<Map<String, dynamic>> remarcarAgendamento({
     required String consultaId,
     required String dataHora,
-    required int duracaoMinutos,
+    int duracaoMinutos = 30,
   }) async {
     final resposta = await http.patch(
       Uri.parse(
@@ -163,7 +171,4 @@ class AgendamentosService {
       _processarResposta(resposta) as Map,
     );
   }
-
-  
-
 }

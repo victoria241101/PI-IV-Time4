@@ -1,3 +1,4 @@
+
 import { criarRotasTriagem } from "../consultas/triagem.routes.js";
 import { obterFiltroConsulta } from "../consultas/identificadoresConsultas.js";
 import { criarRotasLeituraConsultas } from "../consultas/leitura.routes.js";
@@ -106,7 +107,7 @@ router.patch(
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
-                    veterinarioId: veterinario._id,
+                    veterinarioId: String(veterinario._id),
                     status: "aguardando_veterinario"
                 },
                 {
@@ -144,12 +145,12 @@ router.post(
         try {
             const id = String(req.params.id ?? "");
             const {
-                diagnostico,
-                tratamento,
+                diagnostico = "",
+                tratamento = "",
                 observacoes,
-                anamnese,
-                exameFisico,
-                prognostico,
+                anamnese = "",
+                exameFisico = "",
+                prognostico = "",
                 codigoICDVet
             } = req.body;
 
@@ -161,12 +162,10 @@ router.post(
 
             if (
                 typeof diagnostico !== "string" ||
-                !diagnostico.trim() ||
-                typeof tratamento !== "string" ||
-                !tratamento.trim()
+                typeof tratamento !== "string"
             ) {
                 return res.status(400).json({
-                    mensagem: "Informe diagnóstico e tratamento válidos."
+                    mensagem: "Diagnóstico e tratamento devem ser textos."
                 });
             }
 
@@ -181,14 +180,11 @@ router.post(
 
             if (
                 typeof anamnese !== "string" ||
-                !anamnese.trim() ||
                 typeof exameFisico !== "string" ||
-                !exameFisico.trim() ||
-                typeof prognostico !== "string" ||
-                !prognostico.trim()
+                typeof prognostico !== "string"
             ) {
                 return res.status(400).json({
-                    mensagem: "Informe anamnese, exame físico e prognóstico válidos."
+                    mensagem: "Os campos do atendimento devem ser textos."
                 });
             }
 
@@ -222,7 +218,7 @@ router.post(
             const consultas = banco.collection<Document>("consultas");
             const consulta = await consultas.findOne({
                 ...obterFiltroConsulta(id),
-                veterinarioId: veterinario._id,
+                veterinarioId: String(veterinario._id),
                 status: "em_consulta"
             });
 
@@ -246,7 +242,7 @@ router.post(
             const resultado = await atendimentos.insertOne({
                 consultaId: id,
                 petId: consulta.petId,
-                veterinarioId: veterinario._id,
+                veterinarioId: String(veterinario._id),
                 anamnese: anamnese.trim(),
                 exameFisico: exameFisico.trim(),
                 diagnostico: diagnostico.trim(),
@@ -314,7 +310,7 @@ router.patch(
 
             const atendimento = await atendimentos.findOne({
                 consultaId: id,
-                veterinarioId: veterinario._id
+                veterinarioId: String(veterinario._id)
             });
 
             if (!atendimento) {
@@ -326,7 +322,7 @@ router.patch(
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
-                    veterinarioId: veterinario._id,
+                    veterinarioId: String(veterinario._id),
                     status: "em_consulta"
                 },
                 {

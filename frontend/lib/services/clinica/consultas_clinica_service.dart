@@ -219,6 +219,80 @@ class ConsultasClinicaService {
     await _enviar(id, 'finalizar-atendimento');
   }
 
+  /// Solicita um exame via POST /exames.
+  /// Requer atendimentoId já gravado — a API valida a vinculação pet+vet.
+  Future<ExameVeterinario> solicitarExame({
+    required String petId,
+    required String atendimentoId,
+    required String tipo,
+    required String nome,
+    String justificativa = '',
+  }) async {
+    if ([petId, atendimentoId, tipo, nome].any((v) => v.trim().isEmpty)) {
+      throw const FormatException(
+        'Preencha tipo e nome do exame.',
+      );
+    }
+    final token = _token;
+    final resposta = await http
+        .post(
+          _uri('/exames'),
+          headers: cabecalhosJson(token),
+          body: jsonEncode({
+            'petId': petId,
+            'atendimentoId': atendimentoId,
+            'tipo': tipo.trim(),
+            'nome': nome.trim(),
+            if (justificativa.trim().isNotEmpty)
+              'justificativa': justificativa.trim(),
+          }),
+        )
+        .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
+    final dados = processarRespostaJson(resposta);
+    if (dados is! Map) {
+      throw const FormatException('Resposta de exame inválida.');
+    }
+    final id = dados['exameId'];
+    if (id is! String || id.trim().isEmpty) {
+      throw const FormatException('Exame sem identificador válido.');
+    }
+    return ExameVeterinario(
+      id: id,
+      petId: petId,
+      atendimentoId: atendimentoId,
+      tipo: tipo.trim(),
+      nome: nome.trim(),
+      justificativa: justificativa.trim(),
+    );
+  }
+
+  /// Lista exames do pet via GET /exames/pet/:petId.
+  /// Acessível por VETERINARIO e ENFERMEIRO.
+  Future<List<ExameVeterinario>> listarExames(String petId) async {
+    if (petId.trim().isEmpty) throw ArgumentError('Pet não identificado.');
+    final token = _token;
+    final resposta = await http
+        .get(
+          _uri('/exames/pet/${Uri.encodeComponent(petId)}'),
+          headers: cabecalhosJson(token),
+        )
+        .timeout(const Duration(seconds: 20));
+    if (_token != token) throw StateError('A sessão mudou. Atualize a tela.');
+    final dados = processarRespostaJson(resposta);
+    if (dados is! Map || dados['exames'] is! List) {
+      throw const FormatException('Resposta de exames inválida.');
+    }
+    return (dados['exames'] as List).map((item) {
+      if (item is! Map) throw const FormatException('Exame inválido.');
+      final exame = ExameVeterinario.fromJson(Map<String, dynamic>.from(item));
+      if (exame.petId != null && exame.petId != petId) {
+        throw const FormatException('Exame de outro pet na resposta.');
+      }
+      return exame;
+    }).toList();
+  }
+
   Future<void> salvarTriagem(
     String id, {
     required double peso,

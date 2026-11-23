@@ -8,8 +8,8 @@ import { notificarConsulta } from "../notificacoes/eventos.js";
 const router = Router();
 
 // Horário de funcionamento da clínica (configuração provisória)
-const INICIO = 8;
-const FIM = 18;
+const INICIO = 0;
+const FIM = 24;
 const PASSO = 30;
 const DURACOES = [30, 60, 90, 120];
 const TIPOS = [

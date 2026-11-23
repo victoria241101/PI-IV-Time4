@@ -5,6 +5,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pet_care/screens/autenticacao/nova_senha.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
@@ -642,9 +643,7 @@ class _InicioTutorComDadosReaisState
         throw StateError('Consulta não encontrada no servidor.');
       },
       carregarDetalhesPet: (petId) async {
-        throw UnimplementedError(
-          'Detalhes do pet ainda não estão conectados ao backend.',
-        );
+        return PetsService(baseUrl: ApiConfig.baseUrl).carregarDetalhesPet(petId);
       },
     );
   }

@@ -363,6 +363,9 @@ class _Api extends ConsultasClinicaService {
   }
 
   @override
+  Future<List<ExameVeterinario>> listarExames(String petId) async => [];
+
+  @override
   Future<String> salvarPrescricao({
     required String petId,
     required String atendimentoId,

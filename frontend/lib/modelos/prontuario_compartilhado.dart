@@ -14,7 +14,7 @@ class ProntuarioCompartilhado {
     this.internacaoFinalizadaEm,
     this.observacoes = '',
     List<MedicamentoPrescrito>? medicamentos,
-    List<String>? exames,
+    List<ExameVeterinario>? exames,
     List<ProcedimentoInternacao>? procedimentosInternacao,
     List<MedicacaoInternacao>? medicacoesInternacao,
     List<NotaInternacao>? notasInternacao,
@@ -36,7 +36,7 @@ class ProntuarioCompartilhado {
   DateTime? internacaoFinalizadaEm;
   String observacoes;
   final List<MedicamentoPrescrito> medicamentos;
-  final List<String> exames;
+  final List<ExameVeterinario> exames;
   final List<ProcedimentoInternacao> procedimentosInternacao;
   final List<MedicacaoInternacao> medicacoesInternacao;
   final List<NotaInternacao> notasInternacao;
@@ -54,7 +54,7 @@ class ProntuarioCompartilhado {
     internacaoFinalizadaEm: internacaoFinalizadaEm,
     observacoes: observacoes,
     medicamentos: medicamentos.map((item) => item.copiar()).toList(),
-    exames: List<String>.of(exames),
+    exames: List<ExameVeterinario>.of(exames),
     procedimentosInternacao: procedimentosInternacao
         .map((item) => item.copiar())
         .toList(),
@@ -189,4 +189,58 @@ class NotaInternacao {
   final String autor;
 
   NotaInternacao copiar() => NotaInternacao(texto: texto, autor: autor);
+}
+
+/// Exame veterinário solicitado via API (/exames).
+class ExameVeterinario {
+  ExameVeterinario({
+    required this.nome,
+    required this.tipo,
+    this.id,
+    this.petId,
+    this.atendimentoId,
+    this.justificativa = '',
+    this.status = 'solicitado',
+    this.resultado,
+  });
+
+  final String? id;
+  final String? petId;
+  final String? atendimentoId;
+  final String nome;
+  final String tipo;
+  final String justificativa;
+  final String status;
+  final String? resultado;
+
+  bool get concluido => status == 'concluido';
+
+  factory ExameVeterinario.fromJson(Map<String, dynamic> dados) {
+    String? texto(String campo) {
+      final valor = dados[campo];
+      return valor is String && valor.trim().isNotEmpty ? valor : null;
+    }
+
+    return ExameVeterinario(
+      id: texto('_id'),
+      petId: texto('petId'),
+      atendimentoId: texto('atendimentoId'),
+      nome: texto('nome') ?? '',
+      tipo: texto('tipo') ?? '',
+      justificativa: texto('justificativa') ?? '',
+      status: texto('status') ?? 'solicitado',
+      resultado: texto('resultado'),
+    );
+  }
+
+  ExameVeterinario copiar() => ExameVeterinario(
+    id: id,
+    petId: petId,
+    atendimentoId: atendimentoId,
+    nome: nome,
+    tipo: tipo,
+    justificativa: justificativa,
+    status: status,
+    resultado: resultado,
+  );
 }

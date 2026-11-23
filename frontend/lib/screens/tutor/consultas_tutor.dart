@@ -147,14 +147,8 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
   }
 
   bool _temDisponibilidade(DateTime data) {
-    if (_ehDataPassada(data) || data.weekday == DateTime.sunday) {
-      return false;
+  return !_ehDataPassada(data);
     }
-
-    // Disponibilidade simulada até a integração com o backend.
-    // O calendário mantém o comportamento visual original.
-    return data.day % 3 != 0;
-  }
 
   void _mudarMes(int quantidade) {
     setState(() {

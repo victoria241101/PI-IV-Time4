@@ -231,6 +231,9 @@ class _ApiAtendimento extends ConsultasClinicaService {
   }) async => [];
 
   @override
+  Future<List<ExameVeterinario>> listarExames(String petId) async => [];
+
+  @override
   Future<Map<String, dynamic>> lerProntuario(String id) async => {
     'triagem': null,
     'atendimento': registro,

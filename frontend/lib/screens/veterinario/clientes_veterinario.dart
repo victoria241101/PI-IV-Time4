@@ -427,7 +427,10 @@ class _RegistroConsulta extends StatelessWidget {
                     .join('\n'),
               ),
             if (prontuario.exames.isNotEmpty)
-              _linha('Exames', prontuario.exames.join('\n')),
+              _linha(
+                'Exames',
+                prontuario.exames.map((e) => e.nome).join('\n'),
+              ),
             if (prontuario.internacao.isNotEmpty)
               _linha('Internação', prontuario.internacao),
             if (prontuario.retornoRecomendado.isNotEmpty)

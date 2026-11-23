@@ -1,3 +1,4 @@
+
 import { Router, type RequestHandler } from "express";
 import { ObjectId, MongoServerError, type Db, type Document } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -120,7 +121,7 @@ router.post(
             }>("atendimentos").findOne({
                 _id: { $in: idsAtendimento },
                 petId: { $in: idsPet },
-                veterinarioId: veterinario._id
+                veterinarioId: String(veterinario._id)
             });
 
             if (!atendimento) {
@@ -134,7 +135,7 @@ router.post(
             const documento = {
                 petId: pet._id,
                 atendimentoId: atendimento._id,
-                veterinarioId: veterinario._id,
+                veterinarioId: String(veterinario._id),
                 medicamento: medicamento.trim(),
                 dose: dose.trim(),
                 frequencia: frequencia.trim(),

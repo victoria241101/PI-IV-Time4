@@ -242,4 +242,177 @@ void main() {
     expect(api.agendamentos.baseUrl, 'https://clinica.example.test');
     expect(api.agendamentos.token, 'token');
   });
+
+  test('solicitarExame envia petId, atendimentoId, tipo e nome para /exames',
+      () async {
+    late Map<String, dynamic> bodyRecebido;
+    late String urlRecebida;
+    await http.runWithClient(
+      () async {
+        final exame = await api.solicitarExame(
+          petId: 'P001',
+          atendimentoId: 'A001',
+          tipo: 'Hemograma',
+          nome: 'Hemograma completo',
+          justificativa: 'Febre persistente',
+        );
+        expect(exame.id, 'EX001');
+        expect(exame.nome, 'Hemograma completo');
+        expect(exame.tipo, 'Hemograma');
+        expect(exame.petId, 'P001');
+        expect(exame.atendimentoId, 'A001');
+        expect(exame.status, 'solicitado');
+        expect(exame.resultado, isNull);
+      },
+      () => MockClient((r) async {
+        urlRecebida = '${r.method} ${r.url.path}';
+        bodyRecebido = jsonDecode(r.body) as Map<String, dynamic>;
+        return http.Response(
+          jsonEncode({'mensagem': 'Exame solicitado.', 'exameId': 'EX001'}),
+          201,
+        );
+      }),
+    );
+    expect(urlRecebida, 'POST /exames');
+    expect(bodyRecebido['petId'], 'P001');
+    expect(bodyRecebido['atendimentoId'], 'A001');
+    expect(bodyRecebido['tipo'], 'Hemograma');
+    expect(bodyRecebido['nome'], 'Hemograma completo');
+    expect(bodyRecebido['justificativa'], 'Febre persistente');
+    expect(bodyRecebido.containsKey('veterinarioId'), isFalse);
+  });
+
+  test('solicitarExame recusa campos vazios sem fazer requisição', () async {
+    var chamadas = 0;
+    await http.runWithClient(
+      () async {
+        for (final args in [
+          ('', 'A001', 'Hemograma', 'Nome'),
+          ('P001', '', 'Hemograma', 'Nome'),
+          ('P001', 'A001', '', 'Nome'),
+          ('P001', 'A001', 'Hemograma', ''),
+        ]) {
+          await expectLater(
+            api.solicitarExame(
+              petId: args.$1,
+              atendimentoId: args.$2,
+              tipo: args.$3,
+              nome: args.$4,
+            ),
+            throwsFormatException,
+          );
+        }
+        expect(chamadas, 0);
+      },
+      () => MockClient((_) async {
+        chamadas++;
+        return http.Response('{}', 201);
+      }),
+    );
+  });
+
+  test('listarExames busca GET /exames/pet/:petId e retorna ExameVeterinario',
+      () async {
+    late String urlRecebida;
+    await http.runWithClient(
+      () async {
+        final lista = await api.listarExames('P001');
+        expect(lista, hasLength(2));
+        expect(lista[0].nome, 'Hemograma completo');
+        expect(lista[0].status, 'solicitado');
+        expect(lista[0].resultado, isNull);
+        expect(lista[1].nome, 'Ultrassom abdominal');
+        expect(lista[1].status, 'concluido');
+        expect(lista[1].resultado, 'Normal');
+        expect(lista[1].concluido, isTrue);
+      },
+      () => MockClient((r) async {
+        urlRecebida = '${r.method} ${r.url.path}';
+        expect(r.headers['Authorization'], 'Bearer token');
+        return http.Response(
+          jsonEncode({
+            'mensagem': 'Exames encontrados.',
+            'exames': [
+              {
+                '_id': 'EX001',
+                'petId': 'P001',
+                'atendimentoId': 'A001',
+                'tipo': 'Hemograma',
+                'nome': 'Hemograma completo',
+                'justificativa': '',
+                'status': 'solicitado',
+                'resultado': null,
+              },
+              {
+                '_id': 'EX002',
+                'petId': 'P001',
+                'atendimentoId': 'A001',
+                'tipo': 'Imagem',
+                'nome': 'Ultrassom abdominal',
+                'justificativa': '',
+                'status': 'concluido',
+                'resultado': 'Normal',
+              },
+            ],
+          }),
+          200,
+        );
+      }),
+    );
+    expect(urlRecebida, 'GET /exames/pet/P001');
+  });
+
+  test('solicitarExame rejeita exameId vazio ou nulo na resposta', () async {
+    for (final resposta in [
+      {'mensagem': 'ok'},
+      {'exameId': ''},
+      {'exameId': '  '},
+      {'exameId': null},
+    ]) {
+      await http.runWithClient(
+        () async {
+          await expectLater(
+            api.solicitarExame(
+              petId: 'P001',
+              atendimentoId: 'A001',
+              tipo: 'Hemograma',
+              nome: 'Nome',
+            ),
+            throwsFormatException,
+          );
+        },
+        () => MockClient(
+          (_) async => http.Response(jsonEncode(resposta), 201),
+        ),
+      );
+    }
+  });
+
+  test('listarExames rejeita exame de outro pet na resposta', () async {
+    await http.runWithClient(
+      () async {
+        await expectLater(
+          api.listarExames('P001'),
+          throwsFormatException,
+        );
+      },
+      () => MockClient(
+        (_) async => http.Response(
+          jsonEncode({
+            'exames': [
+              {
+                '_id': 'EX099',
+                'petId': 'P999',
+                'atendimentoId': 'A001',
+                'tipo': 'Raio-X',
+                'nome': 'Raio-X tórax',
+                'status': 'solicitado',
+              },
+            ],
+          }),
+          200,
+        ),
+      ),
+    );
+  });
 }

@@ -1,3 +1,4 @@
+
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/services/veterinarios_service.dart';
@@ -6,10 +7,10 @@ import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
-/// Usa os mesmos serviços de veterinários e agendamentos usados pelo tutor.
 class NovoAgendamentoApi extends StatefulWidget {
   const NovoAgendamentoApi({super.key, required this.dia});
   final DateTime dia;
+
   @override
   State<NovoAgendamentoApi> createState() => _NovoAgendamentoApiState();
 }
@@ -21,17 +22,8 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
   List<String> _horarios = [];
   String? _pet, _vet, _horario;
   String _tutor = '';
-  String _tipo = 'consulta_geral';
-  int _duracao = 30;
   bool _ocupado = false;
-  final _tipos = const {
-    'consulta_geral': 'Consulta geral',
-    'vacinacao': 'Vacinação',
-    'dermatologia': 'Dermatologia',
-    'odontologia': 'Odontologia',
-    'retorno': 'Retorno',
-    'exames_laboratoriais': 'Exames laboratoriais',
-  };
+
   @override
   void dispose() {
     _cpf.dispose();
@@ -65,14 +57,17 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
       _horario = null;
       _horarios = [];
     });
+
     final dados = await _cadastros.buscarTutor(_cpf.text);
     if (dados == null) {
       throw StateError(
         'Tutor não encontrado. Faça o cadastro de tutor e pet na aba Cadastro.',
       );
     }
+
     final vets = await VeterinariosService(baseUrl: ApiConfig.baseUrl)
         .listarVeterinarios();
+
     if (!mounted) return;
     setState(() {
       _tutor = dados['tutor']['nome'] as String;
@@ -88,13 +83,15 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
       _horario = null;
       _horarios = [];
     });
+
     if (_vet == null) return;
+
     final horarios = await AgendaClinica.instancia.servico.agendamentos
         .consultarDisponibilidade(
           veterinarioId: _vet!,
           data: widget.dia,
-          duracaoMinutos: _duracao,
         );
+
     if (mounted) setState(() => _horarios = horarios);
   });
 
@@ -102,14 +99,14 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
     if (_pet == null || _vet == null || _horario == null) {
       throw StateError('Selecione pet, veterinário e horário.');
     }
+
     await AgendaClinica.instancia.servico.agendamentos.criarAgendamento(
       petId: _pet!,
       veterinarioId: _vet!,
       data: widget.dia,
       horario: _horario!,
-      tipo: _tipo,
-      duracaoMinutos: _duracao,
     );
+
     if (mounted) Navigator.pop(context, true);
   });
 
@@ -125,14 +122,19 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
             'Data: ${widget.dia.day}/${widget.dia.month}/${widget.dia.year}',
           ),
           if (_ocupado) const LinearProgressIndicator(),
+
           CampoFormularioApp(controller: _cpf, label: 'CPF do tutor'),
+
           TextButton(
             onPressed: _buscar,
             child: const Text('Buscar tutor e pets'),
           ),
+
           if (_tutor.isNotEmpty) Text(_tutor),
+
           if (_tutor.isNotEmpty && _pets.isEmpty)
             const Text('Este tutor não tem pets cadastrados.'),
+
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _pet,
@@ -148,6 +150,7 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
                 .toList(),
             onChanged: (v) => setState(() => _pet = v),
           ),
+
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _vet,
@@ -166,28 +169,7 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
               _disponibilidade();
             },
           ),
-          DropdownButtonFormField<int>(
-            initialValue: _duracao,
-            decoration: const InputDecoration(labelText: 'Duração'),
-            items: [30, 60, 90, 120]
-                .map((v) => DropdownMenuItem(value: v, child: Text('$v min')))
-                .toList(),
-            onChanged: (v) {
-              setState(() => _duracao = v!);
-              _disponibilidade();
-            },
-          ),
-          DropdownButtonFormField<String>(
-            isExpanded: true,
-            initialValue: _tipo,
-            decoration: const InputDecoration(labelText: 'Tipo'),
-            items: _tipos.entries
-                .map(
-                  (v) => DropdownMenuItem(value: v.key, child: Text(v.value)),
-                )
-                .toList(),
-            onChanged: (v) => setState(() => _tipo = v!),
-          ),
+
           DropdownButtonFormField<String>(
             isExpanded: true,
             initialValue: _horario,
@@ -198,11 +180,14 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
                 .toList(),
             onChanged: (v) => setState(() => _horario = v),
           ),
+
           if (_vet != null && !_ocupado && _horarios.isEmpty)
             const Text(
-              'Nenhum horário disponível. Escolha outra data ou veterinário.',
+              'Nenhum horário disponível para esta data e veterinário.',
             ),
+
           const SizedBox(height: 20),
+
           BotaoClinica(label: 'Confirmar agendamento', onPressed: _salvar),
         ],
       ),
