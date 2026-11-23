@@ -1,3 +1,4 @@
+// Alinne Monteiro de Melo | RA: 24801649
 
 import { Router } from "express";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,52 +8,24 @@ import { ObjectId } from "mongodb";
 const router = Router();
 
 
-// ======================================================
-// CADASTRAR PET
-// ======================================================
-
+// cadastra um pet para o usuário logado
 router.post("/", autenticar, async (req, res) => {
-    const {
-        nome,
-        especie,
-        raca,
-        sexo,
-        dataNascimento,
-        peso,
-        possuiMicrochip
-    } = req.body;
+    // separa os campos enviados no corpo da requisição
+    const { nome, especie, raca, sexo } = req.body;
 
-    // Validar os dados do pet
+    // validar os dados do pet
     if (
         typeof nome !== "string" || !nome.trim() ||
         typeof especie !== "string" || !especie.trim() ||
         typeof raca !== "string" || !raca.trim() ||
-        typeof sexo !== "string" || !sexo.trim() ||
-        typeof dataNascimento !== "string" ||
-        !/^\d{4}-\d{2}-\d{2}$/.test(dataNascimento) ||
-        typeof peso !== "number" ||
-        !Number.isFinite(peso) ||
-        peso <= 0 ||
-        typeof possuiMicrochip !== "boolean"
+        typeof sexo !== "string" || !sexo.trim()
     ) {
         return res.status(400).json({
-            mensagem: "Preencha todos os campos do pet corretamente."
+            mensagem: "Preencha todos os campos do pet."
         });
     }
 
-    // Validar a data de nascimento
-    const dataNascimentoDate = new Date(`${dataNascimento}T00:00:00`);
-
-    if (
-        Number.isNaN(dataNascimentoDate.getTime()) ||
-        dataNascimentoDate.toISOString().slice(0, 10) !== dataNascimento ||
-        dataNascimentoDate > new Date(new Date().toDateString())
-    ) {
-        return res.status(400).json({
-            mensagem: "Informe uma data de nascimento válida."
-        });
-    }
-
+    // pega o id que a autenticação colocou na resposta
     const usuarioId = new ObjectId(res.locals.usuarioId);
 
     const cliente = obterCliente();
@@ -65,14 +38,15 @@ router.post("/", autenticar, async (req, res) => {
 
         let petId: ObjectId | undefined;
 
+        // salva o pet e o novo tutor juntos quando for preciso criar o tutor
         await sessao.withTransaction(async () => {
-            // Procurar tutor existente
+            // procurar tutor existente
             let tutor = await tutores.findOne(
                 { usuarioId },
                 { session: sessao }
             );
 
-            // Criar tutor se ainda não existir
+            // criar tutor se ainda não existir
             if (!tutor) {
                 const novoTutor = {
                     _id: new ObjectId(),
@@ -86,7 +60,7 @@ router.post("/", autenticar, async (req, res) => {
                 tutor = novoTutor;
             }
 
-            // Criar pet vinculado ao tutor
+            // criar pet vinculado ao tutor
             petId = new ObjectId();
 
             await pets.insertOne(
@@ -97,9 +71,6 @@ router.post("/", autenticar, async (req, res) => {
                     especie: especie.trim(),
                     raca: raca.trim(),
                     sexo: sexo.trim(),
-                    dataNascimento,
-                    peso,
-                    possuiMicrochip,
                     ativo: true
                 },
                 { session: sessao }
@@ -124,23 +95,20 @@ router.post("/", autenticar, async (req, res) => {
 });
 
 
-// ======================================================
-// LISTAR PETS DO USUÁRIO
-// ======================================================
-
+// lista os pets ativos do tutor
 router.get("/", autenticar, async (req, res) => {
     try {
-        // Identifica o usuário autenticado pelo JWT
+        // identifica o usuário autenticado pelo jwt
         const usuarioId = new ObjectId(res.locals.usuarioId);
 
         const banco = obterBanco();
 
-        // Procura o tutor vinculado ao usuário
+        // procura o tutor vinculado ao usuário
         const tutor = await banco.collection("tutores").findOne({
             usuarioId
         });
 
-        // Se não possui tutor, ainda não possui pets
+        // se não possui tutor, ainda não possui pets
         if (!tutor) {
             return res.status(200).json({
                 mensagem: "Nenhum pet cadastrado.",
@@ -148,7 +116,7 @@ router.get("/", autenticar, async (req, res) => {
             });
         }
 
-        // Busca apenas os pets ativos desse tutor
+        // busca apenas os pets ativos desse tutor
         const pets = await banco.collection("pets")
             .find({
                 tutorId: tutor._id,
@@ -171,14 +139,12 @@ router.get("/", autenticar, async (req, res) => {
 });
 
 
-// ======================================================
-// ATUALIZAR PET
-// ======================================================
-
+// atualiza os dados do pet
 router.put("/:id", autenticar, async (req, res) => {
+    // separa os campos enviados no corpo da requisição
     const { nome, especie, raca, sexo } = req.body;
 
-    // Validar os dados recebidos
+    // validar os dados recebidos
     if (
         typeof nome !== "string" || !nome.trim() ||
         typeof especie !== "string" || !especie.trim() ||
@@ -190,19 +156,19 @@ router.put("/:id", autenticar, async (req, res) => {
         });
     }
 
-    // Validar o ID do pet
+    // validar o id do pet
     const petId = req.params.id;
 
     if (typeof petId !== "string" || !ObjectId.isValid(petId)) {
-        return res.status(400).json({
-            mensagem: "ID do pet inválido."
-        });
-    }
+    return res.status(400).json({
+        mensagem: "ID do pet inválido."
+    });
+}
 
     try {
         const banco = obterBanco();
 
-        // Identificar o tutor autenticado
+        // identificar o tutor autenticado
         const usuarioId = new ObjectId(res.locals.usuarioId);
 
         const tutor = await banco.collection("tutores").findOne({
@@ -215,7 +181,7 @@ router.put("/:id", autenticar, async (req, res) => {
             });
         }
 
-        // Atualizar somente se o pet pertencer ao tutor
+        // atualizar somente se o pet pertencer ao tutor
         const resultado = await banco.collection("pets").updateOne(
             {
                 _id: new ObjectId(petId),
@@ -232,6 +198,7 @@ router.put("/:id", autenticar, async (req, res) => {
             }
         );
 
+        // confere se a operação encontrou ou alterou o registro esperado
         if (resultado.matchedCount === 0) {
             return res.status(404).json({
                 mensagem: "Pet não encontrado."
@@ -252,27 +219,24 @@ router.put("/:id", autenticar, async (req, res) => {
 });
 
 
-// ======================================================
-// EXCLUIR PET
-// ======================================================
-
+// desativa o cadastro do pet
 router.delete("/:id", autenticar, async (req, res) => {
     const petId = req.params.id;
 
-    // Validar o ID recebido
+    // validar o id recebido
     if (typeof petId !== "string" || !ObjectId.isValid(petId)) {
-        return res.status(400).json({
-            mensagem: "ID do pet inválido."
-        });
-    }
+    return res.status(400).json({
+        mensagem: "ID do pet inválido."
+    });
+}
 
     try {
         const banco = obterBanco();
 
-        // Identificar o usuário autenticado
+        // identificar o usuário autenticado
         const usuarioId = new ObjectId(res.locals.usuarioId);
 
-        // Encontrar o tutor desse usuário
+        // encontrar o tutor desse usuário
         const tutor = await banco.collection("tutores").findOne({
             usuarioId
         });
@@ -283,7 +247,7 @@ router.delete("/:id", autenticar, async (req, res) => {
             });
         }
 
-        // Desativar somente um pet pertencente ao tutor
+        // desativar somente um pet pertencente ao tutor
         const resultado = await banco.collection("pets").updateOne(
             {
                 _id: new ObjectId(petId),
@@ -297,6 +261,7 @@ router.delete("/:id", autenticar, async (req, res) => {
             }
         );
 
+        // confere se a operação encontrou ou alterou o registro esperado
         if (resultado.matchedCount === 0) {
             return res.status(404).json({
                 mensagem: "Pet não encontrado."
@@ -316,11 +281,7 @@ router.delete("/:id", autenticar, async (req, res) => {
     }
 });
 
-
-// ======================================================
-// HISTÓRICO CLÍNICO DO PET
-// ======================================================
-
+// reúne os registros do histórico clínico do pet
 router.get("/:id/historico-clinico", autenticar, async (req, res) => {
     try {
         const petId = req.params.id;
@@ -332,22 +293,17 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
         }
 
         const banco = obterBanco();
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = new ObjectId(res.locals.usuarioId);
 
-        // Nosso banco possui IDs antigos em texto e novos ObjectIds
+        // nosso banco possui ids antigos em texto e novos objectids
         const idsPossiveis: (string | ObjectId)[] = [petId];
 
         if (ObjectId.isValid(petId)) {
             idsPossiveis.push(new ObjectId(petId));
         }
 
-        const pet = await banco.collection<{
-            _id: string | ObjectId;
-            tutorId: string | ObjectId;
-            nome: string;
-            especie: string;
-            raca: string;
-        }>("pets").findOne({
+        const pet = await banco.collection<{ _id: string | ObjectId; tutorId: string | ObjectId; nome: string; especie: string; raca: string }>("pets").findOne({
             _id: { $in: idsPossiveis }
         });
 
@@ -357,7 +313,7 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             });
         }
 
-        // Verifica se o usuário é tutor desse pet
+        // verifica se o usuário é tutor desse pet
         const tutor = await banco.collection<{
             _id: string | ObjectId;
             usuarioId: ObjectId;
@@ -366,7 +322,7 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             usuarioId
         });
 
-        // Verifica se é um veterinário ativo
+        // verifica se é um veterinário ativo
         const veterinario = await banco.collection("veterinarios").findOne({
             usuarioId,
             ativo: true
@@ -378,83 +334,96 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
             });
         }
 
-        // Busca todas as consultas do pet
+        // busca todas as consultas do pet
         const consultas = await banco.collection("consultas")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataHora: -1 })
             .toArray();
-
-        // Busca os procedimentos realizados no pet
+        
+        
+        // busca os procedimentos realizados no pet
         const procedimentos = await banco.collection("procedimentos")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataHora: -1 })
             .toArray();
 
-        // Busca as internações do pet
+
+        // busca as internações do pet
         const internacoes = await banco.collection("internacoes")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataEntrada: -1 })
-            .toArray();
-
-        // Busca as prescrições veterinárias do pet
+            .toArray();    
+        
+        // busca as prescrições veterinárias do pet
         const prescricoes = await banco.collection("prescricoes")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataPrescricao: -1 })
             .toArray();
-
-        // Busca os exames solicitados para o pet
+        
+        // busca os exames solicitados para o pet
         const exames = await banco.collection("exames")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataSolicitacao: -1 })
             .toArray();
 
-        // Busca os medicamentos administrados ao pet
+        // busca os medicamentos administrados ao pet
         const administracoes = await banco.collection("administracoes")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataAdministracao: -1 })
             .toArray();
 
-        // Busca as tarefas clínicas do pet
+        // busca as tarefas clínicas do pet
         const tarefasClinicas = await banco
             .collection("tarefasClinicas")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataCriacao: -1 })
-            .toArray();
-
-        // Busca os planos de tratamento do pet
+            .toArray();  
+            
+        // busca os planos de tratamento do pet
         const planosTratamento = await banco
             .collection("planosTratamento")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataCriacao: -1 })
             .toArray();
-
-        // Busca as orientações de alta do pet
+        
+        // busca as orientações de alta do pet
         const orientacoesAlta = await banco
             .collection("orientacoesAlta")
             .find({
                 petId: { $in: idsPossiveis }
             })
+            // coloca os registros mais recentes primeiro
             .sort({ dataRegistro: -1 })
-            .toArray();
+            .toArray();    
 
+        // junta os registros clínicos para devolver em uma resposta
         const historico = await Promise.all(
             consultas.map(async (consulta) => {
+
                 const triagem = await banco.collection("triagens")
                     .findOne({ consultaId: consulta._id });
 

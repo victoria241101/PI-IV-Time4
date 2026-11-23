@@ -1,21 +1,21 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
-import { enviarComandoJava } from "../javaClient.js";
-import { notificarVacinaAplicada } from "../notificacoes/eventos.js";
-import { ehVacina, dateParaDataSP, INTERVALO_VACINA_PADRAO_DIAS } from "../notificacoes/vacina.js";
 
 const router = Router();
 
-// Solicita um exame veterinário
+// solicita um exame veterinário
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os dados enviados no corpo da requisição
             const {
                 petId,
                 atendimentoId,
@@ -24,7 +24,7 @@ router.post(
                 justificativa
             } = req.body;
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             const campos = [petId, atendimentoId, tipo, nome];
 
             if (
@@ -50,7 +50,7 @@ router.post(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -66,30 +66,30 @@ router.post(
                 });
             }
 
-            // Aceita IDs antigos e ObjectIds do MongoDB
+            // aceita ids antigos e objectids do mongodb
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
-                nome?: string;
                 ativo?: boolean;
             }>("pets").findOne({
                 _id: { $in: idsPet },
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Verifica o atendimento
+            // verifica o atendimento
             const idsAtendimento: (string | ObjectId)[] = [atendimentoId];
 
             if (ObjectId.isValid(atendimentoId)) {
@@ -106,6 +106,7 @@ router.post(
                 veterinarioId: veterinario._id
             });
 
+            // interrompe se não encontrou o atendimento para vincular ao registro
             if (!atendimento) {
                 return res.status(404).json({
                     mensagem:
@@ -113,8 +114,7 @@ router.post(
                 });
             }
 
-            // Registra a solicitação do exame
-            const dataSolicitacao = new Date();
+            // registra a solicitação do exame
             const resultado = await banco
                 .collection("exames")
                 .insertOne({
@@ -124,64 +124,17 @@ router.post(
                     tipo: tipo.trim(),
                     nome: nome.trim(),
                     justificativa: justificativa?.trim() ?? "",
-                    dataSolicitacao,
+                    dataSolicitacao: new Date(),
                     status: "solicitado",
                     resultado: null,
                     dataResultado: null
                 });
 
-            // Resposta idêntica ao contrato original — não muda com vacina
-            res.status(201).json({
+            // confirma o cadastro e devolve os dados do registro criado
+            return res.status(201).json({
                 mensagem: "Exame solicitado com sucesso!",
                 exameId: resultado.insertedId
             });
-
-            // ----------------------------------------------------------------
-            // Bloco de notificação de vacina (fire-and-forget, pós-resposta).
-            // Qualquer falha é registrada com console.warn sem dados pessoais
-            // e nunca afeta o cliente (a resposta já foi enviada).
-            // ----------------------------------------------------------------
-            if (ehVacina(tipo, nome)) {
-                try {
-                    const dataBase = dateParaDataSP(dataSolicitacao);
-                    const remetenteId = new ObjectId(res.locals.usuarioId);
-
-                    const respostaJava = await enviarComandoJava(
-                        "CALCULAR_STATUS_VACINA",
-                        {
-                            dataUltimaAplicacao: dataBase,
-                            intervaloDias: INTERVALO_VACINA_PADRAO_DIAS
-                        }
-                    );
-
-                    const dados = respostaJava?.dados as
-                        | { dataProximaDose?: string }
-                        | undefined;
-
-                    if (respostaJava?.status === "OK" && dados?.dataProximaDose) {
-                        // Busca nome do pet: tolerante a _id legado (string) ou ObjectId
-                        const petParaNotif = await banco.collection<{
-                            _id: string | ObjectId;
-                            nome?: string;
-                        }>("pets").findOne(
-                            { _id: { $in: idsPet } },
-                            { projection: { nome: 1 } }
-                        );
-
-                        await notificarVacinaAplicada(banco, {
-                            petId: pet._id,
-                            nomePet: petParaNotif?.nome ?? null,
-                            procedimentoId: resultado.insertedId,
-                            dataProximaDose: dados.dataProximaDose,
-                            remetenteId
-                        });
-                    } else {
-                        console.warn("Aviso: Java/vacina retornou status fora de OK — notificação ignorada.");
-                    }
-                } catch {
-                    console.warn("Aviso: falha ao processar notificação de vacina para exame — ignorada.");
-                }
-            }
 
         } catch (erro) {
             console.error("Erro ao solicitar exame:", erro);
@@ -193,7 +146,7 @@ router.post(
     }
 );
 
-// Registra o resultado de um exame solicitado
+// registra o resultado de um exame solicitado
 router.patch(
     "/:id/resultado",
     autenticar,
@@ -201,16 +154,17 @@ router.patch(
     async (req, res) => {
         try {
             const id = req.params.id;
+            // separa os campos enviados no corpo da requisição
             const { resultado } = req.body;
 
-            // Verifica o ID do exame
+            // verifica o id do exame
             if (typeof id !== "string" || !ObjectId.isValid(id)) {
                 return res.status(400).json({
                     mensagem: "ID do exame inválido."
                 });
             }
 
-            // Verifica o resultado informado
+            // verifica o resultado informado
             if (
                 typeof resultado !== "string" ||
                 !resultado.trim()
@@ -222,7 +176,7 @@ router.patch(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -240,7 +194,7 @@ router.patch(
 
             const exames = banco.collection("exames");
 
-            // Registra o resultado apenas se o exame
+            // registra o resultado apenas se o exame
             // estiver solicitado e pertencer ao veterinário
             const atualizacao = await exames.updateOne(
                 {
@@ -257,6 +211,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (atualizacao.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem:
@@ -278,7 +233,7 @@ router.patch(
     }
 );
 
-// Lista os exames de um pet
+// lista os exames de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -295,14 +250,14 @@ router.get(
 
             const banco = obterBanco();
 
-            // Aceita IDs antigos em texto e ObjectIds
+            // aceita ids antigos em texto e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o profissional está ativo
+            // verifica se o profissional está ativo
             const usuarioId = new ObjectId(res.locals.usuarioId);
             const tipo = res.locals.usuarioTipo;
 
@@ -324,25 +279,27 @@ router.get(
                 });
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
             }>("pets").findOne({
                 _id: { $in: idsPet }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Busca todos os exames do pet
+            // busca todos os exames do pet
             const exames = await banco
                 .collection("exames")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataSolicitacao: -1 })
                 .toArray();
 

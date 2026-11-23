@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId, MongoServerError, type Document, type Filter } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,15 +9,16 @@ import { notificarChegada, notificarTriagemConcluida } from "../notificacoes/eve
 
 const router = Router();
 
-// Suporta IDs antigos ("C002") e novos (ObjectId do MongoDB).
+// suporta ids antigos ("c002") e novos (objectid do mongodb)
 function obterFiltroConsulta(id: string): Filter<Document> {
-    // O driver tipa _id como ObjectId por padrão, mas o banco
-    // também possui consultas antigas com identificadores de texto.
+    // o driver tipa _id como objectid por padrão, mas o banco
+    // também possui consultas antigas com identificadores de texto
     return {
         _id: ObjectId.isValid(id) ? new ObjectId(id) : id
     } as Filter<Document>;
 }
 
+// confirma a chegada do pet
 router.patch(
     "/:id/confirmar-chegada",
     autenticar,
@@ -33,6 +36,7 @@ router.patch(
             const banco = obterBanco();
             const consultas = banco.collection<Document>("consultas");
 
+            // confirma a chegada só se a consulta estiver agendada
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
@@ -45,6 +49,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Consulta não encontrada ou não está agendada."
@@ -73,6 +78,7 @@ router.patch(
     }
 );
 
+// inicia a triagem
 router.patch(
     "/:id/iniciar-triagem",
     autenticar,
@@ -90,6 +96,7 @@ router.patch(
             const banco = obterBanco();
             const consultas = banco.collection<Document>("consultas");
 
+            // inicia a triagem só depois de confirmar a chegada
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
@@ -102,6 +109,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Consulta não encontrada ou não está aguardando triagem."
@@ -121,6 +129,7 @@ router.patch(
     }
 );
 
+// registra os dados da triagem
 router.post(
     "/:id/triagem",
     autenticar,
@@ -128,6 +137,7 @@ router.post(
     async (req, res) => {
         try {
             const id = String(req.params.id ?? "");
+            // separa os campos enviados no corpo da requisição
             const { peso, temperatura, sintomas, observacoes } = req.body;
 
             if (!id) {
@@ -174,6 +184,7 @@ router.post(
             }
 
             const triagens = banco.collection("triagens");
+            // procura um registro já salvo para essa consulta
             const triagemExistente = await triagens.findOne({ consultaId: id });
 
             if (triagemExistente) {
@@ -182,6 +193,7 @@ router.post(
                 });
             }
 
+            // salva a triagem vinculada à consulta
             const resultado = await triagens.insertOne({
                 consultaId: id,
                 petId: consulta.petId,
@@ -213,6 +225,7 @@ router.post(
     }
 );
 
+// finaliza a triagem
 router.patch(
     "/:id/finalizar-triagem",
     autenticar,
@@ -239,6 +252,7 @@ router.patch(
                 });
             }
 
+            // finaliza a triagem e deixa a consulta aguardando o veterinário
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
@@ -252,6 +266,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Consulta não encontrada ou não está em triagem."
@@ -280,6 +295,7 @@ router.patch(
     }
 );
 
+// inicia o atendimento veterinário
 router.patch(
     "/:id/iniciar-atendimento",
     autenticar,
@@ -313,6 +329,7 @@ router.patch(
                 });
             }
 
+            // inicia a consulta se ela estiver aguardando o veterinário responsável
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
@@ -327,6 +344,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Consulta não encontrada, não está aguardando atendimento ou pertence a outro veterinário."
@@ -346,6 +364,7 @@ router.patch(
     }
 );
 
+// registra os dados do atendimento
 router.post(
     "/:id/atendimento",
     autenticar,
@@ -353,6 +372,7 @@ router.post(
     async (req, res) => {
         try {
             const id = String(req.params.id ?? "");
+            // separa os dados enviados no corpo da requisição
             const {
                 diagnostico,
                 tratamento,
@@ -443,6 +463,7 @@ router.post(
             }
 
             const atendimentos = banco.collection("atendimentos");
+            // procura um registro já salvo para essa consulta
             const atendimentoExistente = await atendimentos.findOne({
                 consultaId: id
             });
@@ -453,6 +474,7 @@ router.post(
                 });
             }
 
+            // salva o atendimento vinculado à consulta
             const resultado = await atendimentos.insertOne({
                 consultaId: id,
                 petId: consulta.petId,
@@ -487,6 +509,7 @@ router.post(
     }
 );
 
+// finaliza o atendimento
 router.patch(
     "/:id/finalizar-atendimento",
     autenticar,
@@ -533,6 +556,7 @@ router.patch(
                 });
             }
 
+            // finaliza a consulta que está em atendimento pelo veterinário responsável
             const resultado = await consultas.updateOne(
                 {
                     ...obterFiltroConsulta(id),
@@ -547,6 +571,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Consulta não encontrada, não está em andamento ou pertence a outro veterinário."

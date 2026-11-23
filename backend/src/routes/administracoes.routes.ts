@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -6,13 +8,14 @@ import { obterBanco } from "../database.js";
 
 const router = Router();
 
-// Registra a administração de um medicamento
+// registra a administração de um medicamento
 router.post(
     "/",
     autenticar,
     permitirFuncoes("ENFERMEIRO"),
     async (req, res) => {
         try {
+            // pega os dados da dose enviados no corpo da requisição
             const {
                 prescricaoId,
                 doseAdministrada,
@@ -20,7 +23,7 @@ router.post(
                 observacoes
             } = req.body;
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             if (
                 typeof prescricaoId !== "string" ||
                 !prescricaoId.trim() ||
@@ -34,6 +37,7 @@ router.post(
                 });
             }
 
+            // aceita observações em texto quando elas forem enviadas
             if (
                 observacoes !== undefined &&
                 typeof observacoes !== "string"
@@ -43,7 +47,7 @@ router.post(
                 });
             }
 
-            // Verifica se o horário informado é válido
+            // verifica se o horário informado é válido
             const dataPrevista = new Date(horarioPrevisto);
 
             if (isNaN(dataPrevista.getTime())) {
@@ -54,7 +58,7 @@ router.post(
 
             const banco = obterBanco();
 
-            // Identifica o enfermeiro logado
+            // identifica o enfermeiro logado
             const enfermeiro = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -70,13 +74,15 @@ router.post(
                 });
             }
 
-            // Procura a prescrição
+            // procura a prescrição
             const idsPrescricao: (string | ObjectId)[] = [prescricaoId];
 
+            // inclui o formato do mongodb quando o id pode ser convertido
             if (ObjectId.isValid(prescricaoId)) {
                 idsPrescricao.push(new ObjectId(prescricaoId));
             }
 
+            // busca somente prescrições ativas
             const prescricao = await banco.collection<{
                 _id: string | ObjectId;
                 petId: string | ObjectId;
@@ -93,9 +99,10 @@ router.post(
                 });
             }
 
-            // Confere se essa dose já foi registrada
+            // confere se essa dose já foi registrada
             const administracoes = banco.collection("administracoes");
 
+            // usa a prescrição e o horário previsto para identificar a dose
             const administracaoExistente = await administracoes.findOne({
                 prescricaoId: prescricao._id,
                 horarioPrevisto: dataPrevista
@@ -107,7 +114,7 @@ router.post(
                 });
             }
 
-            // Registra a administração
+            // registra a administração
             const resultado = await administracoes.insertOne({
                 prescricaoId: prescricao._id,
                 petId: prescricao.petId,
@@ -115,11 +122,13 @@ router.post(
                 medicamento: prescricao.medicamento,
                 doseAdministrada: doseAdministrada.trim(),
                 horarioPrevisto: dataPrevista,
+                // grava o horário real no momento em que o registro é criado
                 dataAdministracao: new Date(),
                 observacoes: observacoes?.trim() ?? "",
                 status: "administrado"
             });
 
+            // confirma o registro e devolve o id da administração
             return res.status(201).json({
                 mensagem: "Administração registrada com sucesso!",
                 administracaoId: resultado.insertedId
@@ -127,7 +136,7 @@ router.post(
 
         } catch (erro) {
 
-            // O MongoDB usa o código 11000 para índice único duplicado
+            // o mongodb usa o código 11000 para índice único duplicado
             if (
                 erro instanceof Error &&
                 "code" in erro &&
@@ -147,13 +156,14 @@ router.post(
     }
 );
 
-// Lista as administrações de medicamentos de um pet
+// lista as administrações de medicamentos de um pet
 router.get(
     "/pet/:petId",
     autenticar,
     permitirFuncoes("VETERINARIO", "ENFERMEIRO"),
     async (req, res) => {
         try {
+            // pega o id do pet pelo endereço da rota
             const petId = req.params.petId;
 
             if (typeof petId !== "string" || !petId.trim()) {
@@ -163,15 +173,17 @@ router.get(
             }
 
             const banco = obterBanco();
+            // usa os dados da autenticação para identificar o profissional
             const usuarioId = new ObjectId(res.locals.usuarioId);
             const tipo = res.locals.usuarioTipo;
 
-            // Verifica se o profissional está ativo
+            // verifica se o profissional está ativo
             const colecaoProfissionais =
                 tipo === "VETERINARIO"
                     ? "veterinarios"
                     : "enfermeiros";
 
+            // busca o cadastro ativo na coleção que corresponde à função
             const profissional = await banco
                 .collection(colecaoProfissionais)
                 .findOne({
@@ -185,14 +197,14 @@ router.get(
                 });
             }
 
-            // Aceita IDs antigos e ObjectIds
+            // aceita ids antigos e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
             }>("pets").findOne({
@@ -205,12 +217,13 @@ router.get(
                 });
             }
 
-            // Busca as administrações registradas
+            // busca as administrações registradas
             const administracoes = await banco
                 .collection("administracoes")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // ordena as doses registradas da mais recente para a mais antiga
                 .sort({ dataAdministracao: -1 })
                 .toArray();
 
