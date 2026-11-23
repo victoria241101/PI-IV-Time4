@@ -22,7 +22,9 @@ export const TIPOS_NOTIFICACAO = [
     "campanha_encerrada",
     "campanha_meta_atingida",
     "lembrete_consulta",
-    "lembrete_vacina"
+    "lembrete_vacina",
+    "vacina_proxima_dose",
+    "vacina_marcar_retorno"
 ] as const;
 
 export type TipoNotificacao = (typeof TIPOS_NOTIFICACAO)[number];
