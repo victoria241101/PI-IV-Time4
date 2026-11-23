@@ -95,6 +95,8 @@ Ou diretamente via Node.js:
 node scripts/compilar.js
 ```
 
+> **Nota:** A compilação cobre só `src/main` e os testes em `src/test` não são compilados nem executados por estes scripts.
+
 ---
 
 ### Passo 3. Iniciar o Servidor
