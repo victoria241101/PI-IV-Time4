@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 /**
  * Script de inicialização do backend PetCare em Java puro.
  * Monta o classpath dinamicamente com path.delimiter e executa petcare.servidor.Servidor.

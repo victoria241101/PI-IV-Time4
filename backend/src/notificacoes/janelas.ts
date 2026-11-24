@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 export interface ConfiguracaoLembrete {
     rotulo: string;
     antecedenciaMin: number;

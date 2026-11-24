@@ -1,3 +1,6 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
+
 package petcare.servidor;
 
 import petcare.servidor.protocolo.CodigoErro;

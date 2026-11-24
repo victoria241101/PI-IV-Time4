@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import type { ObjectId } from "mongodb";
 import { enviarComandoJava } from "./javaClient.js";
 

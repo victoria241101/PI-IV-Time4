@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { Router } from "express";
 import { ObjectId, type Filter } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";

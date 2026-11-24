@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import type { ResultadoValidacao } from "./tipos.js";
 import { LIMITE_TEXTO, LIMITE_PREVIA } from "./tipos.js";
 

@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import type { TipoNotificacao } from "./tipos.js";
 import { LIMITE_TITULO, LIMITE_MENSAGEM } from "./tipos.js";
 

@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import type { ObjectId } from "mongodb";
 import type { ResultadoValidacao } from "../chat/tipos.js";
 

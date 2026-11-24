@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 // PetCare - Script de controle do projeto (Node.js, modulos nativos)
 // Uso: node scripts/petcare.js checar
 //      node scripts/petcare.js iniciar --sem-front

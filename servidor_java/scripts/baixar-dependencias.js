@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 /**
  * Script de automação para download de dependências .jar do PetCare Backend.
  * Utiliza exclusivamente módulos nativos do Node.js (https, fs, path).

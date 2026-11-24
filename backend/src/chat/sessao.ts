@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import type { UsuarioAutenticado } from "./tipos.js";
 import { normalizarTipoUsuario } from "./papeis.js";
 import { ehObjectIdHex } from "./validacao.js";

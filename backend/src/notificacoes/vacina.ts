@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 /**
  * Helper de lógica de vacina — compartilhado entre rotas.
  *

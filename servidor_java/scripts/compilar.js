@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 /**
  * Script de compilação do backend PetCare em Java puro.
  * Varre recursivamente a pasta src/main/java, coleta os arquivos .java e invoca o javac.

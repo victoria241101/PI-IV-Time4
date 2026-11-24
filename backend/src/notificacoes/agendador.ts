@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import type { Db, ObjectId } from "mongodb";
 import {
     type ConfiguracaoLembrete,

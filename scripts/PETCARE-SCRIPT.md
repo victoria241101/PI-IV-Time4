@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 # PetCare - Guia do Script de Controle (`petcare.js`)
 
 Script Node.js para checagem de ambiente, inicializacao coordenada e controle dos servicos do projeto **PetCare (PI-IV-Time4)**: Servidor Java (porta 5000), Backend Node.js (porta 3000) e Frontend Flutter.

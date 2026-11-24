@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { ObjectId } from "mongodb";
 import { ehObjectIdHex } from "../chat/validacao.js";
 import type { Resultado, NotificacaoNova, TipoNotificacao } from "./tipos.js";
