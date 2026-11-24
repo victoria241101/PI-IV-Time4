@@ -365,7 +365,10 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
       children: [
         DropdownButtonFormField<String>(
           key: ValueKey(_especialidadeSelecionada),
-          initialValue: _veterinarioSelecionado,
+          initialValue: veterinariosFiltrados.any((vet) =>
+                  vet['_id'].toString() == _veterinarioSelecionado)
+              ? _veterinarioSelecionado
+              : null,
           isExpanded: true,
           decoration: _decoracaoFiltro(
             rotulo: 'Nome do veterinário',
@@ -448,7 +451,14 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
           : (valor) {
               setState(() {
                 _especialidadeSelecionada = valor;
-                _veterinarioSelecionado = null;
+                final filtrados = _veterinarios.where((vet) {
+                  if (valor == null) return true;
+                  return vet['especialidade'] == valor;
+                });
+                if (!filtrados.any((vet) =>
+                    vet['_id'].toString() == _veterinarioSelecionado)) {
+                  _veterinarioSelecionado = null;
+                }
               });
             },
     );

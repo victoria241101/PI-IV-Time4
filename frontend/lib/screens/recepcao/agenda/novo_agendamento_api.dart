@@ -266,7 +266,8 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
                   const SizedBox(height: EspacamentosApp.sm),
                   DropdownButtonFormField<String>(
                     isExpanded: true,
-                    initialValue: _pet,
+                    initialValue:
+                        _pets.any((p) => p['id'] == _pet) ? _pet : null,
                     key: ValueKey('pet-$_pet-${_pets.length}'),
                     decoration: const InputDecoration(labelText: 'Pet'),
                     items: _pets
@@ -302,7 +303,10 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
               const SizedBox(height: EspacamentosApp.md),
               DropdownButtonFormField<String>(
                 isExpanded: true,
-                initialValue: _vet,
+                initialValue: _veterinarios
+                        .any((v) => v['_id'].toString() == _vet)
+                    ? _vet
+                    : null,
                 key: ValueKey('vet-$_vet'),
                 decoration: const InputDecoration(labelText: 'Veterinário'),
                 items: _veterinarios
@@ -314,14 +318,18 @@ class _NovoAgendamentoApiState extends State<NovoAgendamentoApi> {
                     )
                     .toList(),
                 onChanged: (v) {
-                  setState(() => _vet = v);
+                  setState(() {
+                    _vet = v;
+                    _horario = null;
+                  });
                   _disponibilidade();
                 },
               ),
               const SizedBox(height: EspacamentosApp.md),
               DropdownButtonFormField<String>(
                 isExpanded: true,
-                initialValue: _horario,
+                initialValue:
+                    _horarios.contains(_horario) ? _horario : null,
                 key: ValueKey('horario-$_horario-${_horarios.join()}'),
                 decoration: const InputDecoration(
                   labelText: 'Horário disponível',

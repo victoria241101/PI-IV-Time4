@@ -760,6 +760,11 @@ class _FormularioReagendamentoState extends State<_FormularioReagendamento> {
     return int.parse(partes[0]) * 60 + int.parse(partes[1]);
   }
 
+  List<String> get _opcoesProfissionais => {
+        ..._profissionais,
+        if (_profissional.isNotEmpty) _profissional,
+      }.toList();
+
   List<String> get _horariosDisponiveis => _horarios
       .where((horario) => _disponivel(_profissional, horario))
       .toList();
@@ -801,7 +806,7 @@ class _FormularioReagendamentoState extends State<_FormularioReagendamento> {
                   fillColor: CoresApp.surface,
                   border: OutlineInputBorder(),
                 ),
-                items: _profissionais
+                items: _opcoesProfissionais
                     .map(
                       (profissional) => DropdownMenuItem(
                         value: profissional,

@@ -383,7 +383,13 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
             )
           : DropdownButtonFormField<String>(
               isExpanded: true,
-              initialValue: _prontuario.internacao,
+              initialValue: const [
+                '',
+                'Programada (procedimento)',
+                'Imediata (emergência)',
+              ].contains(_prontuario.internacao)
+                  ? _prontuario.internacao
+                  : '',
               decoration: const InputDecoration(
                 labelText: 'Conduta',
                 border: OutlineInputBorder(),
