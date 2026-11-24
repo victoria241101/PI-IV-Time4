@@ -119,9 +119,7 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     });
 
     try {
-      final service = VeterinariosService(
-        baseUrl: 'http://localhost:3000',
-      );
+      final service = VeterinariosService();
 
       final veterinarios = await service.listarVeterinarios();
 
@@ -1042,7 +1040,7 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     if (token == null || token.isEmpty) {
       throw StateError('Faça login novamente.');
     }
-    return AgendamentosService(baseUrl: 'http://localhost:3000', token: token);
+    return AgendamentosService(token: token);
   }
 
   void _mensagem(String texto) {
@@ -1170,13 +1168,10 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
       }
 
       final agendamentosService = AgendamentosService(
-        baseUrl: 'http://localhost:3000',
         token: token,
       );
-      final petsService = PetsService(baseUrl: 'http://localhost:3000');
-      final veterinariosService = VeterinariosService(
-        baseUrl: 'http://localhost:3000',
-      );
+      final petsService = PetsService();
+      final veterinariosService = VeterinariosService();
 
       final resultados = await Future.wait<dynamic>([
         agendamentosService.listarAgendamentos(),

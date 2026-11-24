@@ -29,6 +29,7 @@ function calcularDigito(cpf: string, quantidade: number): number {
     return resultado >= 10 ? 0 : resultado;
 }
 
+// confere os dois dígitos verificadores do cpf
 function validarCPF(cpf: string): boolean {
     if (!/^\d{11}$/.test(cpf) || /^(\d)\1{10}$/.test(cpf)) {
         return false;
@@ -44,10 +45,12 @@ function normalizarEmail(email: string): string {
     return email.trim().toLowerCase();
 }
 
+// gera o hash do token para guardar e consultar no banco
 function hashToken(token: string): string {
     return createHash("sha256").update(token).digest("hex");
 }
 
+// pede ao serviço java para gerar o hash da senha
 async function gerarHashSenha(senha: string): Promise<string> {
     const resposta = await enviarComandoJava("GERAR_HASH_SENHA", { senha });
 
@@ -58,6 +61,7 @@ async function gerarHashSenha(senha: string): Promise<string> {
     return resposta.dados.hash;
 }
 
+// pede ao serviço java para conferir a senha com o hash salvo
 async function verificarSenha(senha: string, hash: string): Promise<boolean> {
     const resposta = await enviarComandoJava("VERIFICAR_SENHA", {
         senha,
@@ -74,6 +78,7 @@ async function verificarSenha(senha: string, hash: string): Promise<boolean> {
     return resposta.dados.valida;
 }
 
+// configura o envio de e-mail com as variáveis de ambiente
 function configurarEmail() {
     const host = process.env.SMTP_HOST;
     const porta = Number(process.env.SMTP_PORT || "587");
@@ -96,9 +101,10 @@ function configurarEmail() {
     };
 }
 
-// Cadastro de usuário e, opcionalmente, do primeiro pet.
+// cadastro de usuário e, opcionalmente, do primeiro pet
 router.post("/cadastro", async (req, res) => {
     try {
+        // separa os dados enviados no corpo da requisição
         const {
             nome,
             email,
@@ -159,7 +165,9 @@ router.post("/cadastro", async (req, res) => {
             });
         }
 
+        // padroniza o e-mail antes de usar no cadastro ou na busca
         const emailNormalizado = normalizarEmail(email);
+        // remove a formatação antes de validar o cpf
         const cpfNormalizado = cpf.replace(/\D/g, "");
 
         if (!EMAIL_REGEX.test(emailNormalizado)) {
@@ -193,6 +201,7 @@ router.post("/cadastro", async (req, res) => {
         }
 
         const usuarioId = new ObjectId();
+        // gera o hash que vai ser salvo no lugar da senha
         const senhaHash = await gerarHashSenha(senha);
 
         const novoUsuario = {
@@ -225,6 +234,7 @@ router.post("/cadastro", async (req, res) => {
         const sessao = obterCliente().startSession();
 
         try {
+            // salva a conta e os cadastros vinculados na mesma transação
             await sessao.withTransaction(async () => {
                 await usuarios.insertOne(novoUsuario, { session: sessao });
 
@@ -262,9 +272,10 @@ router.post("/cadastro", async (req, res) => {
     }
 });
 
-// Login existente, mantendo a verificação de senha pelo Java.
+// login existente, mantendo a verificação de senha pelo java
 router.post("/login", async (req, res) => {
     try {
+        // separa os campos enviados no corpo da requisição
         const { email, senha } = req.body ?? {};
 
         if (
@@ -313,7 +324,7 @@ router.post("/login", async (req, res) => {
     }
 });
 
-// Consulta do perfil autenticado.
+// consulta do perfil autenticado
 router.get("/perfil", autenticar, async (_req, res) => {
     try {
         const banco = obterBanco();
@@ -338,7 +349,7 @@ router.get("/perfil", autenticar, async (_req, res) => {
             });
         }
 
-        // Verifica se existe um cadastro de tutor vinculado ao usuário.
+        // verifica se existe um cadastro de tutor vinculado ao usuário
         const tutor = await banco
             .collection("tutores")
             .findOne({
@@ -360,12 +371,13 @@ router.get("/perfil", autenticar, async (_req, res) => {
     }
 });
 
-// Solicitação de alteração de nome e/ou e-mail.
+// solicitação de alteração de nome e/ou e-mail
 router.patch("/perfil", autenticar, async (req, res) => {
     try {
+        // separa os campos enviados no corpo da requisição
         const { nome, email, cpf, tipo, ativo, senhaHash } = req.body ?? {};
 
-        // Impede alterações em campos que não fazem parte desta operação.
+        // impede alterações em campos que não fazem parte desta operação
         if (
             cpf !== undefined ||
             tipo !== undefined ||
@@ -406,6 +418,7 @@ router.patch("/perfil", autenticar, async (req, res) => {
                 });
             }
 
+            // padroniza o e-mail antes de usar no cadastro ou na busca
             const emailNormalizado = normalizarEmail(email);
 
             if (!EMAIL_REGEX.test(emailNormalizado)) {
@@ -419,6 +432,7 @@ router.patch("/perfil", autenticar, async (req, res) => {
 
         const banco = obterBanco();
         const usuarios = banco.collection("usuarios");
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = new ObjectId(res.locals.usuarioId);
 
         const usuario = await usuarios.findOne({
@@ -432,7 +446,7 @@ router.patch("/perfil", autenticar, async (req, res) => {
             });
         }
 
-        // Evita solicitar um e-mail que já pertence a outra conta.
+        // evita solicitar um e-mail que já pertence a outra conta
         if (alteracoes.email) {
             const emailExistente = await usuarios.findOne({
                 email: alteracoes.email,
@@ -459,16 +473,19 @@ router.patch("/perfil", autenticar, async (req, res) => {
             });
         }
 
-        // Gera um token temporário para confirmação.
+        // gera um token temporário para confirmação
         const token = randomBytes(32).toString("hex");
+        // usa o hash para lidar com o token no banco
         const tokenHash = hashToken(token);
+        // define até quando o link pode ser usado
         const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
 
         const pendentes = banco.collection("alteracoesPendentes");
 
-        // Uma nova solicitação invalida a anterior.
+        // uma nova solicitação invalida a anterior
         await pendentes.deleteMany({ usuarioId, tipo: "PERFIL" });
 
+        // guarda a alteração enquanto ela espera confirmação
         await pendentes.insertOne({
             usuarioId,
             tipo: "PERFIL",
@@ -485,6 +502,7 @@ router.patch("/perfil", autenticar, async (req, res) => {
                 throw new Error("FRONTEND_URL não configurada corretamente.");
             }
 
+            // monta o link com o token que será enviado por e-mail
             const link = new URL("/", urlBase);
             link.searchParams.set("tipo", "confirmar-alteracao");
             link.searchParams.set("token", token);
@@ -502,6 +520,7 @@ router.patch("/perfil", autenticar, async (req, res) => {
                     "Se você não solicitou essa alteração, ignore esta mensagem."
             });
         } catch (erro) {
+            // remove o pedido se o envio do e-mail falhar
             await pendentes.deleteOne({ tokenHash });
             throw erro;
         }
@@ -519,9 +538,10 @@ router.patch("/perfil", autenticar, async (req, res) => {
     }
 });
 
-// Confirmação de alteração de nome e/ou e-mail.
+// confirmação de alteração de nome e/ou e-mail
 router.post("/confirmar-alteracao", async (req, res) => {
     try {
+        // separa os campos enviados no corpo da requisição
         const { token } = req.body ?? {};
 
         if (
@@ -537,9 +557,10 @@ router.post("/confirmar-alteracao", async (req, res) => {
         const pendentes = banco.collection("alteracoesPendentes");
         const usuarios = banco.collection("usuarios");
 
+        // usa o hash para lidar com o token no banco
         const tokenHash = hashToken(token);
 
-        // Localiza uma solicitação ainda válida.
+        // localiza uma solicitação ainda válida
         const solicitacao = await pendentes.findOne({
             tokenHash,
             tipo: "PERFIL",
@@ -561,7 +582,7 @@ router.post("/confirmar-alteracao", async (req, res) => {
             email?: string;
         };
 
-        // Confere novamente se o e-mail continua disponível.
+        // confere novamente se o e-mail continua disponível
         if (alteracoes.email) {
             const emailExistente = await usuarios.findOne({
                 email: alteracoes.email,
@@ -575,7 +596,7 @@ router.post("/confirmar-alteracao", async (req, res) => {
             }
         }
 
-        // Consome o token de forma atômica para impedir reutilização.
+        // consome o token de forma atômica para impedir reutilização
         const consumido = await pendentes.findOneAndDelete({
             _id: solicitacao._id,
             tokenHash,
@@ -589,7 +610,7 @@ router.post("/confirmar-alteracao", async (req, res) => {
             });
         }
 
-        // Prepara somente os campos permitidos para atualização.
+        // prepara somente os campos permitidos para atualização
         const camposAtualizados: {
             nome?: string;
             email?: string;
@@ -614,13 +635,14 @@ router.post("/confirmar-alteracao", async (req, res) => {
             { $set: camposAtualizados }
         );
 
+        // confere se a operação encontrou ou alterou o registro esperado
         if (resultado.matchedCount !== 1) {
             return res.status(404).json({
                 mensagem: "Usuário ativo não encontrado."
             });
         }
 
-        // Atualiza também o nome de registros legados de tutores.
+        // atualiza também o nome de registros legados de tutores
         if (camposAtualizados.nome) {
             await banco.collection("tutores").updateMany(
                 { usuarioId },
@@ -647,10 +669,11 @@ router.post("/confirmar-alteracao", async (req, res) => {
     }
 });
 
-// Alteração de senha para quem ainda sabe a senha atual.
+// alteração de senha para quem ainda sabe a senha atual
 router.patch("/alterar-senha", autenticar, async (req, res) => {
     console.log("[TESTE SENHA] Requisição recebida!");
     try {
+        // separa os campos enviados no corpo da requisição
         const { senhaAtual, novaSenha, confirmarSenha } = req.body ?? {};
 
         if (
@@ -665,6 +688,7 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
 
         const banco = obterBanco();
         const usuarios = banco.collection("usuarios");
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = new ObjectId(res.locals.usuarioId);
         const usuario = await usuarios.findOne({
             _id: usuarioId,
@@ -689,21 +713,25 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             });
         }
 
+        // gera o hash que vai ser salvo no lugar da senha
         const novoHash = await gerarHashSenha(novaSenha);
 
-        // Gera um token temporário para confirmação.
+        // gera um token temporário para confirmação
         const token = randomBytes(32).toString("hex");
+        // usa o hash para lidar com o token no banco
         const tokenHash = hashToken(token);
+        // define até quando o link pode ser usado
         const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
 
         const pendentes = banco.collection("alteracoesPendentes");
 
-        // Invalida apenas solicitações anteriores de alteração de senha.
+        // invalida apenas solicitações anteriores de alteração de senha
         await pendentes.deleteMany({
             usuarioId,
             tipo: "SENHA"
         });
 
+        // guarda a alteração enquanto ela espera confirmação
         await pendentes.insertOne({
             usuarioId,
             tipo: "SENHA",
@@ -721,6 +749,7 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
                 throw new Error("FRONTEND_URL não configurada corretamente.");
             }
 
+            // monta o link com o token que será enviado por e-mail
             const link = new URL("/", urlBase);
             link.searchParams.set("tipo", "confirmar-alteracao-senha");
             link.searchParams.set("token", token);
@@ -740,6 +769,7 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
             });
         console.log("[TESTE SENHA] SMTP aceitou o envio!");
         } catch (erro) {
+            // remove o pedido se o envio do e-mail falhar
             await pendentes.deleteOne({ tokenHash });
             throw erro;
         }
@@ -757,9 +787,10 @@ router.patch("/alterar-senha", autenticar, async (req, res) => {
     }
 });
 
-// Confirma a alteração de senha por e-mail.
+// confirma a alteração de senha por e-mail
 router.post("/confirmar-alteracao-senha", async (req, res) => {
     try {
+        // separa os campos enviados no corpo da requisição
         const { token } = req.body ?? {};
 
         if (typeof token !== "string" || !/^[a-f0-9]{64}$/.test(token)) {
@@ -772,6 +803,7 @@ router.post("/confirmar-alteracao-senha", async (req, res) => {
         const pendentes = banco.collection("alteracoesPendentes");
         const usuarios = banco.collection("usuarios");
 
+        // usa o hash para lidar com o token no banco
         const tokenHash = hashToken(token);
 
         const solicitacao = await pendentes.findOne({
@@ -815,6 +847,7 @@ router.post("/confirmar-alteracao-senha", async (req, res) => {
             }
         );
 
+        // confere se a operação encontrou ou alterou o registro esperado
         if (resultado.matchedCount !== 1) {
             return res.status(409).json({
                 mensagem: "A senha foi alterada em outra operação. Solicite uma nova alteração."
@@ -839,13 +872,14 @@ router.post("/confirmar-alteracao-senha", async (req, res) => {
     }
 });
 
-// Solicitação pública de recuperação de senha.
+// solicitação pública de recuperação de senha
 router.post("/esqueci-senha", async (req, res) => {
     const respostaGenerica = {
         mensagem: "Se o e-mail estiver cadastrado, enviaremos instruções de recuperação."
     };
 
     try {
+        // separa os campos enviados no corpo da requisição
         const { email } = req.body ?? {};
 
         if (typeof email !== "string" || !EMAIL_REGEX.test(normalizarEmail(email))) {
@@ -872,13 +906,16 @@ router.post("/esqueci-senha", async (req, res) => {
         }
 
         const token = randomBytes(32).toString("hex");
+        // usa o hash para lidar com o token no banco
         const tokenHash = hashToken(token);
+        // define até quando o link pode ser usado
         const expiraEm = new Date(Date.now() + PRAZO_RECUPERACAO_MS);
 
-        // Uma solicitação nova invalida os tokens anteriores do usuário.
+        // uma solicitação nova invalida os tokens anteriores do usuário
         const recuperacoes = banco.collection("recuperacoesSenha");
         await recuperacoes.deleteMany({ usuarioId: usuario._id });
 
+        // guarda o pedido de recuperação com o prazo de validade
         await recuperacoes.insertOne({
             usuarioId: usuario._id,
             tokenHash,
@@ -886,6 +923,7 @@ router.post("/esqueci-senha", async (req, res) => {
             criadoEm: new Date()
         });
 
+        // monta o link com o token que será enviado por e-mail
         const link = new URL("/redefinir-senha", urlBase);
         link.searchParams.set("token", token);
 
@@ -901,6 +939,7 @@ router.post("/esqueci-senha", async (req, res) => {
                     "Se você não solicitou, ignore esta mensagem."
             });
         } catch (erro) {
+            // remove o pedido se o envio do e-mail falhar
             await recuperacoes.deleteOne({ tokenHash });
             throw erro;
         }
@@ -915,9 +954,10 @@ router.post("/esqueci-senha", async (req, res) => {
     }
 });
 
-// Redefinição de senha com token temporário recebido por e-mail.
+// redefinição de senha com token temporário recebido por e-mail
 router.post("/redefinir-senha", async (req, res) => {
     try {
+        // separa os campos enviados no corpo da requisição
         const { token, novaSenha, confirmarSenha } = req.body ?? {};
 
         if (
@@ -932,6 +972,7 @@ router.post("/redefinir-senha", async (req, res) => {
 
         const banco = obterBanco();
         const recuperacoes = banco.collection("recuperacoesSenha");
+        // usa o hash para lidar com o token no banco
         const tokenHash = hashToken(token);
 
         const recuperacao = await recuperacoes.findOne({
@@ -945,9 +986,10 @@ router.post("/redefinir-senha", async (req, res) => {
             });
         }
 
+        // gera o hash que vai ser salvo no lugar da senha
         const novoHash = await gerarHashSenha(novaSenha);
 
-        // Consome o token de forma atômica, evitando reutilização simultânea.
+        // consome o token de forma atômica, evitando reutilização simultânea
         const consumido = await recuperacoes.findOneAndDelete({
             _id: recuperacao._id,
             tokenHash,
@@ -965,6 +1007,7 @@ router.post("/redefinir-senha", async (req, res) => {
             { $set: { senhaHash: novoHash } }
         );
 
+        // confere se a operação encontrou ou alterou o registro esperado
         if (resultado.modifiedCount !== 1) {
             return res.status(400).json({
                 mensagem: "Não foi possível redefinir a senha."

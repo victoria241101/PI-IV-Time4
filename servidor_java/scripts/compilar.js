@@ -1,6 +1,8 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 /**
  * Script de compilação do backend PetCare em Java puro.
- * Varre recursivamente a pasta src/, coleta os arquivos .java e invoca o javac.
+ * Varre recursivamente a pasta src/main/java, coleta os arquivos .java e invoca o javac.
  */
 
 const fs = require('fs');
@@ -8,7 +10,8 @@ const path = require('path');
 const { spawnSync } = require('child_process');
 
 const ROOT_DIR = path.resolve(__dirname, '..');
-const SRC_DIR = path.join(ROOT_DIR, 'src');
+// Testes (src/test) ficam fora da compilação do servidor; quem for executá-los usa o próprio JUnit.
+const SRC_DIR = path.join(ROOT_DIR, 'src', 'main', 'java');
 const OUT_DIR = path.join(ROOT_DIR, 'out');
 const LIB_DIR = path.join(ROOT_DIR, 'lib');
 
@@ -40,7 +43,7 @@ function compilar() {
 
   const arquivosJava = coletarArquivosJava(SRC_DIR);
   if (arquivosJava.length === 0) {
-    console.error('[ERRO] Nenhum arquivo .java encontrado em src/.');
+    console.error('[ERRO] Nenhum arquivo .java encontrado em src/main/java.');
     process.exit(1);
   }
 

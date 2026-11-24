@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { ObjectId, type Db } from "mongodb";
 import { ehObjectIdHex } from "../chat/validacao.js";
 import { normalizarTipoUsuario, variantesDoPapel } from "../chat/papeis.js";

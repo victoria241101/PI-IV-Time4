@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId, type Document, type Filter } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -6,8 +8,8 @@ import { gerarProntuarioPdf } from "../services/prontuarioPdf.service.js";
 
 const router = Router();
 
-// Aceita tanto IDs antigos em texto quanto IDs novos do MongoDB.
-// Também cobre registros cujo ID hexadecimal foi salvo como string.
+// aceita tanto ids antigos em texto quanto ids novos do mongodb
+// também cobre registros cujo id hexadecimal foi salvo como string
 function filtroId(id: string): Filter<Document> {
     const idsPossiveis: Array<string | ObjectId> = [id];
 
@@ -20,6 +22,7 @@ function filtroId(id: string): Filter<Document> {
     } as Filter<Document>;
 }
 
+// gera o pdf do prontuário da consulta
 router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
     try {
         const id = String(req.params.id ?? "").trim();
@@ -30,9 +33,11 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
             });
         }
 
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = String(res.locals.usuarioId ?? "");
         const tipo = String(res.locals.usuarioTipo ?? "").toUpperCase();
 
+        // confere se o id está no formato esperado pelo banco
         if (!ObjectId.isValid(usuarioId)) {
             return res.status(401).json({
                 mensagem: "Sessão inválida."
@@ -41,6 +46,7 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
 
         const banco = obterBanco();
 
+        // busca a consulta usada para montar o prontuário
         const consulta = await banco.collection<Document>("consultas").findOne(
             filtroId(id)
         );
@@ -52,6 +58,7 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
         }
 
         const petId = String(consulta.petId ?? "");
+        // carrega os dados do pet vinculado à consulta
         const pet = await banco.collection<Document>("pets").findOne(
             filtroId(petId)
         );
@@ -66,7 +73,7 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
         let autorizado = false;
 
         if (tipo === "USUARIO") {
-            // O tutor precisa ser o responsável pelo pet desta consulta.
+            // o tutor precisa ser o responsável pelo pet desta consulta
             const tutorVinculado = await banco.collection<Document>("tutores").findOne({
                 ...filtroId(String(pet.tutorId ?? "")),
                 usuarioId: contaId
@@ -74,7 +81,7 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
 
             autorizado = Boolean(tutorVinculado);
         } else if (tipo === "VETERINARIO") {
-            // Somente o veterinário responsável pela consulta.
+            // somente o veterinário responsável pela consulta
             const veterinarioVinculado = await banco.collection<Document>("veterinarios").findOne({
                 ...filtroId(String(consulta.veterinarioId ?? "")),
                 usuarioId: contaId,
@@ -83,7 +90,7 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
 
             autorizado = Boolean(veterinarioVinculado);
         } else if (tipo === "ENFERMEIRO") {
-            // Profissional ativo autorizado à assistência clínica.
+            // profissional ativo autorizado à assistência clínica
             const enfermeiro = await banco.collection<Document>("enfermeiros").findOne({
                 usuarioId: contaId,
                 ativo: true
@@ -98,7 +105,7 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
             });
         }
 
-        // Os registros clínicos armazenam consultaId como texto.
+        // os registros clínicos armazenam consultaid como texto
         const consultaIdTexto = String(consulta._id);
 
         const [triagem, atendimento, tutor, veterinario] = await Promise.all([
@@ -124,11 +131,13 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
 
         const nomeArquivo = `prontuario-${consultaIdTexto.replace(/[^a-zA-Z0-9_-]/g, "")}.pdf`;
 
+        // prepara a resposta para baixar o arquivo pdf
         res.setHeader("Content-Type", "application/pdf");
         res.setHeader("Content-Disposition", `attachment; filename="${nomeArquivo}"`);
         res.setHeader("Cache-Control", "no-store");
         res.setHeader("X-Content-Type-Options", "nosniff");
 
+        // envia os dados do pet e da consulta para montar o pdf
         gerarProntuarioPdf(res, {
             consultaId: consultaIdTexto,
             dataConsulta: consulta.dataHora,
@@ -162,12 +171,14 @@ router.get("/:id/prontuario/pdf", autenticar, async (req, res) => {
     } catch (erro) {
         console.error("Erro ao gerar PDF do prontuário:", erro);
 
+        // só envia a mensagem de erro se a resposta ainda não começou
         if (!res.headersSent) {
             return res.status(500).json({
                 mensagem: "Erro ao gerar PDF do prontuário."
             });
         }
 
+        // encerra a resposta se deu erro depois que o envio começou
         res.destroy();
     }
 });

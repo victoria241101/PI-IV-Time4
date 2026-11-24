@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { ObjectId, type Db, type Filter } from "mongodb";
 import {
     LIMITE_CONVERSAS,

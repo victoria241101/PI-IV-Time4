@@ -2,15 +2,16 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class DoacoesService {
   final String baseUrl;
   final String token;
 
   DoacoesService({
-    required this.baseUrl,
+    String? baseUrl,
     required this.token,
-  });
+  }) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   Map<String, String> get _headers => {
     'Content-Type': 'application/json',
@@ -18,7 +19,7 @@ class DoacoesService {
   };
 
   factory DoacoesService.autenticado({
-    required String baseUrl,
+    String? baseUrl,
   }) {
     final token = SessaoUsuario.instancia.token;
 

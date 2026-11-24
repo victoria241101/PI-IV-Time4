@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,15 +9,17 @@ import { notificarAlta } from "../notificacoes/eventos.js";
 
 const router = Router();
 
+// registra a internação do pet
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os campos enviados no corpo da requisição
             const { petId, motivo, leito, observacoes } = req.body;
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             if (
                 typeof petId !== "string" || !petId.trim() ||
                 typeof motivo !== "string" || !motivo.trim() ||
@@ -36,9 +40,10 @@ router.post(
             }
 
             const banco = obterBanco();
+            // pega o id que a autenticação colocou na resposta
             const usuarioId = new ObjectId(res.locals.usuarioId);
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -54,8 +59,8 @@ router.post(
                 });
             }
 
-            // Aceita pets antigos com ID em texto
-            // e pets novos com ObjectId
+            // aceita pets antigos com id em texto
+            // e pets novos com objectid
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
@@ -70,6 +75,7 @@ router.post(
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
@@ -78,7 +84,7 @@ router.post(
 
             const internacoes = banco.collection("internacoes");
 
-            // Impede que o pet tenha duas internações ativas
+            // impede que o pet tenha duas internações ativas
             const internacaoAtiva = await internacoes.findOne({
                 petId: { $in: idsPet },
                 status: "ativa"
@@ -90,7 +96,7 @@ router.post(
                 });
             }
 
-            // Verifica se o leito já está ocupado
+            // verifica se o leito já está ocupado
             const leitoOcupado = await internacoes.findOne({
                 leito: leito.trim(),
                 status: "ativa"
@@ -102,7 +108,7 @@ router.post(
                 });
             }
 
-            // Registra a internação
+            // registra a internação
             const resultado = await internacoes.insertOne({
                 petId: pet._id,
                 veterinarioId: veterinario._id,
@@ -115,6 +121,7 @@ router.post(
                 observacoes: observacoes?.trim() ?? ""
             });
 
+            // confirma o cadastro e devolve os dados do registro criado
             return res.status(201).json({
                 mensagem: "Internação registrada com sucesso!",
                 internacaoId: resultado.insertedId
@@ -130,6 +137,7 @@ router.post(
     }
 );
 
+// registra a alta da internação
 router.patch(
     "/:id/alta",
     autenticar,
@@ -145,7 +153,7 @@ router.patch(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -161,7 +169,7 @@ router.patch(
                 });
             }
 
-            // Aceita IDs antigos em texto e IDs novos do MongoDB
+            // aceita ids antigos em texto e ids novos do mongodb
             const idsInternacao: (string | ObjectId)[] = [id];
 
             if (ObjectId.isValid(id)) {
@@ -175,7 +183,7 @@ router.patch(
                 dataAlta?: Date | null;
             }>("internacoes");
 
-            // A atualização só acontece se a internação estiver ativa
+            // a atualização só acontece se a internação estiver ativa
             // e pertencer ao veterinário responsável
             const resultado = await internacoes.updateOne(
                 {
@@ -191,6 +199,7 @@ router.patch(
                 }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem:
@@ -227,7 +236,7 @@ router.patch(
     }
 );
 
-// Lista as internações de um pet
+// lista as internações de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -244,19 +253,20 @@ router.get(
 
             const banco = obterBanco();
 
-            // Aceita IDs antigos e ObjectIds do MongoDB
+            // aceita ids antigos e objectids do mongodb
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Busca todas as internações do pet
+            // busca todas as internações do pet
             const internacoes = await banco
                 .collection("internacoes")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataEntrada: -1 })
                 .toArray();
 

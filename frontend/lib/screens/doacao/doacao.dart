@@ -38,9 +38,7 @@ class Doacao extends StatefulWidget {
 }
 
 class _DoacaoState extends State<Doacao> {
-  final CampanhasService _campanhasService = CampanhasService.criar(
-    baseUrl: 'http://localhost:3000',
-  );
+  final CampanhasService _campanhasService = CampanhasService.criar();
 
   List<Map<String, dynamic>> _campanhas = [];
   bool _carregando = true;

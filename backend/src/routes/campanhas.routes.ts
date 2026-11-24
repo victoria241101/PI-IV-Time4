@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import {
@@ -22,13 +24,14 @@ import {
 
 const router = Router();
 
-// 6.1 POST /campanhas - Criação de campanha (apenas papéis de gestão: SECRETARIA)
+// permite que a secretaria crie uma campanha
 router.post(
     "/",
     autenticar,
     permitirFuncoes(...PAPEIS_GESTAO_CAMPANHAS),
     async (req, res) => {
         try {
+            // separa os dados enviados no corpo da requisição
             const {
                 titulo,
                 descricao,
@@ -63,6 +66,7 @@ router.post(
                 return res.status(400).json({ mensagem: validacaoDatas.mensagem });
             }
 
+            // pega o id que a autenticação colocou na resposta
             const usuarioId = res.locals.usuarioId;
             if (!usuarioId || !ObjectId.isValid(usuarioId)) {
                 return res.status(401).json({ mensagem: "Usuário autenticado inválido." });
@@ -99,7 +103,7 @@ router.post(
     }
 );
 
-// 6.2 GET /campanhas - Listagem de campanhas
+// lista as campanhas
 router.get("/", autenticarOpcional, async (req, res) => {
     try {
         const banco = obterBanco();
@@ -107,12 +111,15 @@ router.get("/", autenticarOpcional, async (req, res) => {
         const campanhas = await banco
             .collection<CampanhaDocumento>("campanhas")
             .find({ status: "ativa" })
+            // coloca os registros mais recentes primeiro
             .sort({ criadoEm: -1 })
             .limit(50)
             .toArray();
 
+        // prepara os dados das campanhas para a resposta
         const campanhasFormatadas = await Promise.all(
             campanhas.map(async (campanha) => {
+                // busca o progresso a partir dos valores da campanha
                 const progresso = await obterProgresso(campanha);
 
                 return formatarCampanha(
@@ -137,7 +144,7 @@ router.get("/", autenticarOpcional, async (req, res) => {
     }
 });
 
-// 6.3 GET /campanhas/:id - Consulta de campanha por ID 
+// busca uma campanha pelo id
 router.get("/:id", autenticarOpcional, async (req, res) => {
     try {
         const id = req.params.id;
@@ -163,6 +170,7 @@ router.get("/:id", autenticarOpcional, async (req, res) => {
             });
         }
 
+        // busca o progresso a partir dos valores da campanha
         const progresso = await obterProgresso(campanha);
 
         return res.status(200).json({
@@ -183,7 +191,7 @@ router.get("/:id", autenticarOpcional, async (req, res) => {
     }
 });
 
-// 6.4 PATCH /campanhas/:id/encerrar - Encerramento manual (apenas SECRETARIA)
+// permite que a secretaria encerre uma campanha
 router.patch(
     "/:id/encerrar",
     autenticar,
@@ -217,18 +225,20 @@ router.patch(
                 });
             }
 
-            // Atualização atômica condicional para garantir que ainda está ativa
+            // encerra a campanha só se ela ainda estiver ativa
             const resultado = await campanhas.updateOne(
                 { _id: new ObjectId(id), status: "ativa" },
                 { $set: { status: "encerrada" } }
             );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Esta campanha já está encerrada."
                 });
             }
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 1) {
                 await notificarCampanha(
                     banco,

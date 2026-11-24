@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -6,15 +8,17 @@ import { obterBanco } from "../database.js";
 
 const router = Router();
 
+// registra um procedimento do pet
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os campos enviados no corpo da requisição
             const { petId, internacaoId, tipo, nome, observacoes } = req.body;
 
-            // Valida os campos obrigatórios
+            // valida os campos obrigatórios
             if (
                 typeof petId !== "string" || !petId.trim() ||
                 typeof tipo !== "string" || !tipo.trim() ||
@@ -44,9 +48,10 @@ router.post(
             }
 
             const banco = obterBanco();
+            // pega o id que a autenticação colocou na resposta
             const usuarioId = new ObjectId(res.locals.usuarioId);
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -62,7 +67,7 @@ router.post(
                 });
             }
 
-            // Aceita os IDs antigos e os novos ObjectIds
+            // aceita os ids antigos e os novos objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
@@ -77,13 +82,14 @@ router.post(
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Verifica a internação, caso tenha sido informada
+            // verifica a internação, caso tenha sido informada
             if (internacaoId) {
                 const internacao = await banco.collection("internacoes").findOne({
                     _id: internacaoId,
@@ -98,6 +104,7 @@ router.post(
                 }
             }
 
+            // salva o procedimento e o vínculo com o pet
             const resultado = await banco.collection("procedimentos").insertOne({
                 petId,
                 veterinarioId: veterinario._id,
@@ -109,6 +116,7 @@ router.post(
                 observacoes: observacoes?.trim() ?? ""
             });
 
+            // confirma o cadastro e devolve os dados do registro criado
             return res.status(201).json({
                 mensagem: "Procedimento registrado com sucesso!",
                 procedimentoId: resultado.insertedId
@@ -124,6 +132,7 @@ router.post(
     }
 );
 
+// lista os procedimentos de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -143,6 +152,7 @@ router.get(
             const procedimentos = await banco
                 .collection("procedimentos")
                 .find({ petId })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataHora: -1 })
                 .toArray();
 

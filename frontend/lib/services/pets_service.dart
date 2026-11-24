@@ -3,11 +3,12 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class PetsService {
   final String baseUrl;
 
-  PetsService({required this.baseUrl});
+  PetsService({String? baseUrl}) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   Future<List<Map<String, dynamic>>> listarPets() async {
     // Usa a sessão normal ou o token temporário de teste.

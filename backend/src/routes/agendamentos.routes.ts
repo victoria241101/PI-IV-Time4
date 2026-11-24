@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId, MongoServerError } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,7 +9,7 @@ import { notificarConsulta } from "../notificacoes/eventos.js";
 
 const router = Router();
 
-// Horário de funcionamento da clínica (configuração provisória)
+// horário de funcionamento da clínica (configuração provisória)
 const INICIO = 8;
 const FIM = 18;
 const PASSO = 30;
@@ -65,7 +67,7 @@ type Veterinario = {
     ativo?: boolean;
 };
 
-// Funções auxiliares
+// funções auxiliares
 function idMongoOuString(id: string): string | ObjectId {
     const ehObjectId = ObjectId.isValid(id) &&
     new ObjectId(id).toHexString() === id.toLowerCase();
@@ -73,6 +75,7 @@ function idMongoOuString(id: string): string | ObjectId {
     return ehObjectId ? new ObjectId(id) : id;
 }
 
+// confere o formato e os valores da hora informada
 function horaValida(valor: unknown): valor is string {
     if (
     typeof valor !== "string" ||
@@ -84,10 +87,12 @@ function horaValida(valor: unknown): valor is string {
     return !Number.isNaN(data.getTime()) && data.toISOString().slice(0, 19) === valor;
 }
 
+// soma minutos ao horário para calcular o fim da consulta
 function somarMinutos(dataHora: string, minutos: number): string {
     return new Date(new Date(`${dataHora}Z`).getTime() + minutos * 60000).toISOString().slice(0, 19);
 }
 
+// confere se a consulta cabe no horário de funcionamento
 function horarioPermitido(dataHora: string, duracao: number): boolean {
     if (!horaValida(dataHora) || !DURACOES.includes(duracao)) {
         return false;
@@ -98,11 +103,11 @@ function horarioPermitido(dataHora: string, duracao: number): boolean {
 }
 
 function futuro(dataHora: string): boolean {
-    // Horários recebidos representam a hora local da clínica (America/Sao_Paulo,
-    // atualmente UTC-03). Ajustar esta conversão caso a clínica use outro fuso.
+    // interpreta a data e a hora no fuso da clínica (utc-03)
     return new Date(`${dataHora}-03:00`).getTime() > Date.now();
 }
 
+// divide a duração da consulta em horários que precisam ser reservados
 function slots(dataHora: string, duracao: number): string[] {
     return Array.from({ length: duracao / PASSO }, (_, i) => somarMinutos(dataHora, i * PASSO));
 }
@@ -145,6 +150,7 @@ type ResultadoPet =
     | { erro: 403 | 404; mensagem: string; pet?: never }
     | { pet: Pet; erro?: never; mensagem?: never };
 
+// verifica quem pode agendar para o pet
 async function verificarPermissaoPet(
     petId: string,
     usuarioId: string,
@@ -173,6 +179,7 @@ async function verificarPermissaoPet(
     return { pet } as const;
 }
 
+// confere se o veterinário ainda atende na clínica
 async function veterinarioAtivo(id: string): Promise<boolean> {
     const vet = await obterBanco().collection<Veterinario>("veterinarios").findOne({
         _id: idMongoOuString(id),
@@ -181,9 +188,8 @@ async function veterinarioAtivo(id: string): Promise<boolean> {
     return !!vet;
 }
 
-// Verifica conflitos diretamente no TypeScript, sem depender do servidor Java.
-// Os intervalos são semiabertos: [início, fim). Assim, 14h-14h30
-// não conflita com 14h30-15h.
+// verifica se o horário bate com outra consulta ou reserva
+// uma consulta pode começar no mesmo horário em que outra termina
 async function conflitoHorario(
     veterinarioId: string,
     dataHora: string,
@@ -217,8 +223,7 @@ async function conflitoHorario(
             fim: somarMinutos(consulta.dataHora, consulta.duracaoMinutos)
         }));
 
-    // As reservas também são consideradas: elas protegem os slots
-    // durante agendamentos concorrentes e remarcações.
+    // considera as reservas para evitar dois agendamentos no mesmo horário
     const reservas = await db.collection<Reserva>("reservasAgenda")
         .find({
             veterinarioId,
@@ -268,7 +273,7 @@ async function conflitoHorario(
         }
     }
 
-    // Primeiro os horários mais próximos do solicitado.
+    // primeiro os horários mais próximos do solicitado
     const instanteSolicitado = new Date(`${dataHora}Z`).getTime();
 
     sugestoes.sort((primeiro, segundo) => {
@@ -285,6 +290,7 @@ async function conflitoHorario(
     return { conflito: true, sugestoes: sugestoes.slice(0, 5) };
 }
 
+// prepara o índice que impede reservas duplicadas
 async function prepararIndice() {
     await obterBanco().collection<Reserva>("reservasAgenda").createIndex(
     { veterinarioId: 1, horario: 1 }, { unique: true, name: "horario_unico_por_veterinario" }
@@ -307,7 +313,7 @@ function erroInterno(res: any, erro: unknown) {
     });
 }
 
-// Consulta horários disponíveis para um veterinário em uma data.
+// consulta horários disponíveis para um veterinário em uma data
 router.get("/disponibilidade", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (req, res) => {
     try {
         const { veterinarioId, data, duracaoMinutos } = req.query;
@@ -357,7 +363,7 @@ router.get("/disponibilidade", autenticar, permitirFuncoes("USUARIO", "SECRETARI
     }
 });
 
-// Listar agendamentos do tutor logado ou todos para secretaria.
+// listar agendamentos do tutor logado ou todos para secretaria
 router.get("/", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (_req, res) => {
     try {
         const db = obterBanco();
@@ -377,15 +383,17 @@ router.get("/", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (_re
     }
 });
 
-// Criar agendamento. A reserva de slots e a consulta são gravadas na mesma transação.
+// criar agendamento. a reserva de slots e a consulta são gravadas na mesma transação
 router.post("/", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (req, res) => {
     const erro = dadosValidos(req.body);
     if (erro) {
         return res.status(400).json({ mensagem: erro });
     }
+    // separa os campos enviados no corpo da requisição
     const { petId, veterinarioId, dataHora, duracaoMinutos, tipo } = req.body;
     const observacoes = (req.body.observacoes ?? "").trim();
     try {
+        // confere se o usuário pode agendar para esse pet
         const acesso = await verificarPermissaoPet(petId, res.locals.usuarioId, res.locals.usuarioTipo);
         if (acesso.erro !== undefined) {
             return res.status(acesso.erro).json({ mensagem: acesso.mensagem });
@@ -419,7 +427,9 @@ router.post("/", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (re
         };
         const session = obterCliente().startSession();
         try {
+            // altera a consulta e as reservas na mesma transação
             await session.withTransaction(async () => {
+                // reserva os horários que a consulta vai ocupar
                 await db.collection<Reserva>("reservasAgenda").insertMany(
                     slots(dataHora, duracaoMinutos).map(horario => ({
                         veterinarioId,
@@ -445,7 +455,7 @@ router.post("/", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (re
     }
 });
 
-// Verifica o acesso antes de alterar um agendamento.
+// verifica o acesso antes de alterar um agendamento
 type ResultadoConsulta =
     | { erro: 403 | 404; mensagem: string; consulta?: never }
     | { consulta: Consulta; erro?: never; mensagem?: never };
@@ -461,6 +471,7 @@ async function consultaPermitida(
     if (!consulta) {
         return { erro: 404, mensagem: "Consulta não encontrada." } as const;
     }
+    // confere se o usuário pode agendar para esse pet
     const acesso = await verificarPermissaoPet(consulta.petId, usuarioId, funcao);
     if (acesso.erro !== undefined) {
         return acesso;
@@ -468,7 +479,7 @@ async function consultaPermitida(
     return { consulta } as const;
 }
 
-// Remarcar somente consultas ainda agendadas.
+// remarcar somente consultas ainda agendadas
 router.patch("/:id/remarcar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (req, res) => {
     const parametroId = req.params.id;
     const id = typeof parametroId === "string" ? parametroId : undefined;
@@ -476,11 +487,13 @@ router.patch("/:id/remarcar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
     if (!id) {
         return res.status(400).json({ mensagem: "Informe o código da consulta." });
     }
+    // separa os campos enviados no corpo da requisição
     const { dataHora, duracaoMinutos } = req.body ?? {};
     if (!horarioPermitido(dataHora, duracaoMinutos) || !futuro(dataHora)) {
         return res.status(400).json({ mensagem: "Informe horário futuro válido e duração de 30, 60, 90 ou 120 minutos." });
     }
     try {
+        // confere se o usuário tem acesso a esse agendamento
         const acesso = await consultaPermitida(id, res.locals.usuarioId, res.locals.usuarioTipo);
         if (acesso.erro !== undefined) {
             return res.status(acesso.erro).json({ mensagem: acesso.mensagem });
@@ -508,6 +521,7 @@ router.patch("/:id/remarcar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
         const session = obterCliente().startSession();
         let alterou = false;
         try {
+            // altera a consulta e as reservas na mesma transação
             await session.withTransaction(async () => {
                 const atualizacao = await db.collection<Consulta>("consultas").updateOne(
                     {
@@ -520,10 +534,13 @@ router.patch("/:id/remarcar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
                     { session }
                 );
 
+                // confere se a operação encontrou ou alterou o registro esperado
                 if (!atualizacao.modifiedCount) {
                     return;
                 }
+                // libera os horários reservados para essa consulta
                 await db.collection<Reserva>("reservasAgenda").deleteMany({ consultaId: id }, { session });
+                // reserva os horários que a consulta vai ocupar
                 await db.collection<Reserva>("reservasAgenda").insertMany(
                     slots(dataHora, duracaoMinutos).map(horario => ({
                         veterinarioId: consulta.veterinarioId,
@@ -554,7 +571,7 @@ router.patch("/:id/remarcar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
     }
 });
 
-// Cancelar somente consultas ainda agendadas.
+// cancelar somente consultas ainda agendadas
 router.patch("/:id/cancelar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA"), async (req, res) => {
     const parametroId = req.params.id;
     const id = typeof parametroId === "string" ? parametroId : undefined;
@@ -563,6 +580,7 @@ router.patch("/:id/cancelar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
         return res.status(400).json({ mensagem: "Informe o código da consulta." });
     }
     try {
+        // confere se o usuário tem acesso a esse agendamento
         const acesso = await consultaPermitida(id, res.locals.usuarioId, res.locals.usuarioTipo);
         if (acesso.erro !== undefined) {
             return res.status(acesso.erro).json({ mensagem: acesso.mensagem });
@@ -576,6 +594,7 @@ router.patch("/:id/cancelar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
         const session = obterCliente().startSession();
         let alterou = false;
         try {
+            // altera a consulta e as reservas na mesma transação
             await session.withTransaction(async () => {
                 const resultado = await db.collection<Consulta>("consultas").updateOne(
                     { _id: id, status: "agendada" },
@@ -583,9 +602,11 @@ router.patch("/:id/cancelar", autenticar, permitirFuncoes("USUARIO", "SECRETARIA
                     { session }
                 );
 
+                // confere se a operação encontrou ou alterou o registro esperado
                 if (!resultado.modifiedCount) {
                     return;
                 }
+                // libera os horários reservados para essa consulta
                 await db.collection<Reserva>("reservasAgenda").deleteMany({ consultaId: id }, { session });
                 alterou = true;
             });

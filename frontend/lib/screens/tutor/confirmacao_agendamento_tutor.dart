@@ -77,7 +77,6 @@ class _ConfirmacaoAgendamentoTutorState
       }
 
       final service = AgendamentosService(
-        baseUrl: 'http://localhost:3000',
         token: token,
       );
 

@@ -28,6 +28,7 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   final _nomePetController = TextEditingController();
   final _racaPetController = TextEditingController();
+  final _pesoPetController = TextEditingController();
 
   bool _ocultarSenha = true;
   bool _ocultarConfirmacao = true;
@@ -37,6 +38,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
 
   String? _especiePet;
   String? _sexoPet;
+  DateTime? _dataNascimentoPet;
+  bool? _possuiMicrochipPet;
 
   bool get _temOitoCaracteres =>
       _senhaController.text.length >= 8;
@@ -161,6 +164,44 @@ class _CadastroScreenState extends State<CadastroScreen> {
     return null;
   }
 
+  Future<void> _selecionarDataNascimento() async {
+    final hoje = DateTime.now();
+
+    final dataSelecionada = await showDatePicker(
+      context: context,
+      initialDate: _dataNascimentoPet ?? hoje,
+      firstDate: DateTime(1900),
+      lastDate: hoje,
+      helpText: 'Selecione a data de nascimento',
+      cancelText: 'Cancelar',
+      confirmText: 'Confirmar',
+      builder: (context, child) {
+        return Theme(
+          data: Theme.of(context).copyWith(
+            colorScheme: Theme.of(context).colorScheme.copyWith(
+              primary: CoresApp.primary,
+              surface: CoresApp.surface,
+            ),
+          ),
+          child: child!,
+        );
+      },
+    );
+
+    if (dataSelecionada != null) {
+      setState(() {
+        _dataNascimentoPet = dataSelecionada;
+      });
+    }
+  }
+
+  String _formatarData(DateTime data) {
+    final dia = data.day.toString().padLeft(2, '0');
+    final mes = data.month.toString().padLeft(2, '0');
+
+    return '$dia/$mes/${data.year}';
+  }
+
   Future<void> _cadastrar() async {
     FocusScope.of(context).unfocus();
 
@@ -179,13 +220,24 @@ class _CadastroScreenState extends State<CadastroScreen> {
     if (!(_formKey.currentState?.validate() ?? false)) return;
 
     if (_temPet == true) {
+      final peso = double.tryParse(
+        _pesoPetController.text.trim().replaceAll(',', '.'),
+      );
+
       if (_nomePetController.text.trim().isEmpty ||
           _especiePet == null ||
           _racaPetController.text.trim().isEmpty ||
-          _sexoPet == null) {
+          _sexoPet == null ||
+          _dataNascimentoPet == null ||
+          peso == null ||
+          !peso.isFinite ||
+          peso <= 0 ||
+          _possuiMicrochipPet == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Preencha os dados básicos do seu pet.'),
+            content: Text(
+              'Preencha todos os dados obrigatórios do seu pet.',
+            ),
             behavior: SnackBarBehavior.floating,
           ),
         );
@@ -211,6 +263,16 @@ class _CadastroScreenState extends State<CadastroScreen> {
           'especie': _especiePet!,
           'raca': _racaPetController.text.trim(),
           'sexo': _sexoPet!,
+          'dataNascimento': _dataNascimentoPet!
+              .toIso8601String()
+              .split('T')
+              .first,
+          'peso': double.parse(
+            _pesoPetController.text
+                .trim()
+                .replaceAll(',', '.'),
+          ),
+          'possuiMicrochip': _possuiMicrochipPet!,
         }
             : null,
       );
@@ -583,8 +645,11 @@ class _CadastroScreenState extends State<CadastroScreen> {
           if (!valor) {
             _nomePetController.clear();
             _racaPetController.clear();
+            _pesoPetController.clear();
             _especiePet = null;
             _sexoPet = null;
+            _dataNascimentoPet = null;
+            _possuiMicrochipPet = null;
           }
         });
       },
@@ -885,24 +950,6 @@ class _CadastroScreenState extends State<CadastroScreen> {
               ),
             ],
           ),
-          const SizedBox(height: EspacamentosApp.md),
-          Container(
-            width: double.infinity,
-            padding: const EdgeInsets.all(14),
-            decoration: BoxDecoration(
-              color: CoresApp.primary.withAlpha(9),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Text(
-              'Para um cadastro rápido, cadastre um pet apenas. '
-                  'Caso tenha mais de um, você poderá cadastrar os '
-                  'outros em breve na seção "Meus Pets".',
-              style: TipografiaApp.bodySmall.copyWith(
-                color: CoresApp.textSecondary,
-                height: 1.45,
-              ),
-            ),
-          ),
           const SizedBox(height: EspacamentosApp.lg),
           _label('Nome do pet'),
           const SizedBox(height: EspacamentosApp.sm),
@@ -1021,6 +1068,118 @@ class _CadastroScreenState extends State<CadastroScreen> {
               return null;
             },
           ),
+          const SizedBox(height: EspacamentosApp.md),
+          _label('Data de nascimento'),
+          const SizedBox(height: EspacamentosApp.sm),
+          FormField<DateTime>(
+            validator: (_) {
+              if (_temPet != true) return null;
+
+              if (_dataNascimentoPet == null) {
+                return 'Selecione a data de nascimento.';
+              }
+
+              return null;
+            },
+            builder: (field) => Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                InkWell(
+                  onTap: _selecionarDataNascimento,
+                  borderRadius: BorderRadius.circular(16),
+                  child: InputDecorator(
+                    decoration: _decoracaoCampo(
+                      hintText: 'Selecione a data de nascimento',
+                      icon: Icons.calendar_month_outlined,
+                      suffixIcon: const Icon(
+                        Icons.calendar_today_outlined,
+                        color: CoresApp.textSecondary,
+                        size: 20,
+                      ),
+                    ).copyWith(
+                      errorText: field.errorText,
+                    ),
+                    child: Text(
+                      _dataNascimentoPet == null
+                          ? 'DD/MM/AAAA'
+                          : _formatarData(_dataNascimentoPet!),
+                      style: TipografiaApp.bodyMedium.copyWith(
+                        color: _dataNascimentoPet == null
+                            ? CoresApp.textSecondary.withAlpha(170)
+                            : CoresApp.textPrimary,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: EspacamentosApp.md),
+          _label('Peso (kg)'),
+          const SizedBox(height: EspacamentosApp.sm),
+          TextFormField(
+            controller: _pesoPetController,
+            keyboardType: const TextInputType.numberWithOptions(
+              decimal: true,
+            ),
+            textInputAction: TextInputAction.next,
+            inputFormatters: [
+              FilteringTextInputFormatter.allow(
+                RegExp(r'[0-9.,]'),
+              ),
+            ],
+            decoration: _decoracaoCampo(
+              hintText: 'Ex.: 5,5',
+              icon: Icons.monitor_weight_outlined,
+            ),
+            validator: (value) {
+              if (_temPet != true) return null;
+
+              final peso = double.tryParse(
+                (value ?? '').trim().replaceAll(',', '.'),
+              );
+
+              if (peso == null || !peso.isFinite || peso <= 0) {
+                return 'Digite um peso válido maior que zero.';
+              }
+
+              return null;
+            },
+          ),
+          const SizedBox(height: EspacamentosApp.md),
+          _label('Possui microchip?'),
+          const SizedBox(height: EspacamentosApp.sm),
+          DropdownButtonFormField<bool>(
+            value: _possuiMicrochipPet,
+            decoration: _decoracaoCampo(
+              hintText: 'Selecione Sim ou Não',
+              icon: Icons.memory_outlined,
+            ),
+            items: const [
+              DropdownMenuItem<bool>(
+                value: true,
+                child: Text('Sim'),
+              ),
+              DropdownMenuItem<bool>(
+                value: false,
+                child: Text('Não'),
+              ),
+            ],
+            onChanged: (value) {
+              setState(() {
+                _possuiMicrochipPet = value;
+              });
+            },
+            validator: (value) {
+              if (_temPet != true) return null;
+
+              if (value == null) {
+                return 'Informe se possui microchip.';
+              }
+
+              return null;
+            },
+          ),
         ],
       ),
     );
@@ -1035,6 +1194,8 @@ class _CadastroScreenState extends State<CadastroScreen> {
     _confirmarSenhaController.dispose();
     _nomePetController.dispose();
     _racaPetController.dispose();
+    _pesoPetController.dispose();
+
     super.dispose();
   }
 
@@ -1124,47 +1285,47 @@ class _CadastroScreenState extends State<CadastroScreen> {
                       SizedBox(
                         width: double.infinity,
                         height: 56,
-                          child: ElevatedButton(
-                            onPressed: !_cadastrando &&
-                                _confirmarSenhaController.text.isNotEmpty &&
-                                _senhasCoincidem
-                                ? _cadastrar
-                                : null,
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: CoresApp.darkBlue,
-                              foregroundColor: Colors.white,
-                              elevation: 0,
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            child: _cadastrando
-                                ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2,
-                              ),
-                            )
-                                : const Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Text(
-                                  'Criar minha conta',
-                                  style: TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                                ),
-                                SizedBox(width: 10),
-                                Icon(
-                                  Icons.arrow_forward_rounded,
-                                  size: 20,
-                                ),
-                              ],
+                        child: ElevatedButton(
+                          onPressed: !_cadastrando &&
+                              _confirmarSenhaController.text.isNotEmpty &&
+                              _senhasCoincidem
+                              ? _cadastrar
+                              : null,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: CoresApp.darkBlue,
+                            foregroundColor: Colors.white,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
                             ),
                           ),
+                          child: _cadastrando
+                              ? const SizedBox(
+                            width: 22,
+                            height: 22,
+                            child: CircularProgressIndicator(
+                              color: Colors.white,
+                              strokeWidth: 2,
+                            ),
+                          )
+                              : const Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Text(
+                                'Criar minha conta',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                              SizedBox(width: 10),
+                              Icon(
+                                Icons.arrow_forward_rounded,
+                                size: 20,
+                              ),
+                            ],
+                          ),
+                        ),
                       ),
 
                       const SizedBox(height: EspacamentosApp.lg),
