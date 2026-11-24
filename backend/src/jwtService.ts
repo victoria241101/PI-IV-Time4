@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { SignJWT, jwtVerify } from "jose";
 
 const chaveSecreta = process.env.JWT_SECRET;

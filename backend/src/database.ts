@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import "dotenv/config";
 import { MongoClient, Db } from "mongodb";
 
