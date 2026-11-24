@@ -35,12 +35,15 @@ class DialogoCamposClinica extends StatefulWidget {
 
 class _DialogoCamposClinicaState extends State<DialogoCamposClinica> {
   late final List<TextEditingController> _controllers;
+  // Estados separados evitam duplicar o envio e controlar novas tentativas.
   bool _salvando = false, _enviado = false;
   String? _erro;
 
   Future<void> _salvar() async {
+    // Bloqueia nova ação enquanto a operação anterior ainda está em andamento.
     if (_salvando) return;
     final valores = _controllers.map((c) => c.text.trim()).toList();
+    // Campos marcados são validados antes da primeira chamada assíncrona.
     if (widget.camposObrigatorios.any((i) => valores[i].isEmpty)) {
       setState(() => _erro = 'Preencha os campos obrigatórios.');
       return;
@@ -53,6 +56,7 @@ class _DialogoCamposClinicaState extends State<DialogoCamposClinica> {
     try {
       await widget.onSalvar?.call(valores);
       if (mounted) Navigator.pop(context, valores);
+    // Mostra o erro da API e mantém os valores digitados no diálogo.
     } catch (erro) {
       if (mounted) {
         setState(() => _erro = erro.toString().replaceFirst('Exception: ', ''));
@@ -85,6 +89,7 @@ class _DialogoCamposClinicaState extends State<DialogoCamposClinica> {
 
   @override
   Widget build(BuildContext context) => PopScope(
+    // Impede fechar durante o salvamento para não perder ou duplicar a ação.
     canPop: !_salvando,
     child: AlertDialog(
       title: Text(widget.titulo, style: TipografiaApp.heading3),

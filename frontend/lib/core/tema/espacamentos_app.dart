@@ -14,8 +14,10 @@ abstract final class EspacamentosApp {
   static const double xxl = 32;
 
   /// Margem lateral padrão das páginas
+  // A margem lateral padrão mantém páginas e rodapés alinhados.
   static const double pagePadding = 20;
 
+  // Os raios seguem uma escala compartilhada entre cartões e controles.
   static const double radiusSm = 8;
   static const double radiusMd = 12;
   static const double radiusLg = 16;
@@ -24,6 +26,7 @@ abstract final class EspacamentosApp {
   static const double radiusFull = 100;
 
   /// Sombra discreta padrão para cartões
+  // A sombra de cartão diferencia superfícies comuns de elementos elevados.
   static List<BoxShadow> get cardShadow => [
     BoxShadow(
       color: CoresApp.shadow,

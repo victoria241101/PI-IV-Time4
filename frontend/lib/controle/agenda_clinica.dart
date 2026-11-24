@@ -20,6 +20,7 @@ class AgendaClinica extends ChangeNotifier {
     });
   }
 
+  // Esta instância mantém agenda e prontuários compartilhados pelos perfis clínicos.
   static final AgendaClinica instancia = AgendaClinica._();
 
   ConsultasClinicaService servico = ConsultasClinicaService();
@@ -30,6 +31,7 @@ class AgendaClinica extends ChangeNotifier {
   Future<void> carregarDia(DateTime dia) async {
     final token = SessaoUsuario.instancia.token;
     final requisicao = ++_requisicao;
+    // Respostas antigas são ignoradas após mudar o dia ou a sessão.
     if (_sessaoCarregada != token) {
       consultas.clear();
       prontuarios.clear();
@@ -40,6 +42,7 @@ class AgendaClinica extends ChangeNotifier {
     if (requisicao != _requisicao || SessaoUsuario.instancia.token != token) {
       return;
     }
+    // Converte o formato da API no modelo usado pela interface.
     final novas = recebidas.where((c) => c.statusTela != null).map((c) {
       final data = DateTime.parse(c.dataHora);
       return ConsultaRecepcao(
@@ -71,6 +74,7 @@ class AgendaClinica extends ChangeNotifier {
       .where((consulta) => prontuarios[consulta.id]?.internacaoAtiva ?? false)
       .toList();
 
+  // Cria sob demanda um prontuário associado ao ID da consulta.
   ProntuarioCompartilhado prontuarioDa(ConsultaRecepcao consulta) =>
       prontuarios.putIfAbsent(consulta.id, ProntuarioCompartilhado.new);
 
@@ -95,6 +99,7 @@ class AgendaClinica extends ChangeNotifier {
     notifyListeners();
   }
 
+  // Finalizar sincroniza prontuário e estado visual da consulta.
   void finalizarConsulta(
     ConsultaRecepcao consulta,
     ProntuarioCompartilhado prontuario,

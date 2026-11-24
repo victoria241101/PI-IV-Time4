@@ -10,6 +10,7 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
+// Reúne os dados pessoais necessários antes de avançar para o perfil do pet.
 class DadosResponsavelCadastro extends StatelessWidget {
   const DadosResponsavelCadastro({
     super.key,
@@ -32,6 +33,7 @@ class DadosResponsavelCadastro extends StatelessWidget {
   final FormFieldValidator<String> validarTelefone;
   final VoidCallback onContinuar;
 
+  // Representa visualmente a etapa ativa e as etapas já concluídas.
   @override
   Widget build(BuildContext context) {
     return Form(
@@ -98,12 +100,14 @@ class DadosResponsavelCadastro extends StatelessWidget {
     );
   }
 
+  // Valida o CPF pela quantidade de dígitos, independentemente da máscara.
   String? _validarCpf(String? value) {
     final cpf = (value ?? '').replaceAll(RegExp(r'\D'), '');
     return cpf.length == 11 ? null : 'Informe os 11 números do CPF';
   }
 }
 
+// Exibe o responsável confirmado e permite completar o perfil do pet.
 class PerfilPetCadastro extends StatelessWidget {
   const PerfilPetCadastro({
     super.key,
@@ -172,6 +176,7 @@ class PerfilPetCadastro extends StatelessWidget {
                 DadoCadastro(titulo: 'Nome completo', valor: nomeResponsavel),
                 DadoCadastro(titulo: 'CPF', valor: cpfResponsavel),
                 DadoCadastro(titulo: 'Celular', valor: telefoneResponsavel),
+                // O e-mail é opcional e só é mostrado quando foi preenchido.
                 if (emailResponsavel.isNotEmpty)
                   DadoCadastro(titulo: 'E-mail', valor: emailResponsavel),
               ],
@@ -224,6 +229,7 @@ class PerfilPetCadastro extends StatelessWidget {
                     ),
                   ],
                 ),
+                // Só solicita o número quando o usuário confirma que o pet tem microchip.
                 if (possuiMicrochip) ...[
                   const SizedBox(height: EspacamentosApp.sm),
                   CampoFormularioApp(
@@ -275,6 +281,7 @@ class _SeletorNascimentoPetState extends State<SeletorNascimentoPet> {
   String _formatar(DateTime data) =>
       '${data.day.toString().padLeft(2, '0')}/${data.month.toString().padLeft(2, '0')}/${data.year}';
 
+  // Impede a seleção de uma data futura e limita o histórico a trinta anos.
   Future<void> _escolher() async {
     final hoje = DateUtils.dateOnly(DateTime.now());
     final inicial =
@@ -542,6 +549,7 @@ class SeletorFotoPet extends StatelessWidget {
   }
 }
 
+// Apresenta opções exclusivas e devolve a escolha selecionada ao cadastro.
 class OpcoesCadastro extends StatelessWidget {
   const OpcoesCadastro({
     super.key,

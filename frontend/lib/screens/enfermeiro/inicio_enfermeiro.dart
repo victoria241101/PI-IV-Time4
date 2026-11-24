@@ -14,17 +14,21 @@ import 'package:pet_care/screens/veterinario/inicio_veterinario.dart';
 class InicioEnfermeiro extends StatelessWidget {
   const InicioEnfermeiro({super.key});
 
+  // Adapta a tela compartilhada ao perfil de enfermagem sem duplicar o layout clínico.
   @override
   Widget build(BuildContext context) => InicioVeterinario(
     perfilAcesso: 'ENFERMEIRO',
     profissional: SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro',
     mostrarTodasConsultas: true,
+    // A enfermeira vê apenas as etapas de triagem previstas no filtro abaixo.
     paginaConsultaBuilder: _paginaTriagem,
     resumoHojeBuilder: _resumoTriagens,
+    // Estes estados representam a fila ainda pendente e a triagem em andamento.
     filtroConsultas: (consulta) => const {
       StatusConsultaRecepcao.aguardandoTriagem,
       StatusConsultaRecepcao.emTriagem,
     }.contains(consulta.status),
+    // A terceira aba reutiliza a tela de clientes, mas fixa o foco em internações.
     terceiraAbaItem: const BottomNavigationBarItem(
       icon: Icon(Icons.local_hospital_outlined),
       activeIcon: Icon(Icons.local_hospital_rounded),
@@ -36,6 +40,7 @@ class InicioEnfermeiro extends StatelessWidget {
       mostrarInternadosInicialmente: true,
       somenteInternados: true,
     ),
+    // O rótulo da ação acompanha a etapa atual, evitando uma ação genérica.
     rotuloAcaoConsulta: (consulta) => switch (consulta.status) {
       StatusConsultaRecepcao.aguardandoTriagem => 'Iniciar triagem',
       StatusConsultaRecepcao.emTriagem => 'Continuar triagem',
@@ -43,6 +48,7 @@ class InicioEnfermeiro extends StatelessWidget {
     },
   );
 
+  // Resumo local: conta fila e consultas que já avançaram após a triagem.
   Widget _resumoTriagens(List<ConsultaRecepcao> consultas) {
     final finalizadas = consultas
         .where(

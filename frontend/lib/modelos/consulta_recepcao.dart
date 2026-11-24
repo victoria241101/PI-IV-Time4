@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 
 /// Etapas únicas do fluxo da consulta, conforme o fluxo da recepção.
+// A enum fixa as etapas válidas do fluxo clínico da recepção.
 enum StatusConsultaRecepcao {
   agendada,
   aguardandoTriagem,
@@ -16,6 +17,7 @@ enum StatusConsultaRecepcao {
 }
 
 extension StatusConsultaRecepcaoUi on StatusConsultaRecepcao {
+  // A mesma etapa recebe texto e cor em todas as telas da clínica.
   String get rotulo => switch (this) {
     StatusConsultaRecepcao.agendada => 'Agendada',
     StatusConsultaRecepcao.aguardandoTriagem => 'Aguardando triagem',
@@ -60,6 +62,7 @@ class ConsultaRecepcao {
   });
 
   final String id;
+  // IDs opcionais preservam vínculos externos sem virar números ou nomes.
   final String? petId, tutorId, veterinarioId;
   DateTime data;
   String horario;
@@ -79,5 +82,6 @@ class ConsultaRecepcao {
 
   String? get fotoPet => fotoPetUrl;
 
+  // O getter prepara a duração já no formato exibido pela interface.
   String get duracao => '$duracaoMinutos min';
 }

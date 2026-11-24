@@ -19,8 +19,10 @@ class RegistroRecepcaoLocal {
 class CadastrosRecepcaoLocal {
   CadastrosRecepcaoLocal._();
   static final instancia = CadastrosRecepcaoLocal._();
+  // Os dados ficam apenas nesta execução da aplicação.
   final List<RegistroRecepcaoLocal> registros = [];
 
+  // Normaliza a pontuação para comparar CPFs digitados de formas diferentes.
   List<RegistroRecepcaoLocal> petsPorCpf(String cpf) {
     final numeros = cpf.replaceAll(RegExp(r'\D'), '');
     return registros
@@ -32,6 +34,7 @@ class CadastrosRecepcaoLocal {
         .toList();
   }
 
+  // Pesquisa do registro mais recente ao mais antigo para evitar duplicidades.
   RegistroRecepcaoLocal? tutorPorCpf(String cpf) {
     final numeros = cpf.replaceAll(RegExp(r'\D'), '');
     for (final registro in registros.reversed) {
@@ -43,6 +46,7 @@ class CadastrosRecepcaoLocal {
     return null;
   }
 
+  // Separa campanhas dos demais tipos de cadastro armazenados na lista.
   List<RegistroRecepcaoLocal> get campanhasLocais =>
       registros.where((r) => r.tipo == TipoCadastroRecepcao.campanha).toList();
 }

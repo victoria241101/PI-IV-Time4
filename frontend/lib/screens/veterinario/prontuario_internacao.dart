@@ -47,6 +47,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   void initState() {
     super.initState();
     _carregar();
+// Atualização periódica evita sobrescrever o usuário enquanto ele está editando.
     _timer = Timer.periodic(const Duration(seconds: 10), (_) {
       if (!_editando && !_salvando) _carregar();
     });
@@ -55,16 +56,19 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   @override
   void dispose() { _timer?.cancel(); super.dispose(); }
 
+// Requisições concorrentes são ignoradas pela sequência mais recente para evitar dados antigos.
   Future<void> _carregar({bool forcar = false}) async {
     if (_lendo && !forcar) return;
     final requisicao = ++_requisicao;
     _lendo = true;
     try {
+// Valida perfil e identificação do pet antes de qualquer leitura ou ação clínica.
       if (!_vet && !_enfermeiro) throw StateError('Acesso restrito à equipe clínica.');
       final petId = widget.consulta.petId;
       if (petId == null) throw StateError('Pet não identificado.');
       final registros = await _agenda.servico.listarInternacoes(petId: petId);
       final id = widget.internacaoId ?? _prontuario?.internacaoId ?? _agenda.prontuarios[widget.consulta.id]?.internacaoId;
+// Usa a internação informada; sem ID, prefere a internação ativa do paciente.
       final registro = registros.where((r) => id != null ? r['_id'] == id : r['status'] == 'ativa').firstOrNull;
       if (registro == null) throw StateError('Internação não encontrada.');
       if (requisicao != _requisicao || (_editando && !_salvando)) return;
@@ -74,6 +78,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     finally { if (requisicao == _requisicao) _lendo = false; }
   }
 
+// Toda alteração envia o modelo completo e recarrega a versão persistida pela API.
   Future<void> _salvar(ProntuarioCompartilhado novo) async {
     if (_salvando) return;
     setState(() => _salvando = true);
@@ -569,6 +574,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     await _salvar(novo);
   }
 
+// A confirmação impede encerramento acidental e restringe a alta ao veterinário.
   Future<void> _finalizarInternacao() async {
     final confirmar = await showDialog<bool>(
       context: context,

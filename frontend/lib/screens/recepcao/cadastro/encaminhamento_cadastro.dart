@@ -42,8 +42,10 @@ class EncaminhamentoCadastro extends StatelessWidget {
   final ValueChanged<String> onProfissionalChanged;
   final VoidCallback onConfirmar;
 
+  // Consulta e internação usam os seletores de agendamento; triagem não.
   bool get _agendando => encaminhamento != 'Triagem';
 
+  // Compõe o resumo do cadastro e as opções finais de encaminhamento.
   @override
   Widget build(BuildContext context) {
     return Column(
@@ -77,6 +79,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
         const SizedBox(height: EspacamentosApp.lg),
         Text('Como deseja continuar?', style: TipografiaApp.heading3),
         const SizedBox(height: EspacamentosApp.md),
+        // Triagem envia o paciente à fila clínica imediatamente.
         CartaoOpcaoApp(
           icon: Icons.health_and_safety_outlined,
           titulo: 'Encaminhar para triagem agora',
@@ -85,6 +88,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
           onTap: () => onEncaminhamentoChanged('Triagem'),
         ),
         const SizedBox(height: EspacamentosApp.md),
+        // Consulta abre o fluxo de escolha de data, horário e profissional.
         CartaoOpcaoApp(
           icon: Icons.medical_services_outlined,
           titulo: 'Agendar consulta',
@@ -100,6 +104,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
           selecionado: encaminhamento == 'Agendar internação',
           onTap: () => onEncaminhamentoChanged('Agendar internação'),
         ),
+        // Campos de agendamento só aparecem após escolher consulta ou internação.
         if (_agendando) ...[
           const SizedBox(height: EspacamentosApp.md),
           if (encaminhamento == 'Agendar internação' && campoIndicacao != null)
@@ -128,6 +133,7 @@ class EncaminhamentoCadastro extends StatelessWidget {
     );
   }
 
+  // Agrupa data, horário e veterinário em um único cartão de seleção.
   Widget _seletoresAgendamento() {
     return CartaoClinica(
       padding: const EdgeInsets.all(EspacamentosApp.md),

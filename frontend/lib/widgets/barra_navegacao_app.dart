@@ -15,6 +15,7 @@ class BarraNavegacaoApp extends StatelessWidget {
   final int currentIndex;
   final ValueChanged<int> onTap;
   final List<BottomNavigationBarItem> items;
+  // O tema compartilha cores e tipografia entre todos os perfis da clínica.
   @override
   Widget build(BuildContext context) => NavigationBarTheme(
     data: const NavigationBarThemeData(
@@ -28,6 +29,7 @@ class BarraNavegacaoApp extends StatelessWidget {
       labelTextStyle: WidgetStateProperty.all(
         TipografiaApp.captionBold.copyWith(color: CoresApp.textOnDarkBlue),
       ),
+      // Itens e índice vêm da tela chamadora para respeitar cada fluxo.
       selectedIndex: currentIndex,
       onDestinationSelected: onTap,
       destinations: items

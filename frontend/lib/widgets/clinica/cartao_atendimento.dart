@@ -36,6 +36,7 @@ class CartaoAtendimento extends StatelessWidget {
   final bool emergenciaCompacta;
   @override
   Widget build(BuildContext context) =>
+      // Cartões agrupados não repetem o contorno externo compartilhado.
       agrupado ? _conteudo() : CartaoClinica(onTap: onTap, child: _conteudo());
 
   Widget _conteudo() => Column(
@@ -45,6 +46,7 @@ class CartaoAtendimento extends StatelessWidget {
         spacing: EspacamentosApp.sm,
         runSpacing: EspacamentosApp.xs,
         children: [
+          // Cada fluxo escolhe quais dados compactos devem aparecer.
           if (mostrarHorario)
             Text(
               consulta.horario,
@@ -89,6 +91,7 @@ class CartaoAtendimento extends StatelessWidget {
       const SizedBox(height: EspacamentosApp.sm),
       Row(
         children: [
+          // Avatar, nome e tutor formam o resumo principal do atendimento.
           AvatarPet(fotoUrl: consulta.fotoPet, nome: consulta.pet, tamanho: 48),
           const SizedBox(width: EspacamentosApp.sm),
           Expanded(
@@ -110,6 +113,7 @@ class CartaoAtendimento extends StatelessWidget {
         'Veterinário: ${consulta.profissional}${mostrarSala ? ' · ${consulta.sala}' : ''}',
         style: TipografiaApp.caption,
       ),
+      // A ação pode ser primária ou secundária conforme o perfil atual.
       if (acao != null) ...[
         const SizedBox(height: EspacamentosApp.sm),
         if (acaoSecundaria)

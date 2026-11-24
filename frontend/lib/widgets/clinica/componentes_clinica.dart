@@ -8,6 +8,7 @@ import 'package:pet_care/core/tema/tipografia_app.dart';
 import 'package:pet_care/widgets/cartao_base.dart';
 import 'package:pet_care/widgets/botao_principal.dart';
 
+// Reaproveita bordas e interação do cartão-base da aplicação.
 class CartaoClinica extends CartaoBase {
   const CartaoClinica({
     super.key,
@@ -19,6 +20,7 @@ class CartaoClinica extends CartaoBase {
   });
 }
 
+// Padroniza cor e comportamento dos botões usados nas ações clínicas.
 class BotaoClinica extends BotaoPrincipal {
   const BotaoClinica({
     super.key,
@@ -31,6 +33,7 @@ class BotaoClinica extends BotaoPrincipal {
   });
 }
 
+// Cabeçalho escuro mantém identidade visual nos fluxos clínicos.
 AppBar cabecalhoClinica(String titulo, {List<Widget>? actions}) => AppBar(
   backgroundColor: CoresApp.darkBlue,
   foregroundColor: CoresApp.textOnDarkBlue,
@@ -52,6 +55,7 @@ IconButton botaoAdicionarClinica(VoidCallback onPressed) => IconButton.filled(
   icon: const Icon(Icons.add_rounded),
 );
 
+// Agrupa título, ícone e conteúdo em cartões de consulta ou formulário.
 class SecaoClinica extends StatelessWidget {
   const SecaoClinica({
     super.key,
@@ -139,6 +143,7 @@ class ResumoClinica extends StatelessWidget {
       ),
     ),
   );
+  // Distribui indicadores em linha ou coluna conforme espaço e tamanho do texto.
   Widget _indicadoresDistribuidos(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final horizontal =

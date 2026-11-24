@@ -28,6 +28,7 @@ class BotaoPrincipal extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // O conteúdo muda entre texto simples e linha com ícone.
     final child = icon != null
         ? Row(
             mainAxisSize: expanded ? MainAxisSize.max : MainAxisSize.min,
@@ -35,6 +36,7 @@ class BotaoPrincipal extends StatelessWidget {
             children: [
               Icon(icon, size: 20, color: textColor ?? CoresApp.textOnPrimary),
               const SizedBox(width: EspacamentosApp.sm),
+              // Texto flexível evita transbordar em telas estreitas ou nomes longos.
               Flexible(
                 child: Text(
                   label,
@@ -69,6 +71,7 @@ class BotaoPrincipal extends StatelessWidget {
       child: child,
     );
 
+    // Expanded ocupa toda a largura; fora disso usa o tamanho do conteúdo.
     if (expanded) {
       return SizedBox(width: double.infinity, child: button);
     }

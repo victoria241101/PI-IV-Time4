@@ -9,6 +9,7 @@ class AcessoClinico extends StatelessWidget {
   final String perfil;
   final WidgetBuilder builder;
 
+    // Exige login e correspondência exata do perfil solicitado pela rota.
   static bool permitido(String perfil) {
     final sessao = SessaoUsuario.instancia;
     return sessao.estaLogado && sessao.tipoUsuario == perfil;
@@ -17,7 +18,9 @@ class AcessoClinico extends StatelessWidget {
   @override
   Widget build(BuildContext context) => AnimatedBuilder(
     animation: SessaoUsuario.instancia,
+    // Escuta a sessão para liberar ou retirar a tela quando ela muda.
     builder: (context, _) {
+      // Usuários autorizados recebem o conteúdo sem alterar o layout global.
       if (permitido(perfil)) return builder(context);
       final logado = SessaoUsuario.instancia.estaLogado;
       return Scaffold(

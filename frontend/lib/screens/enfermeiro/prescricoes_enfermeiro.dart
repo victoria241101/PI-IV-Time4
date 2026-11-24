@@ -25,6 +25,7 @@ class _PrescricoesEnfermeiroState extends State<PrescricoesEnfermeiro> {
   @override
   void initState() {
     super.initState();
+// Remove pacientes repetidos da agenda usando o petId como chave única.
     _pets = {
       for (final c in widget.consultas)
         if (c.petId != null && c.petId!.isNotEmpty) c.petId!: c,
@@ -33,6 +34,7 @@ class _PrescricoesEnfermeiroState extends State<PrescricoesEnfermeiro> {
     _carregar();
   }
 
+// Centraliza a leitura usada pela seleção e pelo botão Atualizar.
   void _carregar() {
     if (_petId != null && AcessoClinico.permitido('ENFERMEIRO')) {
       _leitura = AgendaClinica.instancia.servico.listarPrescricoes(_petId!);
@@ -56,6 +58,7 @@ class _PrescricoesEnfermeiroState extends State<PrescricoesEnfermeiro> {
             if (_pets.isEmpty)
               const Text('Nenhum paciente disponível nessa agenda.')
             else ...[
+// Trocar o paciente altera a chave da FutureBuilder e força nova leitura.
               DropdownButtonFormField<String>(
                 initialValue: _petId,
                 isExpanded: true,
@@ -78,6 +81,7 @@ class _PrescricoesEnfermeiroState extends State<PrescricoesEnfermeiro> {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton.icon(
+// Recria a leitura sem alterar o paciente selecionado.
                   onPressed: () => setState(_carregar),
                   icon: const Icon(Icons.refresh),
                   label: const Text('Atualizar'),
@@ -88,6 +92,7 @@ class _PrescricoesEnfermeiroState extends State<PrescricoesEnfermeiro> {
                   key: ValueKey(_petId),
                   future: _leitura,
                   builder: (context, snapshot) {
+// Os estados de carregamento, erro e lista vazia são tratados separadamente.
                     if (snapshot.connectionState != ConnectionState.done) {
                       return const Center(child: CircularProgressIndicator());
                     }

@@ -46,6 +46,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
   bool _carregandoInternacoes = false;
   String? _erroInternacoes;
 
+// Evita chamadas concorrentes e atualiza dados só para usuários autenticados.
   Future<void> _carregarInternacoes() async {
     if (_carregandoInternacoes || !SessaoUsuario.instancia.estaLogado) return;
     _carregandoInternacoes = true;
@@ -94,6 +95,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
 
   List<_ClienteVeterinario> get _clientes {
     final grupos = <String, List<ConsultaRecepcao>>{};
+// Agrupa por petId quando disponível, mantendo compatibilidade por nome e tutor.
     for (final consulta in [..._internados, if (!widget.somenteInternados) ...widget.consultas]) {
       final chave = consulta.petId ?? '${consulta.pet.toLowerCase()}|${consulta.tutor.toLowerCase()}';
       grupos.putIfAbsent(chave, () => []).add(consulta);
@@ -117,6 +119,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
     return clientes;
   }
 
+// Combina busca por texto e filtro de internação sem alterar a lista original.
   List<_ClienteVeterinario> get _clientesVisiveis {
     final termo = _buscaController.text.trim().toLowerCase();
     return _clientes.where((cliente) {
@@ -205,6 +208,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
     );
   }
 
+// Internados abrem o prontuário; demais clientes exibem o histórico de consultas.
   Widget _cartaoCliente(_ClienteVeterinario cliente) {
     final historico = _consultasDoPet(cliente);
     final internado = historico.any(_temInternacaoAtiva);
@@ -256,6 +260,7 @@ class _ClientesVeterinarioState extends State<ClientesVeterinario> {
     );
   }
 
+// Recarrega a lista ao retornar para refletir alta ou mudança de internação.
   Future<void> _abrirInternacao(_ClienteVeterinario cliente) async {
     final consulta = _consultasDoPet(cliente).where(_temInternacaoAtiva).first;
     await Navigator.of(context).push(

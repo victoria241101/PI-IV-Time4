@@ -45,6 +45,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   late final TextEditingController _retornoController;
   late final TextEditingController _observacoesController;
 
+// Os getters controlam quais campos e ações aparecem em cada etapa da consulta.
   bool get _emConsulta =>
       widget.consulta.status == StatusConsultaRecepcao.emConsulta;
   bool get _finalizada =>
@@ -55,6 +56,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
   @override
   void initState() {
     super.initState();
+// Uma cópia isolada permite editar sem publicar mudanças locais na agenda imediatamente.
     _prontuario = AgendaClinica.instancia
         .prontuarioDa(widget.consulta)
         .copiar();
@@ -76,6 +78,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     });
   }
 
+// A leitura agrega triagem, atendimento, prescrições e exames em um único estado.
   Future<void> _carregarProntuario() async {
     final dados = await AgendaClinica.instancia.servico.lerProntuario(
       widget.consulta.id,
@@ -176,6 +179,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
                       !_atendimentoSalvo,
                   maxLines: 3,
                 ),
+// Os avisos deixam explícito por que o prontuário está bloqueado ou liberado.
             if (_aguardandoVeterinario) ...[
               const SizedBox(height: EspacamentosApp.sm),
               _aviso(
@@ -565,6 +569,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     );
   }
 
+// A API inicia o atendimento antes de atualizar o status compartilhado na interface.
   Future<void> _iniciarConsulta() async {
     if (_salvando) return;
     setState(() => _salvando = true);
@@ -586,6 +591,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     }
   }
 
+// Ao finalizar, persiste o atendimento antes de encerrar e fechar a consulta.
   Future<void> _finalizarConsulta() async {
     if (_salvando) return;
     setState(() => _salvando = true);
@@ -638,6 +644,7 @@ class _ConsultaVeterinarioState extends State<ConsultaVeterinario> {
     }
   }
 
+// Evita criar dois atendimentos ao confirmar uma ação e ao finalizar a consulta.
   Future<void> _garantirAtendimentoSalvo() async {
     // Recupera um possível salvamento cuja resposta não chegou ao aplicativo.
     if (!_dadosCarregados || !_atendimentoSalvo) await _carregarProntuario();

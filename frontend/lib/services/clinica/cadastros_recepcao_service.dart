@@ -22,6 +22,7 @@ class CadastrosRecepcaoService {
     : baseUrl = baseUrl ?? ApiConfig.baseUrl;
   final String baseUrl;
 
+  // Gera um identificador aleatório para evitar reprocessar o mesmo cadastro.
   static String novaSolicitacao() {
     final random = Random.secure();
     return List.generate(
@@ -30,6 +31,7 @@ class CadastrosRecepcaoService {
     ).join();
   }
 
+  // Exige usuário logado antes de montar os cabeçalhos autenticados.
   Map<String, String> get _headers {
     final token = SessaoUsuario.instancia.token;
     if (token == null || token.isEmpty) {
@@ -57,6 +59,7 @@ class CadastrosRecepcaoService {
               'especie': dados['especie']?.toLowerCase(),
               'raca': dados['raca'],
               'sexo': dados['sexo']?.toLowerCase().replaceAll('ê', 'e'),
+              // Só envia o número preenchido quando a opção de microchip estiver ativa.
               'possuiMicrochip': dados['possuiMicrochip'] == 'true',
               'microchip': dados['possuiMicrochip'] == 'true'
                   ? dados['microchip']?.trim()
@@ -68,6 +71,7 @@ class CadastrosRecepcaoService {
         )
         .timeout(const Duration(seconds: 30));
     final resultado = processarRespostaJson(resposta);
+    // Exige confirmação dos IDs de tutor e pet antes de concluir o cadastro.
     if (resultado is! Map ||
         resultado['tutorId'] is! String ||
         resultado['petId'] is! String) {
@@ -96,6 +100,7 @@ class CadastrosRecepcaoService {
           }),
         )
         .timeout(const Duration(seconds: 30));
+    // Impede concluir uma operação caso a sessão tenha sido trocada.
     if (SessaoUsuario.instancia.token != token) {
       throw StateError('A sessão mudou. Entre novamente.');
     }

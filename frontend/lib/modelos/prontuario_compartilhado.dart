@@ -43,12 +43,14 @@ class ProntuarioCompartilhado {
   DateTime? internacaoIniciadaEm;
   DateTime? internacaoFinalizadaEm;
   String observacoes;
+  // As listas concentram dados usados por triagem, consulta e internação.
   final List<MedicamentoPrescrito> medicamentos;
   final List<ExameVeterinario> exames;
   final List<ProcedimentoInternacao> procedimentosInternacao;
   final List<MedicacaoInternacao> medicacoesInternacao;
   final List<NotaInternacao> notasInternacao;
 
+  // Converte o registro da API em objetos locais editáveis pela tela.
   void lerInternacao(Map<String, dynamic> registro) {
     internacaoId = registro['_id'] as String;
     versaoInternacao = registro['versao'] as int? ?? 0;
@@ -77,6 +79,7 @@ class ProntuarioCompartilhado {
       ..addAll((p['notasInternacao'] as List? ?? []).map((e) => NotaInternacao(texto: e['texto'], autor: e['autor'])));
   }
 
+  // Serializa somente os dados de prontuário enviados ao backend.
   Map<String, dynamic> dadosInternacao() => {
     'observacoesTriagem': observacoesTriagem,
     'descricaoConsulta': descricaoConsulta,
@@ -93,6 +96,7 @@ class ProntuarioCompartilhado {
     'notasInternacao': notasInternacao.map((n) => {'texto': n.texto, 'autor': n.autor}).toList(),
   };
 
+  // Copiar protege o objeto original ao preparar alterações na interface.
   ProntuarioCompartilhado copiar() => ProntuarioCompartilhado(
     atendimentoId: atendimentoId,
     internacaoId: internacaoId,
@@ -136,6 +140,7 @@ class MedicamentoPrescrito {
   final String nome, dosagem, orientacao, frequencia, duracao, status;
   final String? id, petId, atendimentoId;
 
+  // Campos essenciais são validados antes de criar a prescrição.
   factory MedicamentoPrescrito.fromJson(Map<String, dynamic> dados) {
     String texto(String campo) {
       final valor = dados[campo];
@@ -268,6 +273,7 @@ class ExameVeterinario {
   final String status;
   final String? resultado;
 
+  // O estado da API define quando o exame já terminou.
   bool get concluido => status == 'concluido';
 
   factory ExameVeterinario.fromJson(Map<String, dynamic> dados) {

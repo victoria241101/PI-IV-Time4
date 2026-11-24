@@ -13,6 +13,7 @@ import 'package:pet_care/widgets/campo_formulario_app.dart';
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 import 'package:pet_care/widgets/cartao_opcao_app.dart';
 
+// Cabeçalho compartilhado pelas etapas de identificação e cadastro.
 class CabecalhoEtapaCadastro extends StatelessWidget {
   const CabecalhoEtapaCadastro({
     super.key,
@@ -71,6 +72,7 @@ class CabecalhoEtapaCadastro extends StatelessWidget {
   }
 }
 
+// A escolha inicial define o caminho para tutor existente ou novo cadastro.
 class InicioCadastroRecepcao extends StatelessWidget {
   const InicioCadastroRecepcao({
     super.key,
@@ -133,6 +135,7 @@ class CpfResponsavelCadastro extends StatelessWidget {
             style: TipografiaApp.bodySmall,
           ),
           const SizedBox(height: EspacamentosApp.md),
+          // O campo aceita dígitos e só libera a busca após validar onze números.
           CampoFormularioApp(
             controller: controller,
             label: 'CPF do responsável',
@@ -157,6 +160,7 @@ class CpfResponsavelCadastro extends StatelessWidget {
     );
   }
 
+  // Remove qualquer caractere não numérico antes de verificar o tamanho do CPF.
   String? _validarCpf(String? value) {
     final cpf = (value ?? '').replaceAll(RegExp(r'\D'), '');
     return cpf.length == 11 ? null : 'Informe os 11 números do CPF';
@@ -222,6 +226,7 @@ class PetsResponsavelCadastro extends StatelessWidget {
         const SizedBox(height: EspacamentosApp.lg),
         Text('Escolha um pet', style: TipografiaApp.heading3),
         const SizedBox(height: EspacamentosApp.sm),
+        // Cada entrada representa um pet vinculado ao responsável localizado.
         for (final pet in pets.entries) ...[
           CartaoOpcaoApp(
             icon: Icons.pets_rounded,
@@ -274,6 +279,7 @@ class SucessoCadastroRecepcao extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Uma consulta agendada muda a confirmação; outros casos indicam triagem.
     final agendada = consulta?.status == StatusConsultaRecepcao.agendada;
 
     return CartaoClinica(
@@ -311,6 +317,7 @@ class SucessoCadastroRecepcao extends StatelessWidget {
             textAlign: TextAlign.center,
           ),
           const SizedBox(height: EspacamentosApp.lg),
+          // Reinicia o fluxo para permitir registrar ou encaminhar outro paciente.
           BotaoClinica(
             label: 'Novo cadastro',
             icon: Icons.person_add_alt_1_rounded,

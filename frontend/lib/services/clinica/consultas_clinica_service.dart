@@ -21,6 +21,7 @@ class ConsultasClinicaService {
   final String baseUrl;
   final String? Function() _obterToken;
 
+  // Todas as chamadas exigem sessão; o backend continua validando o perfil.
   String get _token {
     final token = _obterToken();
     if (token == null || token.trim().isEmpty) {
@@ -36,6 +37,7 @@ class ConsultasClinicaService {
   Uri _uri(String caminho) =>
       Uri.parse('${baseUrl.replaceFirst(RegExp(r'/+$'), '')}$caminho');
 
+  // Centraliza GET, POST e PATCH de internação e detecta troca de sessão.
   Future<Map<String, dynamic>> _internacaoHttp(String caminho, {Map<String, dynamic>? corpo, bool criar = false}) async {
     final token = _token;
     final uri = _uri(caminho);
@@ -91,6 +93,7 @@ class ConsultasClinicaService {
         '${data.year.toString().padLeft(4, '0')}-${data.month.toString().padLeft(2, '0')}-${data.day.toString().padLeft(2, '0')}';
     final token = _token;
     final consultas = <ConsultaClinicaApi>[];
+    // Percorre todas as páginas até a API informar que terminou.
     for (var pagina = 1; pagina <= 9999; pagina++) {
       if (_token != token) {
         throw StateError('A sessão mudou. Atualize a agenda.');
@@ -123,6 +126,7 @@ class ConsultasClinicaService {
     throw StateError('Limite de páginas da agenda excedido.');
   }
 
+  // Operações de mudança não são reenviadas automaticamente pelo cliente.
   Future<Map<String, dynamic>> _enviar(
     String id,
     String acao, {
@@ -175,6 +179,7 @@ class ConsultasClinicaService {
     String petId, {
     String? atendimentoId,
   }) async {
+    // Valida os vínculos antes de aceitar a resposta de uma prescrição.
     if (petId.trim().isEmpty) throw ArgumentError('Pet não identificado.');
     final token = _token;
     final resposta = await http
@@ -321,6 +326,7 @@ class ConsultasClinicaService {
 
   /// Lista exames do pet via GET /exames/pet/:petId.
   /// Acessível por VETERINARIO e ENFERMEIRO.
+  // Veterinário e enfermagem podem consultar exames do mesmo pet.
   Future<List<ExameVeterinario>> listarExames(String petId) async {
     if (petId.trim().isEmpty) throw ArgumentError('Pet não identificado.');
     final token = _token;

@@ -19,6 +19,7 @@ class AvatarPet extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // URL vazia ou nula usa a representação padrão do pet.
     final url = fotoUrl;
     return ClipOval(
       child: url == null || url.isEmpty
@@ -29,11 +30,13 @@ class AvatarPet extends StatelessWidget {
               height: tamanho,
               fit: BoxFit.cover,
               semanticLabel: 'Foto de $nome',
+              // Falha no download também cai no avatar neutro, sem quebrar o layout.
               errorBuilder: (_, _, _) => _avatarVazio(),
             ),
     );
   }
 
+  // O placeholder mantém tamanho e alinhamento iguais à foto carregada.
   Widget _avatarVazio() => Container(
     width: tamanho,
     height: tamanho,

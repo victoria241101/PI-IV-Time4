@@ -55,6 +55,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
   late final DateTime _hoje;
 
   @override
+// Assina a agenda antes da primeira carga para refletir alterações de outras telas.
   void initState() {
     super.initState();
     _hoje = DateUtils.dateOnly(DateTime.now());
@@ -66,6 +67,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     });
   }
 
+// Selecionar outro dia no calendário reutiliza esta chamada à API da agenda.
   Future<void> _carregarAgenda([DateTime? dia]) async {
     try {
       await AgendaClinica.instancia.carregarDia(dia ?? _hoje);
@@ -90,6 +92,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     if (mounted) setState(() {});
   }
 
+// Identifica o responsável pela sessão, com fallback pelo nome das consultas.
   String get _profissionalAtual {
     if (widget.profissional != null) return widget.profissional!;
     final nome = _chaveProfissional(SessaoUsuario.instancia.nomeUsuario ?? '');
@@ -107,6 +110,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
   String _chaveProfissional(String nome) =>
       nome.toLowerCase().replaceAll(RegExp('[^a-z0-9]'), '');
 
+// Sessão, perfil compartilhado e profissional determinam as consultas exibidas.
   List<ConsultaRecepcao> get _consultasDoPerfil {
     final consultas = AgendaClinica.instancia.consultas
         .where(
@@ -135,6 +139,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
       )
       .toList();
 
+// Permite perfis especializados substituírem a página padrão sem mudar a navegação.
   void _abrirConsulta(ConsultaRecepcao consulta) {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -157,6 +162,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     return LayoutClinica(
       nomePadrao: _profissionalAtual,
       abaAtual: _abaAtual,
+// Trocar de aba atualiza o estado; a primeira aba confirma a agenda do dia.
       onSelecionarAba: (index) {
         setState(() => _abaAtual = index);
         if (index == 0 && SessaoUsuario.instancia.estaLogado) _carregarAgenda();

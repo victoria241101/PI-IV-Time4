@@ -26,6 +26,7 @@ class LayoutClinica extends StatelessWidget {
   final List<Widget> paginas;
   final BottomNavigationBarItem terceiraAba;
   final VoidCallback onNotificacao;
+  // O perfil abre em modo compacto dentro da mesma navegação clínica.
   void _abrirPerfil(BuildContext context) {
     final perfil = SessaoUsuario.instancia.tipoUsuario;
     Navigator.of(context).push(MaterialPageRoute<void>(
@@ -38,6 +39,7 @@ class LayoutClinica extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // A saudação usa a hora local apenas para apresentação.
     final hora = TimeOfDay.now().hour;
     final saudacao = hora < 12
         ? 'Bom dia'
@@ -68,12 +70,14 @@ class LayoutClinica extends StatelessWidget {
                 },
               ),
             ),
+            // IndexedStack preserva o estado das abas ao alternar entre elas.
             Expanded(
               child: IndexedStack(index: abaAtual, children: paginas),
             ),
           ],
         ),
       ),
+      // A terceira aba é fornecida pela tela conforme o perfil ativo.
       bottomNavigationBar: BarraNavegacaoApp(
         currentIndex: abaAtual,
         onTap: onSelecionarAba,

@@ -22,10 +22,13 @@ class AgendaRecepcao extends StatelessWidget {
   final List<ConsultaRecepcao> consultas;
   final ValueChanged<ConsultaRecepcao> onConfirmarChegada;
 
+  // Compõe o painel do dia com contadores, data e atendimentos.
   @override
   Widget build(BuildContext context) {
+    // Cria uma cópia para ordenar sem modificar a coleção recebida pelo componente.
     final ordenadas = consultas.toList()
       ..sort((a, b) => a.horario.compareTo(b.horario));
+    // Agrupa os atendimentos pelo horário para formar blocos visuais separados.
     final grupos = <String, List<ConsultaRecepcao>>{};
     for (final consulta in ordenadas) {
       grupos.putIfAbsent(consulta.horario, () => []).add(consulta);
@@ -40,6 +43,7 @@ class AgendaRecepcao extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // Resume os estados aguardando, em atendimento e finalizado para a visão do dia.
           ResumoClinica(
             titulo: 'Acompanhamento de hoje',
             distribuirIndicadores: true,
@@ -92,6 +96,7 @@ class AgendaRecepcao extends StatelessWidget {
             ],
           ),
           const SizedBox(height: EspacamentosApp.sm),
+          // Quando não há consultas, mostra um estado vazio em vez de uma lista vazia.
           if (ordenadas.isEmpty)
             _vazio()
           else
@@ -147,6 +152,7 @@ class AgendaRecepcao extends StatelessWidget {
     );
   }
 
+  // A ação de chegada só fica disponível enquanto o status ainda é agendada.
   Widget _atendimento(ConsultaRecepcao consulta) => CartaoAtendimento(
     consulta: consulta,
     mostrarSala: true,

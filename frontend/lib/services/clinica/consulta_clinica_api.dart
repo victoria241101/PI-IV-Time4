@@ -34,6 +34,7 @@ class ConsultaClinicaApi {
   final bool podeIniciarTriagem, podeContinuarTriagem;
 
   // Canceladas e estados desconhecidos não viram consultas ativas na tela.
+  // Estados técnicos cancelados ou desconhecidos não entram na agenda da tela.
   StatusConsultaRecepcao? get statusTela => switch (status) {
     'agendada' => StatusConsultaRecepcao.agendada,
     'chegada_confirmada' => StatusConsultaRecepcao.aguardandoTriagem,
@@ -45,6 +46,7 @@ class ConsultaClinicaApi {
   };
 
   factory ConsultaClinicaApi.fromJson(Map<String, dynamic> json) {
+    // Campos obrigatórios com texto vazio são rejeitados na leitura da API.
     String texto(String chave) {
       final valor = json[chave];
       if (valor is! String || valor.isEmpty) {
@@ -59,6 +61,7 @@ class ConsultaClinicaApi {
       return texto(chave);
     }
 
+    // A hora continua civil da clínica, sem conversão automática de fuso.
     final data = texto('dataHora');
     if (!RegExp(r'^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?$')
             .hasMatch(data) ||
@@ -67,6 +70,7 @@ class ConsultaClinicaApi {
             data.substring(0, 19)) {
       throw const FormatException('Data/hora da consulta inválida.');
     }
+    // Duração zero ou negativa não representa um agendamento válido.
     final duracao = json['duracaoMinutos'];
     if (duracao is! int || duracao <= 0) {
       throw const FormatException('Duração da consulta inválida.');

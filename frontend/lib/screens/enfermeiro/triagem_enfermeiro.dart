@@ -40,6 +40,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     _observacoesController = TextEditingController(
       text: _agenda.prontuarioDa(widget.consulta).observacoesTriagem,
     );
+    // O cadastro é consultado após a primeira montagem da tela.
     WidgetsBinding.instance.addPostFrameCallback((_) async {
       try {
         await _carregarProntuario();
@@ -58,6 +59,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
   Future<void> _carregarProntuario() async {
     final dados = await _agenda.servico.lerProntuario(widget.consulta.id);
     if (!mounted) return;
+// A API é a fonte autoritativa; os campos são preenchidos após a resposta.
     final triagem = dados['triagem'];
     if (triagem is Map) {
       _peso.text = '${triagem['peso'] ?? ''}';
@@ -78,6 +80,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     super.dispose();
   }
 
+// Há edição apenas durante a triagem em andamento e após o carregamento dos dados.
   bool get _podeEditar =>
       widget.consulta.status == StatusConsultaRecepcao.emTriagem &&
       _dadosCarregados;
@@ -85,6 +88,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
   String get _responsavel =>
       SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro';
 
+// Observações locais atualizam o prontuário antes da mudança de etapa.
   void _salvarObservacoes({StatusConsultaRecepcao? novoStatus}) {
     _agenda.prontuarioDa(widget.consulta).observacoesTriagem =
         _observacoesController.text.trim();
@@ -95,6 +99,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
     }
   }
 
+// O botão executa dois fluxos: iniciar ou concluir a triagem.
   Future<void> _avancarEtapa() async {
     if (_salvando) return;
     setState(() => _salvando = true);
@@ -107,6 +112,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
         _salvarObservacoes(novoStatus: StatusConsultaRecepcao.emTriagem);
       } else if (widget.consulta.status == StatusConsultaRecepcao.emTriagem) {
         {
+// A validação impede enviar peso ou temperatura inválidos e sintomas vazios.
           if (!_triagemSalva) {
             final peso = double.tryParse(_peso.text.replaceAll(',', '.'));
             final temperatura = double.tryParse(
@@ -137,6 +143,7 @@ class _TriagemEnfermeiroState extends State<TriagemEnfermeiro> {
         _salvarObservacoes(
           novoStatus: StatusConsultaRecepcao.aguardandoVeterinario,
         );
+// Ao concluir, a tela volta à fila para refletir o novo estado.
         Navigator.of(context).pop();
       }
     } catch (erro) {

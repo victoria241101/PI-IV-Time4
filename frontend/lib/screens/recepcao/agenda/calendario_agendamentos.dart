@@ -48,6 +48,7 @@ class CalendarioAgendamentos extends StatefulWidget {
 
 class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
   late DateTime _mesVisivel;
+  // Mantém separados o mês visível na grade e o dia efetivamente selecionado.
   late DateTime _diaSelecionado;
 
   static const _meses = [
@@ -74,6 +75,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
     _mesVisivel = DateTime(_diaSelecionado.year, _diaSelecionado.month);
   }
 
+  // Filtra pela data selecionada e ordena as consultas pelo horário.
   List<ConsultaRecepcao> get _consultasDoDia {
     final consultas =
         widget.consultas
@@ -109,6 +111,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
             ),
             const SizedBox(height: EspacamentosApp.md),
           ],
+          // A grade mensal permite escolher uma data e consultar seus agendamentos.
           _calendario(),
           const SizedBox(height: EspacamentosApp.md),
           if (widget.onNovoAgendamento != null) ...[
@@ -229,6 +232,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
               mainAxisExtent: 42,
             ),
             itemBuilder: (context, index) {
+              // Cada célula conhece seu dia real, o mês de origem e a quantidade agendada.
               final dia = DateUtils.dateOnly(
                 inicioGrade.add(Duration(days: index)),
               );
@@ -306,6 +310,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
     );
   }
 
+  // Trocar de mês seleciona o primeiro dia e repassa a escolha ao componente pai.
   void _mudarMes(int delta) {
     setState(() {
       _mesVisivel = DateTime(_mesVisivel.year, _mesVisivel.month + delta);
@@ -455,6 +460,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
     );
   }
 
+  // Exibe os dados da consulta em um painel inferior e oferece as ações permitidas.
   Future<void> _abrirDetalhes(ConsultaRecepcao consulta) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -741,6 +747,7 @@ class _FormularioReagendamentoState extends State<_FormularioReagendamento> {
     _horario = widget.consulta.horario;
   }
 
+  // Verifica conflitos considerando profissional, data e duração das consultas.
   bool _disponivel(String profissional, String horario) {
     final inicioNovo = _minutos(horario);
     return !widget.consultas.any((consulta) {
@@ -765,6 +772,7 @@ class _FormularioReagendamentoState extends State<_FormularioReagendamento> {
         if (_profissional.isNotEmpty) _profissional,
       }.toList();
 
+  // A lista exibida no reagendamento contém somente horários livres.
   List<String> get _horariosDisponiveis => _horarios
       .where((horario) => _disponivel(_profissional, horario))
       .toList();
