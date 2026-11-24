@@ -370,7 +370,6 @@ class _PerfilTutorState extends State<PerfilTutor> {
 
                       try {
                         final servico = PerfilService.autenticado(
-                          baseUrl: 'http://localhost:3000',
                           token: SessaoUsuario.instancia.token!,
                         );
 

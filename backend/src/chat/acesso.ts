@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { ObjectId, type Filter } from "mongodb";
 import type { TipoConversa, UsuarioAutenticado, PapelChat, MensagemDocumento } from "./tipos.js";
 import { LADO_SECRETARIA, PAPEL_SECRETARIA } from "./tipos.js";

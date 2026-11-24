@@ -1,6 +1,6 @@
-package petcare.servidor;
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
 
-import petcare.servidor.banco.MongoConexao;
+package petcare.servidor;
 
 import java.io.IOException;
 import java.net.ServerSocket;
@@ -8,6 +8,8 @@ import java.net.Socket;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+
+import petcare.servidor.banco.MongoConexao;
 
 /**
  * Classe principal do backend PetCare.

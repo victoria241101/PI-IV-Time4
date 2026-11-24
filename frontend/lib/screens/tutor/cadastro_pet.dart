@@ -1,4 +1,6 @@
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
@@ -17,10 +19,12 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
 
   final _nomeController = TextEditingController();
   final _racaController = TextEditingController();
+  final _pesoController = TextEditingController();
 
   String? _especie;
   String? _sexo;
   DateTime? _dataNascimento;
+  bool? _possuiMicrochip;
 
   bool _salvando = false;
 
@@ -28,6 +32,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
   void dispose() {
     _nomeController.dispose();
     _racaController.dispose();
+    _pesoController.dispose();
     super.dispose();
   }
 
@@ -88,17 +93,31 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
       return;
     }
 
+    final peso = double.tryParse(
+      _pesoController.text.trim().replaceAll(',', '.'),
+    );
+
+    if (_dataNascimento == null ||
+        peso == null ||
+        !peso.isFinite ||
+        peso <= 0 ||
+        _possuiMicrochip == null) {
+      return;
+    }
+
     setState(() {
       _salvando = true;
     });
 
     try {
       await AuthService.instancia.cadastrarPet(
-        nome: _nomeController.text,
+        nome: _nomeController.text.trim(),
         especie: _especie!,
-        raca: _racaController.text,
+        raca: _racaController.text.trim(),
         sexo: _sexo!,
         dataNascimento: _formatarData(_dataNascimento!),
+        peso: peso,
+        possuiMicrochip: _possuiMicrochip!,
       );
 
       // Atualiza a sessão somente depois do cadastro confirmado.
@@ -134,6 +153,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
   InputDecoration _decoracaoCampo({
     required String hintText,
     required IconData icon,
+    Widget? suffixIcon,
   }) {
     return InputDecoration(
       hintText: hintText,
@@ -146,6 +166,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
         color: CoresApp.primary,
         size: 21,
       ),
+      suffixIcon: suffixIcon,
       filled: true,
       fillColor: CoresApp.surfaceSoft,
       contentPadding: const EdgeInsets.symmetric(
@@ -342,6 +363,45 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
     );
   }
 
+  Widget _campoMicrochip() {
+    return DropdownButtonFormField<bool>(
+      initialValue: _possuiMicrochip,
+      isExpanded: true,
+      icon: const Icon(
+        Icons.keyboard_arrow_down_rounded,
+        color: CoresApp.textSecondary,
+      ),
+      decoration: _decoracaoCampo(
+        hintText: 'Selecione Sim ou Não',
+        icon: Icons.memory_outlined,
+      ),
+      items: const [
+        DropdownMenuItem<bool>(
+          value: true,
+          child: Text('Sim'),
+        ),
+        DropdownMenuItem<bool>(
+          value: false,
+          child: Text('Não'),
+        ),
+      ],
+      onChanged: _salvando
+          ? null
+          : (value) {
+        setState(() {
+          _possuiMicrochip = value;
+        });
+      },
+      validator: (value) {
+        if (value == null) {
+          return 'Informe se o pet possui microchip.';
+        }
+
+        return null;
+      },
+    );
+  }
+
   Widget _cartaoFormulario({required Widget child}) {
     return Container(
       padding: const EdgeInsets.all(20),
@@ -407,7 +467,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
               ),
               const SizedBox(height: 7),
               const Text(
-                'Preencha os dados básicos do seu companheiro.',
+                'Preencha todos os dados do seu companheiro.',
                 style: TextStyle(
                   color: CoresApp.textSecondary,
                   fontSize: 13,
@@ -469,58 +529,48 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                     const SizedBox(height: 22),
                     _campoLabel('Data de nascimento'),
                     _campoDataNascimento(),
-                  ],
-                ),
-              ),
-              const SizedBox(height: 20),
-              Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  color: CoresApp.surfaceSoft,
-                  borderRadius: BorderRadius.circular(17),
-                  border: Border.all(
-                    color: CoresApp.accentOrange.withAlpha(65),
-                  ),
-                ),
-                child: const Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Icon(
-                      Icons.lightbulb_outline_rounded,
-                      color: CoresApp.accentOrangeDark,
-                      size: 22,
-                    ),
-                    SizedBox(width: 11),
-                    Expanded(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            'Você pode completar a ficha depois',
-                            style: TextStyle(
-                              color: CoresApp.accentOrangeDark,
-                              fontSize: 13,
-                              fontWeight: FontWeight.w800,
-                            ),
-                          ),
-                          SizedBox(height: 5),
-                          Text(
-                            'Informações como peso e microchip podem ser adicionadas posteriormente.',
-                            style: TextStyle(
-                              color: CoresApp.accentOrangeDark,
-                              fontSize: 12,
-                              height: 1.5,
-                            ),
-                          ),
-                        ],
+                    const SizedBox(height: 22),
+                    _campoLabel('Peso (kg)'),
+                    TextFormField(
+                      controller: _pesoController,
+                      enabled: !_salvando,
+                      keyboardType:
+                      const TextInputType.numberWithOptions(
+                        decimal: true,
                       ),
+                      textInputAction: TextInputAction.next,
+                      inputFormatters: [
+                        FilteringTextInputFormatter.allow(
+                          RegExp(r'[0-9.,]'),
+                        ),
+                      ],
+                      decoration: _decoracaoCampo(
+                        hintText: 'Ex.: 5,5',
+                        icon: Icons.monitor_weight_outlined,
+                      ),
+                      validator: (value) {
+                        final peso = double.tryParse(
+                          (value ?? '').trim().replaceAll(',', '.'),
+                        );
+
+                        if (peso == null ||
+                            !peso.isFinite ||
+                            peso <= 0) {
+                          return 'Digite um peso válido maior que zero.';
+                        }
+
+                        return null;
+                      },
                     ),
+                    const SizedBox(height: 22),
+                    _campoLabel('Possui microchip?'),
+                    _campoMicrochip(),
                   ],
                 ),
               ),
               const SizedBox(height: 25),
               SizedBox(
-                height: 56,
+                width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _salvando ? null : _cadastrarPet,
                   style: ElevatedButton.styleFrom(
@@ -529,6 +579,10 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                     disabledBackgroundColor:
                     CoresApp.primary.withAlpha(120),
                     elevation: 0,
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(17),
                     ),
@@ -544,14 +598,19 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                   )
                       : const Row(
                     mainAxisAlignment: MainAxisAlignment.center,
+                    mainAxisSize: MainAxisSize.min,
                     children: [
                       Icon(Icons.pets_rounded, size: 21),
                       SizedBox(width: 10),
-                      Text(
-                        'Cadastrar pet',
-                        style: TextStyle(
-                          fontSize: 15,
-                          fontWeight: FontWeight.w800,
+                      Flexible(
+                        child: Text(
+                          'Cadastrar pet',
+                          textAlign: TextAlign.center,
+                          softWrap: true,
+                          style: TextStyle(
+                            fontSize: 15,
+                            fontWeight: FontWeight.w800,
+                          ),
                         ),
                       ),
                       SizedBox(width: 8),
@@ -646,7 +705,7 @@ class _CadastroPetScreenState extends State<CadastroPetScreen> {
                 ),
                 SizedBox(height: 7),
                 Text(
-                  'Cadastre as informações básicas para começar a organizar os cuidados.',
+                  'Cadastre as informações para começar a organizar os cuidados.',
                   style: TextStyle(
                     color: Colors.white70,
                     fontSize: 12,

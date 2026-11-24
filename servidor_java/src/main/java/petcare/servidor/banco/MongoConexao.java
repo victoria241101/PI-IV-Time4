@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 package petcare.servidor.banco;
 
 import com.mongodb.client.MongoClient;

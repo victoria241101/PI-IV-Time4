@@ -1,16 +1,20 @@
+// Alinne Monteiro de Melo | RA: 24801649
 
 import type { Request, Response, NextFunction } from "express";
 import { verificarToken } from "../jwtService.js";
 import { obterBanco } from "../database.js";
 import { ObjectId, type Filter } from "mongodb";
 
+// confere o token e se a conta ainda está ativa
 export async function autenticar(
     req: Request,
     res: Response,
     next: NextFunction
 ) {
+    // pega o cabeçalho de autorização da requisição
     const autorizacao = req.headers.authorization;
 
+    // exige o formato bearer seguido do token
     if (!autorizacao || !autorizacao.startsWith("Bearer ")) {
         res.status(401).json({
             mensagem: "Token de autenticação não informado."
@@ -18,6 +22,7 @@ export async function autenticar(
         return;
     }
 
+    // remove o prefixo bearer para ficar só com o token
     const token = autorizacao.slice(7);
 
     if (!token) {
@@ -31,6 +36,7 @@ export async function autenticar(
     let usuarioId: string;
 
     try {
+        // valida o token e lê o id do usuário
         usuarioId = await verificarToken(token);
     } catch {
         return res.status(401).json({
@@ -50,12 +56,14 @@ export async function autenticar(
 
     const usuarios = banco.collection<UsuarioDocumento>("usuarios");
 
+    // usa o id no formato do mongodb quando possível e aceita id em texto
     const filtro: Filter<UsuarioDocumento> = {
         _id: ObjectId.isValid(usuarioId)
             ? new ObjectId(usuarioId)
             : usuarioId
     };
 
+    // consulta a conta para conferir se ela continua ativa
     const usuario = await usuarios.findOne(filtro);
 
 
@@ -65,12 +73,14 @@ export async function autenticar(
             });
         }
 
+        // guarda o id e o tipo da conta para os próximos middlewares
         res.locals.usuarioId = usuarioId;
         res.locals.usuarioTipo = usuario.tipo;
 
         
 
     } catch (erro) {
+        // registra a falha na consulta e devolve erro de serviço indisponível
         console.error("Erro ao consultar usuário autenticado:", erro);
 
         return res.status(503).json({
@@ -78,10 +88,12 @@ export async function autenticar(
         });
     }
     
+    // segue para a próxima etapa depois de validar a conta
     next();
 
 }
 
+// aceita visitantes e valida o usuário quando ele envia um token
 export async function autenticarOpcional(
     req: Request,
     res: Response,
@@ -89,13 +101,13 @@ export async function autenticarOpcional(
 ) {
     const autorizacao = req.headers.authorization;
 
-    // Visitante sem token pode continuar
+    // visitante sem token pode continuar
     if (!autorizacao) {
         next();
         return;
     }
 
-    // Se enviou autenticação, precisa ser válida
+    // se enviou autenticação, precisa ser válida
     if (!autorizacao.startsWith("Bearer ")) {
         res.status(401).json({
             mensagem: "Formato de autenticação inválido."
@@ -103,6 +115,7 @@ export async function autenticarOpcional(
         return;
     }
 
+    // pega a parte do cabeçalho que deve conter o token
     const token = autorizacao.slice(7);
 
     if (!token) {
@@ -112,6 +125,6 @@ export async function autenticarOpcional(
         return;
     }
 
-    // Reaproveita a autenticação existente
+    // reaproveita a autenticação existente
     await autenticar(req, res, next);
 }

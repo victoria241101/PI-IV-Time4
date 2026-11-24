@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,13 +9,14 @@ import { notificarAlta } from "../notificacoes/eventos.js";
 
 const router = Router();
 
-// Cadastra orientações de alta clínica
+// cadastra orientações de alta clínica
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os dados enviados no corpo da requisição
             const {
                 petId,
                 cuidadosEmCasa,
@@ -22,7 +25,7 @@ router.post(
                 orientacoesRetorno
             } = req.body ?? {};
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             if (
                 typeof petId !== "string" || !petId.trim() ||
                 typeof cuidadosEmCasa !== "string" || !cuidadosEmCasa.trim() ||
@@ -37,7 +40,7 @@ router.post(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -53,14 +56,14 @@ router.post(
                 });
             }
 
-            // Aceita IDs em texto e ObjectIds
+            // aceita ids em texto e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
                 ativo?: boolean;
@@ -69,13 +72,14 @@ router.post(
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Salva as orientações de alta
+            // salva as orientações de alta
             const resultado = await banco
                 .collection("orientacoesAlta")
                 .insertOne({
@@ -94,6 +98,7 @@ router.post(
                 referenciaId: resultado.insertedId
             });
 
+            // confirma o cadastro e devolve os dados do registro criado
             return res.status(201).json({
                 mensagem: "Orientações de alta cadastradas com sucesso!",
                 orientacaoId: resultado.insertedId
@@ -109,7 +114,7 @@ router.post(
     }
 );
 
-// Lista as orientações de alta de um pet
+// lista as orientações de alta de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -126,14 +131,14 @@ router.get(
 
             const banco = obterBanco();
 
-            // Aceita IDs antigos em texto e ObjectIds
+            // aceita ids antigos em texto e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco
                 .collection<{
                     _id: string | ObjectId;
@@ -143,18 +148,20 @@ router.get(
                     _id: { $in: idsPet }
                 });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Busca as orientações de alta do pet
+            // busca as orientações de alta do pet
             const orientacoes = await banco
                 .collection("orientacoesAlta")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataRegistro: -1 })
                 .toArray();
 
@@ -178,7 +185,7 @@ router.get(
     }
 );
 
-// Permite que o tutor consulte as orientações de alta do próprio pet
+// permite que o tutor consulte as orientações de alta do próprio pet
 router.get(
     "/tutor/pet/:petId",
     autenticar,
@@ -194,16 +201,17 @@ router.get(
             }
 
             const banco = obterBanco();
+            // pega o id que a autenticação colocou na resposta
             const usuarioId = new ObjectId(res.locals.usuarioId);
 
-            // Aceita IDs antigos em texto e novos ObjectIds
+            // aceita ids antigos em texto e novos objectids
             const idsPossiveis: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPossiveis.push(new ObjectId(petId));
             }
 
-            // Busca o pet
+            // busca o pet
             const pet = await banco.collection<{
                 _id: string | ObjectId;
                 tutorId: string | ObjectId;
@@ -212,13 +220,14 @@ router.get(
                 _id: { $in: idsPossiveis }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Verifica se o usuário é o tutor desse pet
+            // verifica se o usuário é o tutor desse pet
             const tutor = await banco.collection<{
                 _id: string | ObjectId;
                 usuarioId: ObjectId;
@@ -233,12 +242,13 @@ router.get(
                 });
             }
 
-            // Busca as orientações de alta
+            // busca as orientações de alta
             const orientacoes = await banco
                 .collection("orientacoesAlta")
                 .find({
                     petId: { $in: idsPossiveis }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataRegistro: -1 })
                 .toArray();
 

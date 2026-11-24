@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,13 +9,14 @@ import { notificarTarefaClinica } from "../notificacoes/eventos.js";
 
 const router = Router();
 
-// Cadastra uma tarefa clínica
+// cadastra uma tarefa clínica
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os dados enviados no corpo da requisição
             const {
                 petId,
                 descricao,
@@ -22,7 +25,7 @@ router.post(
                 observacoes
             } = req.body;
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             if (
                 typeof petId !== "string" || !petId.trim() ||
                 typeof descricao !== "string" || !descricao.trim() ||
@@ -43,7 +46,7 @@ router.post(
                 });
             }
 
-            // Verifica se o prazo é uma data válida
+            // verifica se o prazo é uma data válida
             const dataPrazo = new Date(prazo);
 
             if (isNaN(dataPrazo.getTime())) {
@@ -54,7 +57,7 @@ router.post(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -70,14 +73,14 @@ router.post(
                 });
             }
 
-            // Aceita IDs antigos em texto e ObjectIds
+            // aceita ids antigos em texto e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
                 ativo?: boolean;
@@ -86,13 +89,14 @@ router.post(
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Verifica se o enfermeiro responsável existe
+            // verifica se o enfermeiro responsável existe
             const enfermeiro = await banco.collection<{
                 _id: string;
                 ativo: boolean;
@@ -107,7 +111,7 @@ router.post(
                 });
             }
 
-            // Registra a tarefa clínica
+            // registra a tarefa clínica
             const resultado = await banco
                 .collection("tarefasClinicas")
                 .insertOne({
@@ -133,6 +137,7 @@ router.post(
                 new ObjectId(res.locals.usuarioId)
             );
 
+            // confirma o cadastro e devolve os dados do registro criado
             return res.status(201).json({
                 mensagem: "Tarefa clínica cadastrada com sucesso!",
                 tarefaId: resultado.insertedId
@@ -148,7 +153,7 @@ router.post(
     }
 );
 
-// Permite que o enfermeiro conclua uma tarefa clínica
+// permite que o enfermeiro conclua uma tarefa clínica
 router.patch(
     "/:id/concluir",
     autenticar,
@@ -156,16 +161,17 @@ router.patch(
     async (req, res) => {
         try {
             const id = String(req.params.id);
+            // separa os campos enviados no corpo da requisição
             const { observacoesConclusao } = req.body ?? {};
 
-            // Verifica se o ID da tarefa é válido
+            // verifica se o id da tarefa é válido
             if (!ObjectId.isValid(id)) {
                 return res.status(400).json({
                     mensagem: "ID da tarefa inválido."
                 });
             }
 
-            // Verifica se as observações são um texto
+            // verifica se as observações são um texto
             if (
                 observacoesConclusao !== undefined &&
                 typeof observacoesConclusao !== "string"
@@ -177,7 +183,7 @@ router.patch(
 
             const banco = obterBanco();
 
-            // Identifica o enfermeiro logado
+            // identifica o enfermeiro logado
             const enfermeiro = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -193,7 +199,7 @@ router.patch(
                 });
             }
 
-            // Busca a tarefa clínica
+            // busca a tarefa clínica
             const tarefa = await banco
                 .collection("tarefasClinicas")
                 .findOne({
@@ -206,14 +212,14 @@ router.patch(
                 });
             }
 
-            // Apenas o enfermeiro responsável pode concluir
+            // apenas o enfermeiro responsável pode concluir
             if (tarefa.enfermeiroId !== enfermeiro._id) {
                 return res.status(403).json({
                     mensagem: "Você não é o enfermeiro responsável por esta tarefa."
                 });
             }
 
-            // Atualiza somente se a tarefa ainda estiver pendente
+            // atualiza somente se a tarefa ainda estiver pendente
             const resultado = await banco
                 .collection("tarefasClinicas")
                 .updateOne(
@@ -231,6 +237,7 @@ router.patch(
                     }
                 );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Esta tarefa não está pendente."
@@ -251,7 +258,7 @@ router.patch(
     }
 );
 
-// Lista as tarefas clínicas de um pet
+// lista as tarefas clínicas de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -268,32 +275,34 @@ router.get(
 
             const banco = obterBanco();
 
-            // Aceita IDs antigos e ObjectIds do MongoDB
+            // aceita ids antigos e objectids do mongodb
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Confirma se o pet existe
+            // confirma se o pet existe
             const pet = await banco
                 .collection<{ _id: string | ObjectId; nome: string }>("pets")
                 .findOne({
                     _id: { $in: idsPet }
                 });
                 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Busca as tarefas do pet
+            // busca as tarefas do pet
             const tarefas = await banco
                 .collection("tarefasClinicas")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataCriacao: -1 })
                 .toArray();
 

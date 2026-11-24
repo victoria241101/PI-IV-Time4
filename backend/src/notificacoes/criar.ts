@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { ObjectId, type Db, MongoServerError } from "mongodb";
 import type { NotificacaoNova, NotificacaoDocumento } from "./tipos.js";
 import { TIPOS_COM_EMAIL } from "./tipos.js";

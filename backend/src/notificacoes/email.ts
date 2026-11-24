@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import nodemailer from "nodemailer";
 import type { Transporter } from "nodemailer";
 /**

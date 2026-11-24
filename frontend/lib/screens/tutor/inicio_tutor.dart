@@ -269,7 +269,6 @@ class _EstadoInicioTutor extends State<InicioTutor> {
       }
 
       await AgendamentosService(
-        baseUrl: 'http://localhost:3000',
         token: token,
       ).cancelarAgendamento(consultaId: consulta.id);
 

@@ -1,3 +1,5 @@
+/*Autor: Gabriel Benevides Bosso R.A:24013653 */
+
 import { ObjectId, type Db, type Filter, type Document } from "mongodb";
 import {
     LIMITE_CONTATOS,

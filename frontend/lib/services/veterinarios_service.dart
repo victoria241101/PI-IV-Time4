@@ -3,13 +3,14 @@ import 'dart:convert';
 
 import 'package:http/http.dart' as http;
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 
 class VeterinariosService {
   final String baseUrl;
 
   VeterinariosService({
-    required this.baseUrl,
-  });
+    String? baseUrl,
+  }) : baseUrl = baseUrl ?? ApiConfig.baseUrl;
 
   Future<List<Map<String, dynamic>>> listarVeterinarios() async {
     // Token de teste utilizado apenas durante o desenvolvimento.

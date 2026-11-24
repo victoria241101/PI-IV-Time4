@@ -1,6 +1,10 @@
+# Arquivos compilados do Java
 *.class
 lib/*.jar
 lib/
 out/
 node_modules/
 package-lock.json
+3
+# Saídas de compilação
+**/out/

@@ -68,9 +68,7 @@ class _CheckoutDoacaoState extends State<CheckoutDoacao> {
     });
 
     try {
-      final service = DoacoesService.autenticado(
-        baseUrl: 'http://localhost:3000',
-      );
+      final service = DoacoesService.autenticado();
 
       // Se já foi criada uma doação pendente, tenta confirmar a mesma.
       if (_doacaoId == null) {

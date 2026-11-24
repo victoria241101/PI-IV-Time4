@@ -315,7 +315,6 @@ class _PerfilGeralState extends State<PerfilGeral> {
 
                       try {
                         final servico = PerfilService.autenticado(
-                          baseUrl: 'http://localhost:3000',
                           token: SessaoUsuario.instancia.token!,
                         );
 

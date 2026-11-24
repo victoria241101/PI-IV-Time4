@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -7,12 +9,14 @@ import { notificarDosePrescrita } from "../notificacoes/eventos.js";
 
 const router = Router();
 
+// cadastra uma prescrição para o pet
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os dados enviados no corpo da requisição
             const {
                 petId,
                 atendimentoId,
@@ -23,7 +27,7 @@ router.post(
                 orientacoes
             } = req.body;
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             const campos = [
                 petId,
                 atendimentoId,
@@ -56,7 +60,7 @@ router.post(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -72,7 +76,7 @@ router.post(
                 });
             }
 
-            // Procura o pet (IDs antigos ou ObjectId)
+            // procura o pet (ids antigos ou objectid)
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
@@ -87,13 +91,14 @@ router.post(
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Procura o atendimento informado
+            // procura o atendimento informado
             const idsAtendimento: (string | ObjectId)[] = [atendimentoId];
 
             if (ObjectId.isValid(atendimentoId)) {
@@ -110,6 +115,7 @@ router.post(
                 veterinarioId: veterinario._id
             });
 
+            // interrompe se não encontrou o atendimento para vincular ao registro
             if (!atendimento) {
                 return res.status(404).json({
                     mensagem:
@@ -117,7 +123,7 @@ router.post(
                 });
             }
 
-            // Salva a prescrição
+            // salva a prescrição
             const resultado = await banco
                 .collection("prescricoes")
                 .insertOne({
@@ -144,6 +150,7 @@ router.post(
                 new ObjectId(res.locals.usuarioId)
             );
 
+            // confirma o cadastro e devolve os dados do registro criado
             return res.status(201).json({
                 mensagem: "Prescrição cadastrada com sucesso!",
                 prescricaoId: resultado.insertedId
@@ -159,7 +166,7 @@ router.post(
     }
 );
 
-// Lista as prescrições de um pet
+// lista as prescrições de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -176,14 +183,14 @@ router.get(
 
             const banco = obterBanco();
 
-            // Aceita IDs antigos em texto e ObjectIds
+            // aceita ids antigos em texto e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o profissional está ativo
+            // verifica se o profissional está ativo
             const usuarioId = new ObjectId(res.locals.usuarioId);
             const tipo = res.locals.usuarioTipo;
 
@@ -205,23 +212,25 @@ router.get(
                 });
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection("pets").findOne({
                 _id: { $in: idsPet } as any
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Busca as prescrições do pet
+            // busca as prescrições do pet
             const prescricoes = await banco
                 .collection("prescricoes")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataPrescricao: -1 })
                 .toArray();
 

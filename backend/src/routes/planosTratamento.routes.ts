@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -6,13 +8,14 @@ import { obterBanco } from "../database.js";
 
 const router = Router();
 
-// Cadastra um plano de tratamento
+// cadastra um plano de tratamento
 router.post(
     "/",
     autenticar,
     permitirFuncoes("VETERINARIO"),
     async (req, res) => {
         try {
+            // separa os dados enviados no corpo da requisição
             const {
                 petId,
                 objetivo,
@@ -21,7 +24,7 @@ router.post(
                 dataFim
             } = req.body ?? {};
 
-            // Verifica os campos obrigatórios
+            // verifica os campos obrigatórios
             if (
                 typeof petId !== "string" || !petId.trim() ||
                 typeof objetivo !== "string" || !objetivo.trim() ||
@@ -34,7 +37,7 @@ router.post(
                 });
             }
 
-            // Verifica se as datas são válidas
+            // verifica se as datas são válidas
             const inicio = new Date(dataInicio);
             const fim = new Date(dataFim);
 
@@ -47,7 +50,7 @@ router.post(
                 });
             }
 
-            // O tratamento não pode terminar antes de começar
+            // o tratamento não pode terminar antes de começar
             if (fim < inicio) {
                 return res.status(400).json({
                     mensagem: "A data final não pode ser anterior à inicial."
@@ -56,7 +59,7 @@ router.post(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -72,14 +75,14 @@ router.post(
                 });
             }
 
-            // Aceita IDs em texto e ObjectIds
+            // aceita ids em texto e objectids
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco.collection<{
                 _id: string | ObjectId;
                 ativo?: boolean;
@@ -88,13 +91,14 @@ router.post(
                 ativo: { $ne: false }
             });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Salva o plano de tratamento
+            // salva o plano de tratamento
             const resultado = await banco
                 .collection("planosTratamento")
                 .insertOne({
@@ -109,6 +113,7 @@ router.post(
                     dataConclusao: null
                 });
 
+            // confirma o cadastro e devolve os dados do registro criado
             return res.status(201).json({
                 mensagem: "Plano de tratamento cadastrado com sucesso!",
                 planoId: resultado.insertedId
@@ -124,7 +129,7 @@ router.post(
     }
 );
 
-// Conclui um plano de tratamento
+// conclui um plano de tratamento
 router.patch(
     "/:id/concluir",
     autenticar,
@@ -132,16 +137,17 @@ router.patch(
     async (req, res) => {
         try {
             const id = String(req.params.id);
+            // separa os campos enviados no corpo da requisição
             const { observacoesConclusao } = req.body ?? {};
 
-            // Verifica se o ID do plano é válido
+            // verifica se o id do plano é válido
             if (!ObjectId.isValid(id)) {
                 return res.status(400).json({
                     mensagem: "ID do plano inválido."
                 });
             }
 
-            // Verifica as observações, caso sejam informadas
+            // verifica as observações, caso sejam informadas
             if (
                 observacoesConclusao !== undefined &&
                 typeof observacoesConclusao !== "string"
@@ -153,7 +159,7 @@ router.patch(
 
             const banco = obterBanco();
 
-            // Identifica o veterinário logado
+            // identifica o veterinário logado
             const veterinario = await banco.collection<{
                 _id: string;
                 usuarioId: ObjectId;
@@ -169,7 +175,7 @@ router.patch(
                 });
             }
 
-            // Busca o plano de tratamento
+            // busca o plano de tratamento
             const plano = await banco
                 .collection("planosTratamento")
                 .findOne({
@@ -182,14 +188,14 @@ router.patch(
                 });
             }
 
-            // Apenas o veterinário responsável pode concluir
+            // apenas o veterinário responsável pode concluir
             if (plano.veterinarioId !== veterinario._id) {
                 return res.status(403).json({
                     mensagem: "Você não é o veterinário responsável por este plano."
                 });
             }
 
-            // Conclui somente se o plano estiver ativo
+            // conclui somente se o plano estiver ativo
             const resultado = await banco
                 .collection("planosTratamento")
                 .updateOne(
@@ -208,6 +214,7 @@ router.patch(
                     }
                 );
 
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultado.modifiedCount === 0) {
                 return res.status(409).json({
                     mensagem: "Este plano não está ativo."
@@ -228,7 +235,7 @@ router.patch(
     }
 );
 
-// Lista os planos de tratamento de um pet
+// lista os planos de tratamento de um pet
 router.get(
     "/pet/:petId",
     autenticar,
@@ -245,14 +252,14 @@ router.get(
 
             const banco = obterBanco();
 
-            // Aceita IDs em texto e ObjectIds do MongoDB
+            // aceita ids em texto e objectids do mongodb
             const idsPet: (string | ObjectId)[] = [petId];
 
             if (ObjectId.isValid(petId)) {
                 idsPet.push(new ObjectId(petId));
             }
 
-            // Verifica se o pet existe
+            // verifica se o pet existe
             const pet = await banco
                 .collection<{
                     _id: string | ObjectId;
@@ -262,18 +269,20 @@ router.get(
                     _id: { $in: idsPet }
                 });
 
+            // interrompe a operação se o pet não foi encontrado
             if (!pet) {
                 return res.status(404).json({
                     mensagem: "Pet não encontrado."
                 });
             }
 
-            // Busca os planos de tratamento do pet
+            // busca os planos de tratamento do pet
             const planos = await banco
                 .collection("planosTratamento")
                 .find({
                     petId: { $in: idsPet }
                 })
+                // coloca os registros mais recentes primeiro
                 .sort({ dataCriacao: -1 })
                 .toArray();
 

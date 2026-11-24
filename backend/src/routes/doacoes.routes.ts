@@ -1,3 +1,5 @@
+// Alinne Monteiro de Melo | RA: 24801649
+
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
@@ -26,9 +28,10 @@ interface DoacaoDocumento {
 
 const router = Router();
 
-// 6.5 POST /doacoes - Criação de doação em estado pendente (qualquer autenticado)
+// cria uma doação pendente para o usuário logado
 router.post("/", autenticar, async (req, res) => {
     try {
+        // separa os campos enviados no corpo da requisição
         const { campanhaId, valor, metodoPagamento } = req.body ?? {};
 
         if (typeof campanhaId !== "string" || !ObjectId.isValid(campanhaId)) {
@@ -51,6 +54,7 @@ router.post("/", autenticar, async (req, res) => {
             });
         }
 
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = res.locals.usuarioId;
         if (!usuarioId || !ObjectId.isValid(usuarioId)) {
             return res.status(401).json({
@@ -106,7 +110,7 @@ router.post("/", autenticar, async (req, res) => {
     }
 });
 
-// 6.6 PATCH /doacoes/:id/confirmar - Confirmação de doação (apenas o próprio doador)
+// confirma a doação feita pelo usuário logado
 router.patch("/:id/confirmar", autenticar, async (req, res) => {
     try {
         const id = req.params.id;
@@ -117,6 +121,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
             });
         }
 
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = res.locals.usuarioId;
         if (!usuarioId || !ObjectId.isValid(usuarioId)) {
             return res.status(401).json({
@@ -128,7 +133,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
         const doacoes = banco.collection<DoacaoDocumento>("doacoes");
         const campanhas = banco.collection<CampanhaDocumento>("campanhas");
 
-        // Passo 1: Busca a doação e valida dono e status
+        // confere quem fez a doação e se ela está pendente
         const doacao = await doacoes.findOne({
             _id: new ObjectId(id)
         });
@@ -151,7 +156,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
             });
         }
 
-        // Passo 2: Reivindicar a doação atomicamente
+        // confirma a doação só se ela ainda estiver pendente
         const doacaoReivindicada = await doacoes.findOneAndUpdate(
             {
                 _id: new ObjectId(id),
@@ -170,7 +175,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
             });
         }
 
-        // Passo 3: Somar na campanha de forma atômica
+        // soma o valor da doação ao total da campanha
         let campanhaAtualizada: CampanhaDocumento | null = null;
 
         try {
@@ -187,7 +192,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
         } catch (erroBanco) {
             console.error("Erro ao somar arrecadação na campanha:", erroBanco);
 
-            // Compensação de melhor esforço: tentar voltar a doação para pendente
+            // tenta voltar a doação para pendente se a soma falhar
             try {
                 await doacoes.updateOne(
                     { _id: doacaoReivindicada._id, status: "aprovada" },
@@ -202,7 +207,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
             });
         }
 
-        // Se a campanha não estava ativa (encerrada ou inexistente)
+        // trata o caso em que a campanha não está ativa
         if (!campanhaAtualizada) {
             await doacoes.updateOne(
                 { _id: doacaoReivindicada._id },
@@ -214,12 +219,13 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
             });
         }
 
-        // Passo 4: Encerramento automático por meta atingida
+        // encerra a campanha quando a meta é atingida
         if (deveEncerrarPorMeta(campanhaAtualizada.valorArrecadado, campanhaAtualizada.metaValor)) {
             const resultadoEncerramento = await campanhas.updateOne(
                 { _id: campanhaAtualizada._id, status: "ativa" },
                 { $set: { status: "encerrada" } }
             );
+            // confere se a operação encontrou ou alterou o registro esperado
             if (resultadoEncerramento.modifiedCount === 1) {
                 await notificarCampanha(
                     banco,
@@ -231,7 +237,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
             campanhaAtualizada.status = "encerrada";
         }
 
-        // Passo 5: Cálculo de progresso via Java
+        // calcula o progresso da campanha pelo java
         const progresso = await obterProgresso(campanhaAtualizada);
 
         const daEquipe = ehEquipe(res.locals.usuarioTipo);
@@ -258,7 +264,7 @@ router.patch("/:id/confirmar", autenticar, async (req, res) => {
     }
 });
 
-// 6.6.1 GET /doacoes?campanhaId= - Listagem de doações por campanha (qualquer autenticado)
+// lista as doações de uma campanha
 router.get("/", autenticar, async (req, res) => {
     try {
         const { campanhaId } = req.query;
@@ -269,6 +275,7 @@ router.get("/", autenticar, async (req, res) => {
             });
         }
 
+        // pega o id que a autenticação colocou na resposta
         const usuarioId = res.locals.usuarioId;
         if (!usuarioId || !ObjectId.isValid(usuarioId)) {
             return res.status(401).json({
@@ -289,7 +296,7 @@ router.get("/", autenticar, async (req, res) => {
 
         const daEquipe = ehEquipe(res.locals.usuarioTipo);
 
-        // Filtro: equipe vê todas; tutor vê apenas as próprias
+        // a equipe vê todas as doações e o tutor vê apenas as próprias
         const filtro: Record<string, unknown> = {
             campanhaId: new ObjectId(campanhaId)
         };
@@ -300,9 +307,11 @@ router.get("/", autenticar, async (req, res) => {
 
         const doacoes = await banco.collection<DoacaoDocumento>("doacoes")
             .find(filtro)
+            // coloca os registros mais recentes primeiro
             .sort({ criadoEm: -1 })
             .toArray();
 
+        // prepara a lista de doações para a resposta
         const doacoesFormatadas = doacoes.map((doacao) => {
             const formatada: Record<string, unknown> = {
                 _id: doacao._id.toString(),
