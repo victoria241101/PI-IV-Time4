@@ -4,6 +4,7 @@
  */
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 
@@ -23,9 +24,9 @@ class Doacao extends StatefulWidget {
     this.geral = false,
     this.onDoacaoConcluida,
   }) : assert(
-  !(publica && geral),
-  'A tela não pode pertencer aos contextos público e geral ao mesmo tempo.',
-  );
+         !(publica && geral),
+         'A tela não pode pertencer aos contextos público e geral ao mesmo tempo.',
+       );
 
   final bool publica;
   final bool geral;
@@ -38,7 +39,9 @@ class Doacao extends StatefulWidget {
 }
 
 class _DoacaoState extends State<Doacao> {
-  final CampanhasService _campanhasService = CampanhasService.criar();
+  final CampanhasService _campanhasService = CampanhasService.criar(
+    baseUrl: ApiConfig.baseUrl,
+  );
 
   List<Map<String, dynamic>> _campanhas = [];
   bool _carregando = true;
@@ -121,46 +124,54 @@ class _DoacaoState extends State<Doacao> {
       children: [
         for (int i = 0; i < _campanhas.length; i++) ...[
           if (i > 0) const SizedBox(height: EspacamentosApp.lg),
-          Builder(builder: (context) {
-            final campanha = _campanhas[i];
-            final campanhaId = campanha['_id']?.toString() ?? '';
-            final idValido = RegExp(r'^[a-fA-F0-9]{24}$').hasMatch(campanhaId);
-            final nomeAnimal = (campanha['nomeAnimal'] as String?)
-                    ?.trim()
-                    .isNotEmpty == true
-                ? campanha['nomeAnimal'] as String
-                : 'Campanha';
-            final titulo = campanha['titulo']?.toString() ?? 'Campanha';
-            final valorArrecadado = _numero(campanha['valorArrecadado']);
-            final meta = _numero(campanha['metaValor']);
-            final imagemUrl = _imagem(campanha['imagemCapa']);
+          Builder(
+            builder: (context) {
+              final campanha = _campanhas[i];
+              final campanhaId = campanha['_id']?.toString() ?? '';
+              final idValido = RegExp(r'^[a-fA-F0-9]{24}$')
+                  .hasMatch(campanhaId);
+              final nomeAnimal =
+                  (campanha['nomeAnimal'] as String?)?.trim().isNotEmpty == true
+                  ? campanha['nomeAnimal'] as String
+                  : 'Campanha';
+              final titulo = campanha['titulo']?.toString() ?? 'Campanha';
+              final valorArrecadado = _numero(campanha['valorArrecadado']);
+              final meta = _numero(campanha['metaValor']);
+              final imagemUrl = _imagem(campanha['imagemCapa']);
+              final urgente =
+                  campanha['urgente'] == true || campanha['urgente'] == 'Sim';
 
-            return CartaoCampanha(
-              nomeAnimal: nomeAnimal,
-              titulo: titulo,
-              valorArrecadado: valorArrecadado,
-              meta: meta,
-              imagemUrl: imagemUrl,
-              onTap: () {
-                if (!idValido) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Esta campanha não possui um ID válido no MongoDB.'),
-                    ),
-                  );
-                  return;
-                }
-                _abrirCampanha(
-                campanhaId: campanhaId,
+              return CartaoCampanha(
                 nomeAnimal: nomeAnimal,
                 titulo: titulo,
                 valorArrecadado: valorArrecadado,
                 meta: meta,
                 imagemUrl: imagemUrl,
-                );
-              },
-            );
-          }),
+                urgente: urgente,
+                onTap: () {
+                  if (!idValido) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(
+                        content: Text(
+                          'Esta campanha não possui um ID válido no MongoDB.',
+                        ),
+                      ),
+                    );
+                    return;
+                  }
+                  _abrirCampanha(
+                    campanhaId: campanhaId,
+                    nomeAnimal: nomeAnimal,
+                    titulo: titulo,
+                    valorArrecadado: valorArrecadado,
+                    meta: meta,
+                    imagemUrl: imagemUrl,
+                    urgente: urgente,
+                  );
+                },
+              );
+            },
+          ),
         ],
       ],
     );
@@ -207,10 +218,7 @@ class _DoacaoState extends State<Doacao> {
       return const CabecalhoGeral();
     }
 
-    return const CabecalhoApp(
-      greeting: 'Cuide. Ajude. Transforme.',
-      name: '',
-    );
+    return const CabecalhoApp(greeting: 'Cuide. Ajude. Transforme.', name: '');
   }
 
   String _formatarMoeda(double valor) {
@@ -249,7 +257,6 @@ class _DoacaoState extends State<Doacao> {
               const SizedBox(height: EspacamentosApp.xl),
 
               // APRESENTAÇÃO
-
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -306,9 +313,9 @@ class _DoacaoState extends State<Doacao> {
                     Text(
                       widget.publica
                           ? 'Conheça os animais que precisam de ajuda '
-                          'e descubra como fazer a diferença.'
+                                'e descubra como fazer a diferença.'
                           : 'Cada contribuição pode ajudar um animal '
-                          'a receber os cuidados de que precisa.',
+                                'a receber os cuidados de que precisa.',
                       style: const TextStyle(
                         fontSize: 15,
                         height: 1.6,
@@ -322,7 +329,6 @@ class _DoacaoState extends State<Doacao> {
               const SizedBox(height: EspacamentosApp.xl),
 
               // RESUMO DAS CAMPANHAS
-
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -333,9 +339,7 @@ class _DoacaoState extends State<Doacao> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(
-                      color: CoresApp.darkBlue.withAlpha(12),
-                    ),
+                    border: Border.all(color: CoresApp.darkBlue.withAlpha(12)),
                   ),
                   child: const Row(
                     children: [
@@ -356,7 +360,7 @@ class _DoacaoState extends State<Doacao> {
                             SizedBox(height: 4),
                             Text(
                               'Conheça cada história e escolha '
-                                  'como ajudar.',
+                              'como ajudar.',
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.45,
@@ -374,7 +378,6 @@ class _DoacaoState extends State<Doacao> {
               const SizedBox(height: EspacamentosApp.xl),
 
               // TÍTULO DA SEÇÃO
-
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -421,7 +424,6 @@ class _DoacaoState extends State<Doacao> {
               const SizedBox(height: EspacamentosApp.md),
 
               // LISTA DE CAMPANHAS
-
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -432,7 +434,6 @@ class _DoacaoState extends State<Doacao> {
               const SizedBox(height: EspacamentosApp.xl),
 
               // AVISO INFORMATIVO
-
               Padding(
                 padding: const EdgeInsets.symmetric(
                   horizontal: EspacamentosApp.pagePadding,
@@ -443,9 +444,7 @@ class _DoacaoState extends State<Doacao> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(18),
-                    border: Border.all(
-                      color: Colors.black.withAlpha(12),
-                    ),
+                    border: Border.all(color: Colors.black.withAlpha(12)),
                   ),
                   child: Row(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -478,7 +477,7 @@ class _DoacaoState extends State<Doacao> {
                             SizedBox(height: 5),
                             Text(
                               'As campanhas são públicas. Para realizar '
-                                  'uma doação, é necessário estar autenticado.',
+                              'uma doação, é necessário estar autenticado.',
                               style: TextStyle(
                                 fontSize: 12,
                                 height: 1.5,

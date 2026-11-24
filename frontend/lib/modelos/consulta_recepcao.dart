@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Modelo de consulta da recepção.
 // modelo de consulta da recepção e seus status de atendimento
 import 'package:flutter/material.dart';
 
@@ -37,6 +39,9 @@ extension StatusConsultaRecepcaoUi on StatusConsultaRecepcao {
 class ConsultaRecepcao {
   ConsultaRecepcao({
     required this.id,
+    this.petId,
+    this.tutorId,
+    this.veterinarioId,
     required this.data,
     required this.horario,
     required this.duracaoMinutos,
@@ -48,10 +53,14 @@ class ConsultaRecepcao {
     required this.sala,
     required this.status,
     this.emergencia = false,
+    this.internacaoAgendada = false,
+    this.prontuarioOrigemId,
+    this.dataPrevistaInternacao,
     this.fotoPetUrl,
   });
 
   final String id;
+  final String? petId, tutorId, veterinarioId;
   DateTime data;
   String horario;
   final int duracaoMinutos;
@@ -63,6 +72,9 @@ class ConsultaRecepcao {
   String sala;
   StatusConsultaRecepcao status;
   final bool emergencia;
+  final bool internacaoAgendada;
+  final String? prontuarioOrigemId;
+  final DateTime? dataPrevistaInternacao;
   final String? fotoPetUrl;
 
   String? get fotoPet => fotoPetUrl;

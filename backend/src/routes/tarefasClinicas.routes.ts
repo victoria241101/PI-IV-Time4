@@ -1,12 +1,20 @@
 // Alinne Monteiro de Melo | RA: 24801649
 
-import { Router } from "express";
-import { ObjectId } from "mongodb";
+import { Router, type RequestHandler } from "express";
+import { ObjectId, type Db } from "mongodb";
 import { autenticar } from "../middlewares/auth.middleware.js";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";
 import { obterBanco } from "../database.js";
-import { notificarTarefaClinica } from "../notificacoes/eventos.js";
+import { notificarTarefaClinica as notificarTarefaClinicaPadrao } from "../notificacoes/eventos.js";
+import { variantesId } from "../notificacoes/destinatarios.js";
 
+// Permite testar as mesmas rotas sem conectar ao banco ou enviar notificações.
+export function criarRotasTarefasClinicas(deps: {
+    autenticar: RequestHandler;
+    obterBanco: () => Db;
+    notificarTarefaClinica: typeof notificarTarefaClinicaPadrao;
+}) {
+const { autenticar, obterBanco, notificarTarefaClinica } = deps;
 const router = Router();
 
 // cadastra uma tarefa clínica
@@ -59,11 +67,11 @@ router.post(
 
             // identifica o veterinário logado
             const veterinario = await banco.collection<{
-                _id: string;
-                usuarioId: ObjectId;
+                _id: string | ObjectId;
+                usuarioId: string | ObjectId;
                 ativo: boolean;
             }>("veterinarios").findOne({
-                usuarioId: new ObjectId(res.locals.usuarioId),
+                usuarioId: { $in: variantesId(res.locals.usuarioId) },
                 ativo: true
             });
 
@@ -98,10 +106,10 @@ router.post(
 
             // verifica se o enfermeiro responsável existe
             const enfermeiro = await banco.collection<{
-                _id: string;
+                _id: string | ObjectId;
                 ativo: boolean;
             }>("enfermeiros").findOne({
-                _id: enfermeiroId.trim(),
+                _id: { $in: variantesId(enfermeiroId) },
                 ativo: true
             });
 
@@ -134,7 +142,7 @@ router.post(
                     enfermeiroId: enfermeiro._id,
                     descricao: descricao.trim()
                 },
-                new ObjectId(res.locals.usuarioId)
+                res.locals.usuarioId
             );
 
             // confirma o cadastro e devolve os dados do registro criado
@@ -185,11 +193,11 @@ router.patch(
 
             // identifica o enfermeiro logado
             const enfermeiro = await banco.collection<{
-                _id: string;
-                usuarioId: ObjectId;
+                _id: string | ObjectId;
+                usuarioId: string | ObjectId;
                 ativo: boolean;
             }>("enfermeiros").findOne({
-                usuarioId: new ObjectId(res.locals.usuarioId),
+                usuarioId: { $in: variantesId(res.locals.usuarioId) },
                 ativo: true
             });
 
@@ -212,8 +220,8 @@ router.patch(
                 });
             }
 
-            // apenas o enfermeiro responsável pode concluir
-            if (tarefa.enfermeiroId !== enfermeiro._id) {
+            // Apenas o enfermeiro responsável pode concluir
+            if (String(tarefa.enfermeiroId) !== String(enfermeiro._id)) {
                 return res.status(403).json({
                     mensagem: "Você não é o enfermeiro responsável por esta tarefa."
                 });
@@ -225,6 +233,7 @@ router.patch(
                 .updateOne(
                     {
                         _id: new ObjectId(id),
+                        enfermeiroId: tarefa.enfermeiroId,
                         status: "pendente"
                     },
                     {
@@ -326,4 +335,11 @@ router.get(
     }
 );
 
-export default router;
+return router;
+}
+
+export default criarRotasTarefasClinicas({
+    autenticar,
+    obterBanco,
+    notificarTarefaClinica: notificarTarefaClinicaPadrao
+});

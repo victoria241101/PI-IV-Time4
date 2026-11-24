@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Campos de formulário padronizados.
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Diálogos clínicos com validação, salvamento e erros.
 // Formulário de diálogo compartilhado por consultas e registros de internação.
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
@@ -13,18 +15,53 @@ class DialogoCamposClinica extends StatefulWidget {
     this.valoresIniciais = const [],
     this.maxLines = 1,
     this.labelAcao = 'Salvar',
+    this.onSalvar,
+    this.camposObrigatorios = const [],
+    this.aviso,
+    this.bloquearEdicaoAposEnvio = false,
   });
   final String titulo;
   final List<String> rotulos;
   final List<String> valoresIniciais;
   final int maxLines;
   final String labelAcao;
+  final Future<void> Function(List<String>)? onSalvar;
+  final List<int> camposObrigatorios;
+  final String? aviso;
+  final bool bloquearEdicaoAposEnvio;
   @override
   State<DialogoCamposClinica> createState() => _DialogoCamposClinicaState();
 }
 
 class _DialogoCamposClinicaState extends State<DialogoCamposClinica> {
   late final List<TextEditingController> _controllers;
+  bool _salvando = false, _enviado = false;
+  String? _erro;
+
+  Future<void> _salvar() async {
+    if (_salvando) return;
+    final valores = _controllers.map((c) => c.text.trim()).toList();
+    if (widget.camposObrigatorios.any((i) => valores[i].isEmpty)) {
+      setState(() => _erro = 'Preencha os campos obrigatórios.');
+      return;
+    }
+    setState(() {
+      _salvando = true;
+      _enviado = true;
+      _erro = null;
+    });
+    try {
+      await widget.onSalvar?.call(valores);
+      if (mounted) Navigator.pop(context, valores);
+    } catch (erro) {
+      if (mounted) {
+        setState(() => _erro = erro.toString().replaceFirst('Exception: ', ''));
+      }
+    } finally {
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -47,36 +84,45 @@ class _DialogoCamposClinicaState extends State<DialogoCamposClinica> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.titulo, style: TipografiaApp.heading3),
-    content: SingleChildScrollView(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < widget.rotulos.length; i++) ...[
-            if (i > 0) const SizedBox(height: EspacamentosApp.sm),
-            CampoFormularioApp(
-              controller: _controllers[i],
-              label: widget.rotulos[i],
-              maxLines: widget.maxLines,
-              textCapitalization: TextCapitalization.sentences,
-            ),
+  Widget build(BuildContext context) => PopScope(
+    canPop: !_salvando,
+    child: AlertDialog(
+      title: Text(widget.titulo, style: TipografiaApp.heading3),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (widget.aviso != null)
+              Text(widget.aviso!, style: TipografiaApp.caption),
+            for (var i = 0; i < widget.rotulos.length; i++) ...[
+              if (i > 0) const SizedBox(height: EspacamentosApp.sm),
+              CampoFormularioApp(
+                controller: _controllers[i],
+                label: widget.rotulos[i],
+                maxLines: widget.maxLines,
+                enabled:
+                    !_salvando && !(widget.bloquearEdicaoAposEnvio && _enviado),
+                textCapitalization: TextCapitalization.sentences,
+              ),
+            ],
+            if (_erro != null) Text(_erro!, style: TipografiaApp.caption),
+            if (_erro != null && widget.bloquearEdicaoAposEnvio)
+              const Text(
+                'Tente novamente para confirmar a mesma prescrição. Os dados foram mantidos para evitar duplicação.',
+              ),
           ],
-        ],
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('Cancelar'),
-      ),
-      BotaoClinica(
-        label: widget.labelAcao,
-        onPressed: () => Navigator.pop(
-          context,
-          _controllers.map((controller) => controller.text.trim()).toList(),
         ),
       ),
-    ],
+      actions: [
+        TextButton(
+          onPressed: _salvando ? null : () => Navigator.pop(context),
+          child: const Text('Cancelar'),
+        ),
+        BotaoClinica(
+          label: _salvando ? 'Salvando...' : widget.labelAcao,
+          onPressed: _salvando ? null : _salvar,
+        ),
+      ],
+    ),
   );
 }

@@ -1,9 +1,13 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Layout comum dos fluxos clínicos.
 // Estrutura comum das abas, do cabeçalho e da navegação dos três fluxos.
 import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
-import 'package:pet_care/widgets/cabecalho_app.dart';
+import 'package:pet_care/widgets/cabecalho_petcare.dart';
+import 'package:pet_care/screens/gerais/perfil_geral.dart';
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:pet_care/widgets/barra_navegacao_app.dart';
 
 class LayoutClinica extends StatelessWidget {
@@ -22,6 +26,16 @@ class LayoutClinica extends StatelessWidget {
   final List<Widget> paginas;
   final BottomNavigationBarItem terceiraAba;
   final VoidCallback onNotificacao;
+  void _abrirPerfil(BuildContext context) {
+    final perfil = SessaoUsuario.instancia.tipoUsuario;
+    Navigator.of(context).push(MaterialPageRoute<void>(
+      builder: (_) => AcessoClinico(
+        perfil: perfil,
+        builder: (_) => const PerfilGeral(modoCompacto: true),
+      ),
+    ));
+  }
+
   @override
   Widget build(BuildContext context) {
     final hora = TimeOfDay.now().hour;
@@ -44,10 +58,12 @@ class LayoutClinica extends StatelessWidget {
                 animation: SessaoUsuario.instancia,
                 builder: (context, _) {
                   final nome = SessaoUsuario.instancia.nomeUsuario;
-                  return CabecalhoApp(
-                    greeting: saudacao,
-                    name: nome == null || nome.isEmpty ? nomePadrao : nome,
+                  return CabecalhoPetCare(
+                    saudacao: saudacao,
+                    nome: nome,
+                    abreviarNome: false,
                     onNotificationTap: onNotificacao,
+                    onProfileTap: () => _abrirPerfil(context),
                   );
                 },
               ),

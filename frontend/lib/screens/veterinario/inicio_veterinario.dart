@@ -1,3 +1,6 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Início, agenda, pacientes e navegação compartilhada com enfermagem.
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 // consultas, agenda, clientes e chat do veterinario
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/formatadores/data_app.dart';
@@ -21,6 +24,7 @@ class InicioVeterinario extends StatefulWidget {
   const InicioVeterinario({
     super.key,
     this.profissional,
+    this.perfilAcesso = 'VETERINARIO',
     this.mostrarTodasConsultas = false,
     this.descricaoClientes,
     this.paginaConsultaBuilder,
@@ -31,6 +35,7 @@ class InicioVeterinario extends StatefulWidget {
     this.resumoHojeBuilder,
   });
 
+  final String perfilAcesso;
   final String? profissional;
   final bool mostrarTodasConsultas;
   final String? descricaoClientes;
@@ -54,6 +59,25 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     super.initState();
     _hoje = DateUtils.dateOnly(DateTime.now());
     AgendaClinica.instancia.addListener(_atualizarAgenda);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && AcessoClinico.permitido(widget.perfilAcesso)) {
+        _carregarAgenda();
+      }
+    });
+  }
+
+  Future<void> _carregarAgenda([DateTime? dia]) async {
+    try {
+      await AgendaClinica.instancia.carregarDia(dia ?? _hoje);
+    } catch (erro) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(erro.toString().replaceFirst('Exception: ', '')),
+          ),
+        );
+      }
+    }
   }
 
   @override
@@ -77,7 +101,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
         }
       }
     }
-    return 'Dra. Camila';
+    return SessaoUsuario.instancia.nomeUsuario ?? 'Veterinário';
   }
 
   String _chaveProfissional(String nome) =>
@@ -87,6 +111,7 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     final consultas = AgendaClinica.instancia.consultas
         .where(
           (consulta) =>
+              SessaoUsuario.instancia.estaLogado ||
               widget.mostrarTodasConsultas ||
               consulta.profissional == _profissionalAtual,
         )
@@ -121,7 +146,10 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      AcessoClinico(perfil: widget.perfilAcesso, builder: _construirTela);
+
+  Widget _construirTela(BuildContext context) {
     final consultas = _consultasDoPerfil;
     final consultasVisiveis = _consultasVisiveis;
     final consultasAtivasHoje = _consultasAtivasDeHoje;
@@ -129,7 +157,10 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
     return LayoutClinica(
       nomePadrao: _profissionalAtual,
       abaAtual: _abaAtual,
-      onSelecionarAba: (index) => setState(() => _abaAtual = index),
+      onSelecionarAba: (index) {
+        setState(() => _abaAtual = index);
+        if (index == 0 && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
+      },
       onNotificacao: () => ModalNotificacoesTutor.show(context),
       terceiraAba:
           widget.terceiraAbaItem ??
@@ -140,6 +171,8 @@ class _InicioVeterinarioState extends State<InicioVeterinario> {
       paginas: [
         _listaDeConsultas(consultasAtivasHoje),
         CalendarioAgendamentos(
+          mostrarCabecalho: false,
+          onSelecionarDia: _carregarAgenda,
           consultas: consultasVisiveis
               .where((c) => c.status != StatusConsultaRecepcao.finalizado)
               .toList(),

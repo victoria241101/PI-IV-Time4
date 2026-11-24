@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Aparência básica de cartões.
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';

@@ -1,5 +1,8 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Início da enfermagem, fila de triagens, indicadores e ações permitidas, reaproveitando a estrutura do veterinário.
 // inicio do enfermeiro com agenda e triagem dos atendimentos
 import 'package:flutter/material.dart';
+
 import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
@@ -13,6 +16,7 @@ class InicioEnfermeiro extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => InicioVeterinario(
+    perfilAcesso: 'ENFERMEIRO',
     profissional: SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro',
     mostrarTodasConsultas: true,
     paginaConsultaBuilder: _paginaTriagem,
@@ -31,7 +35,6 @@ class InicioEnfermeiro extends StatelessWidget {
       profissional: SessaoUsuario.instancia.nomeUsuario ?? 'Enfermeiro',
       mostrarInternadosInicialmente: true,
       somenteInternados: true,
-      descricao: 'Prontuários compartilhados dos pacientes internados',
     ),
     rotuloAcaoConsulta: (consulta) => switch (consulta.status) {
       StatusConsultaRecepcao.aguardandoTriagem => 'Iniciar triagem',

@@ -4,6 +4,7 @@
  */
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/screens/tutor/checkout_agendamento_tutor.dart';
 import 'package:pet_care/services/veterinarios_service.dart';
@@ -71,9 +72,11 @@ class _DetalhesAgendamentoTutorState
     'Retorno',
   ];
 
-  final _veterinariosService = VeterinariosService();
+  final _veterinariosService = VeterinariosService(
+    baseUrl: ApiConfig.baseUrl,
+  );
 
-  final _petsService = PetsService();
+  final _petsService = PetsService(baseUrl: ApiConfig.baseUrl);
 
   List<String> _pets = [];
   final Map<String, String> _idsPets = {};
@@ -213,6 +216,7 @@ class _DetalhesAgendamentoTutorState
       }
 
       final service = AgendamentosService(
+        baseUrl: ApiConfig.baseUrl,
         token: token,
       );
 

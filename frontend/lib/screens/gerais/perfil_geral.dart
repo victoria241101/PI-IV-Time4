@@ -5,6 +5,7 @@
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/screens/autenticacao/service/perfil_service.dart';
@@ -13,13 +14,56 @@ import 'package:pet_care/widgets/gerais/cabecalho_geral.dart';
 class PerfilGeral extends StatefulWidget {
   const PerfilGeral({
     super.key,
+    this.modoCompacto = false,
   });
+
+  final bool modoCompacto;
 
   @override
   State<PerfilGeral> createState() => _PerfilGeralState();
 }
 
 class _PerfilGeralState extends State<PerfilGeral> {
+  Future<Map<String, dynamic>>? _dadosPerfil;
+  final _nomeController = TextEditingController();
+  final _emailController = TextEditingController();
+  final _senhaAtualController = TextEditingController();
+  final _novaSenhaController = TextEditingController();
+  final _confirmarSenhaController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.modoCompacto && SessaoUsuario.instancia.ehEquipeClinica) {
+      _dadosPerfil = _buscarPerfil();
+    }
+  }
+
+  @override
+  void dispose() {
+    _nomeController.dispose();
+    _emailController.dispose();
+    _senhaAtualController.dispose();
+    _novaSenhaController.dispose();
+    _confirmarSenhaController.dispose();
+    super.dispose();
+  }
+
+  Future<Map<String, dynamic>> _buscarPerfil() async {
+    final token = SessaoUsuario.instancia.token ?? '';
+    final dados = await PerfilService.autenticado(
+      baseUrl: ApiConfig.baseUrl,
+      token: token,
+    ).buscarPerfil().timeout(const Duration(seconds: 20));
+    if (SessaoUsuario.instancia.token != token) {
+      throw StateError('A sessão mudou. Abra o perfil novamente.');
+    }
+    if (dados['usuario'] is! Map) {
+      throw const FormatException('Perfil inválido.');
+    }
+    return Map<String, dynamic>.from(dados['usuario'] as Map);
+  }
+
   // =====================================================
   // AÇÕES DO PERFIL
   // =====================================================
@@ -39,17 +83,10 @@ class _PerfilGeralState extends State<PerfilGeral> {
 
   Future<void> _editarPerfil() async {
     final formKey = GlobalKey<FormState>();
+    _nomeController.text = SessaoUsuario.instancia.nomeUsuario ?? '';
+    _emailController.text = SessaoUsuario.instancia.emailUsuario ?? '';
 
-    final nomeController = TextEditingController(
-      text: SessaoUsuario.instancia.nomeUsuario ?? '',
-    );
-
-    final emailController = TextEditingController(
-      text: SessaoUsuario.instancia.emailUsuario ?? '',
-    );
-
-    try {
-      final resultado = await showDialog<bool>(
+    final resultado = await showDialog<bool>(
         context: context,
         builder: (dialogContext) {
           bool salvando = false;
@@ -66,7 +103,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextFormField(
-                          controller: nomeController,
+                          controller: _nomeController,
                           enabled: !salvando,
                           textCapitalization: TextCapitalization.words,
                           decoration: const InputDecoration(
@@ -83,7 +120,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          controller: emailController,
+                          controller: _emailController,
                           enabled: !salvando,
                           keyboardType: TextInputType.emailAddress,
                           decoration: const InputDecoration(
@@ -122,8 +159,8 @@ class _PerfilGeralState extends State<PerfilGeral> {
 
                       try {
                         await SessaoUsuario.instancia.atualizarPerfil(
-                          nome: nomeController.text,
-                          email: emailController.text,
+                          nome: _nomeController.text,
+                          email: _emailController.text,
                         );
 
                         if (!dialogContext.mounted) return;
@@ -164,21 +201,15 @@ class _PerfilGeralState extends State<PerfilGeral> {
           'Solicitação enviada! Verifique seu e-mail para confirmar as alterações.',
         );
       }
-    } finally {
-      nomeController.dispose();
-      emailController.dispose();
-    }
   }
 
   Future<void> _alterarSenha() async {
     final formKey = GlobalKey<FormState>();
+    _senhaAtualController.clear();
+    _novaSenhaController.clear();
+    _confirmarSenhaController.clear();
 
-    final senhaAtualController = TextEditingController();
-    final novaSenhaController = TextEditingController();
-    final confirmarSenhaController = TextEditingController();
-
-    try {
-      await showDialog<void>(
+    await showDialog<void>(
         context: context,
         builder: (dialogContext) {
           bool salvando = false;
@@ -190,7 +221,16 @@ class _PerfilGeralState extends State<PerfilGeral> {
             builder: (contextDialogo, atualizarDialogo) {
               return AlertDialog(
                 backgroundColor: CoresApp.surface,
-                title: const Text('Alterar senha'),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(24),
+                ),
+                title: const Text(
+                  'Alterar senha',
+                  style: TextStyle(
+                    color: CoresApp.darkBlue,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
                 content: Form(
                   key: formKey,
                   child: SingleChildScrollView(
@@ -198,7 +238,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         TextFormField(
-                          controller: senhaAtualController,
+                          controller: _senhaAtualController,
                           enabled: !salvando,
                           obscureText: !mostrarSenhaAtual,
                           decoration: InputDecoration(
@@ -227,7 +267,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          controller: novaSenhaController,
+                          controller: _novaSenhaController,
                           enabled: !salvando,
                           obscureText: !mostrarNovaSenha,
                           decoration: InputDecoration(
@@ -254,7 +294,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                             if (valor.length < 8) {
                               return 'Use pelo menos 8 caracteres.';
                             }
-                            if (valor == senhaAtualController.text) {
+                            if (valor == _senhaAtualController.text) {
                               return 'Escolha uma senha diferente.';
                             }
                             return null;
@@ -262,7 +302,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                         ),
                         const SizedBox(height: 16),
                         TextFormField(
-                          controller: confirmarSenhaController,
+                          controller: _confirmarSenhaController,
                           enabled: !salvando,
                           obscureText: !mostrarConfirmacao,
                           decoration: InputDecoration(
@@ -283,7 +323,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
                             border: const OutlineInputBorder(),
                           ),
                           validator: (valor) {
-                            if (valor != novaSenhaController.text) {
+                            if (valor != _novaSenhaController.text) {
                               return 'As senhas não coincidem.';
                             }
                             return null;
@@ -319,13 +359,14 @@ class _PerfilGeralState extends State<PerfilGeral> {
 
                       try {
                         final servico = PerfilService.autenticado(
+                          baseUrl: ApiConfig.baseUrl,
                           token: SessaoUsuario.instancia.token!,
                         );
 
                         await servico.alterarSenha(
-                          senhaAtual: senhaAtualController.text,
-                          novaSenha: novaSenhaController.text,
-                          confirmarSenha: confirmarSenhaController.text,
+                          senhaAtual: _senhaAtualController.text,
+                          novaSenha: _novaSenhaController.text,
+                          confirmarSenha: _confirmarSenhaController.text,
                         );
 
                         if (!dialogContext.mounted) return;
@@ -365,11 +406,6 @@ class _PerfilGeralState extends State<PerfilGeral> {
           );
         },
       );
-    } finally {
-      senhaAtualController.dispose();
-      novaSenhaController.dispose();
-      confirmarSenhaController.dispose();
-    }
   }
 
   Future<void> _sair() async {
@@ -421,14 +457,14 @@ class _PerfilGeralState extends State<PerfilGeral> {
       },
     );
 
-    if (confirmar != true) return;
+    if (confirmar != true || !mounted) return;
 
+    final navegador = Navigator.of(context);
     await SessaoUsuario.instancia.sair();
 
-    if (!mounted) return;
+    if ((!widget.modoCompacto && !mounted) || !navegador.mounted) return;
 
-    Navigator.pushNamedAndRemoveUntil(
-      context,
+    navegador.pushNamedAndRemoveUntil(
       '/login',
           (route) => false,
     );
@@ -441,6 +477,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      appBar: widget.modoCompacto ? AppBar(title: const Text('Perfil')) : null,
       backgroundColor: CoresApp.background,
       body: SafeArea(
         child: SingleChildScrollView(
@@ -468,6 +505,7 @@ class _PerfilGeralState extends State<PerfilGeral> {
               return Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  if (!widget.modoCompacto) ...[
                   const CabecalhoGeral(),
 
                   const SizedBox(
@@ -496,14 +534,47 @@ class _PerfilGeralState extends State<PerfilGeral> {
                     ),
                   ),
 
+                  ],
+
                   const SizedBox(
                     height: EspacamentosApp.lg,
                   ),
 
-                  _CardPerfil(
-                    nome: nome,
-                    email: email,
-                    onEditar: _editarPerfil,
+                  FutureBuilder<Map<String, dynamic>>(
+                    future: _dadosPerfil,
+                    builder: (context, snapshot) {
+                      String campo(String nome) {
+                        if (_dadosPerfil == null) return 'Não informado';
+                        if (snapshot.connectionState != ConnectionState.done) {
+                          return 'Carregando...';
+                        }
+                        if (snapshot.hasError) return 'Não disponível';
+                        final valor = snapshot.data?[nome]?.toString().trim() ?? '';
+                        return valor.isEmpty ? 'Não informado' : valor;
+                      }
+                      return Column(
+                        children: [
+                          _CardPerfil(
+                            nome: nome,
+                            email: email,
+                            onEditar: _editarPerfil,
+                            telefone: campo('telefone'),
+                            cpf: campo('cpf'),
+                          ),
+                          if (snapshot.hasError)
+                            TextButton(
+                              onPressed: () {
+                                setState(() {
+                                  _dadosPerfil = _buscarPerfil();
+                                });
+                              },
+                              child: const Text(
+                                'Não foi possível carregar os dados. Tentar novamente',
+                              ),
+                            ),
+                        ],
+                      );
+                    },
                   ),
 
                   const SizedBox(
@@ -589,11 +660,15 @@ class _CardPerfil extends StatelessWidget {
     required this.nome,
     required this.email,
     required this.onEditar,
+    required this.telefone,
+    required this.cpf,
   });
 
   final String nome;
   final String email;
   final VoidCallback onEditar;
+  final String telefone;
+  final String cpf;
 
   @override
   Widget build(BuildContext context) {
@@ -664,20 +739,20 @@ class _CardPerfil extends StatelessWidget {
             height: EspacamentosApp.sm,
           ),
 
-          const _InformacaoPerfil(
+          _InformacaoPerfil(
             icone: Icons.phone_outlined,
             titulo: 'Telefone',
-            valor: 'Não informado',
+            valor: telefone,
           ),
 
           const SizedBox(
             height: EspacamentosApp.sm,
           ),
 
-          const _InformacaoPerfil(
+          _InformacaoPerfil(
             icone: Icons.badge_outlined,
             titulo: 'CPF',
-            valor: 'Não informado',
+            valor: cpf,
           ),
 
           const SizedBox(

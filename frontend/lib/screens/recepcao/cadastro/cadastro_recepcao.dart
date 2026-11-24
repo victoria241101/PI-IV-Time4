@@ -1,5 +1,12 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Etapas de cadastro de tutor/pet, CPF, escolha do animal, API e resultado.
+import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 // fluxo de cadastro de tutor e pet pela recepção
 import 'package:flutter/material.dart';
+import 'package:pet_care/controle/agenda_clinica.dart';
+import 'package:pet_care/controle/cadastros_recepcao_local.dart';
+import 'package:pet_care/core/tema/tipografia_app.dart';
+import 'package:pet_care/widgets/clinica/componentes_clinica.dart';
 
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
@@ -27,7 +34,20 @@ enum _EtapaCadastro {
 ///
 /// Cada etapa avança ou volta na máquina de estados `_EtapaCadastro`.
 class CadastroRecepcao extends StatefulWidget {
-  const CadastroRecepcao({super.key, required this.onRegistrarConsulta});
+  const CadastroRecepcao({
+    super.key,
+    required this.onRegistrarConsulta,
+    this.dataInicial,
+    this.somenteCadastro = false,
+    this.somentePet = false,
+    this.onCadastroConcluido,
+    this.cadastrosService,
+  });
+  final CadastrosRecepcaoService? cadastrosService;
+  final DateTime? dataInicial;
+  final bool somenteCadastro;
+  final bool somentePet;
+  final ValueChanged<RegistroRecepcaoLocal>? onCadastroConcluido;
 
   final bool Function(ConsultaRecepcao consulta) onRegistrarConsulta;
 
@@ -36,6 +56,11 @@ class CadastroRecepcao extends StatefulWidget {
 }
 
 class _CadastroRecepcaoState extends State<CadastroRecepcao> {
+  late final _cadastrosService =
+      widget.cadastrosService ?? CadastrosRecepcaoService();
+  String _solicitacaoId = CadastrosRecepcaoService.novaSolicitacao();
+  bool _salvando = false;
+  Map<String, dynamic>? _cadastroSalvo;
   final _cpfKey = GlobalKey<FormState>();
   final _responsavelKey = GlobalKey<FormState>();
   final _petKey = GlobalKey<FormState>();
@@ -43,32 +68,40 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
   final _nomeResponsavelController = TextEditingController();
   final _telefoneController = TextEditingController();
   final _emailController = TextEditingController();
-  final _enderecoController = TextEditingController();
   final _nomePetController = TextEditingController();
   final _racaController = TextEditingController();
-  final _idadeController = TextEditingController();
-  final _condicoesController = TextEditingController();
+  final _microchipController = TextEditingController();
+  DateTime? _dataNascimentoPet;
   _EtapaCadastro _etapa = _EtapaCadastro.inicio;
   String _nomeResponsavel = '';
   String? _petSelecionado;
+  String? _prontuarioSelecionado;
+  RegistroRecepcaoLocal? _tutorLocal;
+  Map<String, String> get _pets => {
+    for (final registro in CadastrosRecepcaoLocal.instancia.petsPorCpf(
+      _cpfController.text,
+    ))
+      registro.dados['pet']!: registro.dados['especie'] ?? 'Pet',
+  };
   String _especie = 'Cachorro';
   String _sexo = 'Macho';
+  bool _possuiMicrochip = false;
   String _encaminhamento = 'Triagem';
   late DateTime _dataConsulta;
   TimeOfDay _horarioConsulta = const TimeOfDay(hour: 9, minute: 0);
   String _profissionalConsulta = 'Dra. Beatriz';
   ConsultaRecepcao? _consultaCriada;
-  bool _castrado = false;
-  bool _possuiMicrochip = false;
-  bool _fotoSelecionada = false;
   bool _responsavelExistente = false;
 
   @override
   void initState() {
     super.initState();
     _dataConsulta = DateUtils.dateOnly(
-      DateTime.now().add(const Duration(days: 1)),
+      widget.dataInicial ?? DateTime.now().add(const Duration(days: 1)),
     );
+    if (widget.dataInicial != null) _encaminhamento = 'Agendar consulta';
+    if (widget.somenteCadastro) _etapa = _EtapaCadastro.responsavel;
+    if (widget.somentePet) _etapa = _EtapaCadastro.cpf;
   }
 
   @override
@@ -77,16 +110,15 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
     _nomeResponsavelController.dispose();
     _telefoneController.dispose();
     _emailController.dispose();
-    _enderecoController.dispose();
     _nomePetController.dispose();
     _racaController.dispose();
-    _idadeController.dispose();
-    _condicoesController.dispose();
+    _microchipController.dispose();
     super.dispose();
   }
   // Navegação entre etapas
 
   void _voltar() {
+    if (_salvando) return;
     setState(() {
       switch (_etapa) {
         case _EtapaCadastro.inicio:
@@ -101,12 +133,16 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
           _etapa = _EtapaCadastro.inicio;
           break;
         case _EtapaCadastro.pet:
-          _etapa = _responsavelExistente
+          _etapa = widget.somentePet
+              ? _EtapaCadastro.cpf
+              : _responsavelExistente
               ? _EtapaCadastro.pets
               : _EtapaCadastro.responsavel;
           break;
         case _EtapaCadastro.encaminhamento:
-          _etapa = _EtapaCadastro.pet;
+          _etapa = _responsavelExistente && _petSelecionado != null
+              ? _EtapaCadastro.pets
+              : _EtapaCadastro.pet;
           break;
         case _EtapaCadastro.sucesso:
           _etapa = _EtapaCadastro.inicio;
@@ -116,22 +152,92 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
   }
   // Ações
 
-  void _buscarResponsavel() {
+  Future<void> _buscarResponsavel() async {
     if (!_cpfKey.currentState!.validate()) return;
-    // TODO(backend): Substituir por chamada real ao serviço de busca de tutor.
+    if (widget.somentePet) {
+      setState(() => _salvando = true);
+      try {
+        final dados = await _cadastrosService.buscarTutor(_cpfController.text);
+        if (dados == null) {
+          _mensagem('Tutor não encontrado. Confira o CPF informado.');
+          return;
+        }
+        final tutor = dados['tutor'];
+        if (tutor is! Map) {
+          throw const FormatException('Resposta de consulta do tutor inválida.');
+        }
+        final nome = tutor['nome']?.toString().trim() ?? '';
+        if (nome.isEmpty) {
+          throw const FormatException('O cadastro do tutor não possui nome.');
+        }
+        final contato = RegistroRecepcaoLocal(
+          tipo: TipoCadastroRecepcao.tutorPet,
+          nome: nome,
+          dados: {
+            'cpf': tutor['cpf']?.toString() ?? _cpfController.text,
+            'telefone': tutor['telefone']?.toString() ?? '',
+            'email': tutor['email']?.toString() ?? '',
+          },
+        );
+        if (!mounted) return;
+        setState(() {
+          _responsavelExistente = true;
+          _tutorLocal = contato;
+          _nomeResponsavel = nome;
+          _nomeResponsavelController.text = nome;
+          _telefoneController.text = contato.dados['telefone']!;
+          _emailController.text = contato.dados['email']!;
+          _petSelecionado = null;
+          _etapa = _EtapaCadastro.pet;
+        });
+      } catch (erro) {
+        if (mounted) {
+          _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+        }
+      } finally {
+        if (mounted) setState(() => _salvando = false);
+      }
+      return;
+    }
+    final tutor = CadastrosRecepcaoLocal.instancia.tutorPorCpf(
+      _cpfController.text,
+    );
+    if (tutor == null) {
+      _mensagem(
+        'CPF não encontrado nesta sessão. Cadastre o tutor como novo responsável.',
+      );
+      return;
+    }
     setState(() {
       _responsavelExistente = true;
-      _nomeResponsavel = 'Marina Costa';
+      _tutorLocal = tutor;
+      _petSelecionado = null;
+      _prontuarioSelecionado = null;
+      _nomeResponsavel = tutor.nome;
       _nomeResponsavelController.text = _nomeResponsavel;
-      _telefoneController.text = '(11) 98842-1092';
-      _emailController.text = 'marina.costa@email.com';
-      _enderecoController.text = 'Av. Paulista, 1200 · Bela Vista';
+      _telefoneController.text = tutor.dados['telefone'] ?? '';
+      _emailController.text = tutor.dados['email'] ?? '';
       _etapa = _EtapaCadastro.pets;
     });
   }
 
   void _continuarResponsavel() {
     if (!_responsavelKey.currentState!.validate()) return;
+    if (widget.somenteCadastro &&
+        !RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
+            .hasMatch(_emailController.text.trim())) {
+      _mensagem('Informe um e-mail válido para o tutor acessar a conta.');
+      return;
+    }
+    if (!widget.somenteCadastro &&
+        !_responsavelExistente &&
+        CadastrosRecepcaoLocal.instancia.tutorPorCpf(_cpfController.text) !=
+            null) {
+      _mensagem(
+        'Este tutor já está cadastrado nesta prévia. Localize-o pelo CPF na agenda.',
+      );
+      return;
+    }
     setState(() {
       _nomeResponsavel = _nomeResponsavelController.text.trim();
       _etapa = _EtapaCadastro.pet;
@@ -145,17 +251,117 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
     }
     setState(() {
       _nomePetController.text = _petSelecionado!;
+      final registros = CadastrosRecepcaoLocal.instancia
+          .petsPorCpf(_cpfController.text)
+          .where((r) => r.dados['pet'] == _petSelecionado);
+      _especie = registros.isNotEmpty
+          ? registros.last.dados['especie'] ?? 'Cachorro'
+          : (_petSelecionado == 'Luna' ? 'Gato' : 'Cachorro');
+      _prontuarioSelecionado = null;
       _etapa = _EtapaCadastro.encaminhamento;
     });
   }
 
-  void _continuarPet() {
-    if (!_petKey.currentState!.validate()) return;
-    setState(() => _etapa = _EtapaCadastro.encaminhamento);
+  Future<void> _continuarPet() async {
+    if (_salvando || !_petKey.currentState!.validate()) return;
+    if (widget.somenteCadastro || widget.somentePet) {
+      final email = _emailController.text.trim();
+      final telefone = _telefoneController.text.replaceAll(RegExp(r'\D'), '');
+      if (!RegExp(r'^[^\s@]+@[^\s@]+\.[^\s@]+$').hasMatch(email)) {
+        _mensagem('O cadastro do tutor precisa ter um e-mail válido.');
+        return;
+      }
+      if (!RegExp(r'^\d{10,11}$').hasMatch(telefone)) {
+        _mensagem('O cadastro do tutor precisa ter um telefone válido.');
+        return;
+      }
+      if (_racaController.text.trim().isEmpty) {
+        _mensagem(
+          'Informe a raça do pet. Para raça desconhecida, informe SRD.',
+        );
+        return;
+      }
+      setState(() => _salvando = true);
+      try {
+        final dados = _registroTutorPet().dados;
+        final resultado = await _cadastrosService.cadastrar({
+          ...dados,
+          'nome': _nomeResponsavel,
+        }, _solicitacaoId);
+        if (!mounted) return;
+        _cadastroSalvo = resultado;
+        _nomeResponsavel = resultado['nome']?.toString() ?? _nomeResponsavel;
+        final registro = RegistroRecepcaoLocal(
+          tipo: TipoCadastroRecepcao.tutorPet,
+          nome: resultado['nome']?.toString() ?? _nomeResponsavel,
+          dados: {
+            ...dados,
+            'tutorId': resultado['tutorId'] as String,
+            'petId': resultado['petId'] as String,
+          },
+        );
+        widget.onCadastroConcluido?.call(registro);
+        setState(() => _etapa = _EtapaCadastro.sucesso);
+      } catch (erro) {
+        if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+      } finally {
+        if (mounted) setState(() => _salvando = false);
+      }
+      return;
+    }
+    setState(() {
+      _prontuarioSelecionado = null;
+      _etapa = _EtapaCadastro.encaminhamento;
+    });
   }
 
+  RegistroRecepcaoLocal _registroTutorPet() => RegistroRecepcaoLocal(
+    tipo: TipoCadastroRecepcao.tutorPet,
+    tutorDemonstracao:
+        _responsavelExistente &&
+        (_tutorLocal == null || _tutorLocal!.tutorDemonstracao),
+    nome: _nomeResponsavel,
+    dados: {
+      'cpf': _cpfController.text,
+      'telefone': _telefoneController.text,
+      'email': _emailController.text,
+      'pet': _nomePetController.text.trim(),
+      'especie': _especie,
+      'raca': _racaController.text,
+      'possuiMicrochip': _possuiMicrochip.toString(),
+      'microchip': _possuiMicrochip ? _microchipController.text.trim() : '',
+      'dataNascimento': _dataNascimentoPet?.toIso8601String() ?? '',
+      'sexo': _sexo,
+    },
+  );
+
+  List<ConsultaRecepcao> get _indicacoes =>
+      AgendaClinica.instancia.consultas.where((c) {
+        final p = AgendaClinica.instancia.prontuarios[c.id];
+        return c.pet == _nomePetController.text.trim() &&
+            c.tutor == _nomeResponsavel &&
+            p != null &&
+            p.internacao.isNotEmpty &&
+            !p.internacaoAtiva &&
+            p.internacaoFinalizadaEm == null &&
+            p.dataPrevistaInternacao != null &&
+            !AgendaClinica.instancia.consultas.any(
+              (a) => a.prontuarioOrigemId == c.id,
+            );
+      }).toList();
+
   void _confirmarEncaminhamento() {
-    final agendar = _encaminhamento == 'Agendar consulta';
+    final agendar = _encaminhamento != 'Triagem';
+    final internacao = _encaminhamento == 'Agendar internação';
+    if (internacao && !_indicacoes.any((c) => c.id == _prontuarioSelecionado)) {
+      _mensagem(
+        'Selecione um prontuário com indicação de internação disponível para este pet',
+      );
+      return;
+    }
+    final origem = internacao
+        ? AgendaClinica.instancia.prontuarios[_prontuarioSelecionado]
+        : null;
     final agora = DateTime.now();
     final dataHora = DateTime(
       _dataConsulta.year,
@@ -183,7 +389,14 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
       especie: _especie,
       tutor: _nomeResponsavel,
       profissional: agendar ? _profissionalConsulta : 'A definir',
-      motivo: agendar ? 'Consulta inicial' : 'Avaliação inicial',
+      motivo: internacao
+          ? 'Internação · ${origem!.procedimentoIndicado}'
+          : agendar
+          ? 'Consulta inicial'
+          : 'Avaliação inicial',
+      internacaoAgendada: internacao,
+      prontuarioOrigemId: internacao ? _prontuarioSelecionado : null,
+      dataPrevistaInternacao: origem?.dataPrevistaInternacao,
       sala: agendar ? _salaDoProfissional(_profissionalConsulta) : 'Triagem',
       status: agendar
           ? StatusConsultaRecepcao.agendada
@@ -195,6 +408,9 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
       return;
     }
 
+    if (!_responsavelExistente || _petSelecionado == null) {
+      CadastrosRecepcaoLocal.instancia.registros.add(_registroTutorPet());
+    }
     setState(() {
       _consultaCriada = consulta;
       _etapa = _EtapaCadastro.sucesso;
@@ -245,29 +461,36 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
 
   void _reiniciar() {
     setState(() {
-      _etapa = _EtapaCadastro.inicio;
+      _solicitacaoId = CadastrosRecepcaoService.novaSolicitacao();
+      _cadastroSalvo = null;
+      _etapa = widget.somenteCadastro
+          ? _EtapaCadastro.responsavel
+          : widget.somentePet
+          ? _EtapaCadastro.cpf
+          : _EtapaCadastro.inicio;
+      _prontuarioSelecionado = null;
+      _tutorLocal = null;
       _cpfController.clear();
       _nomeResponsavelController.clear();
       _telefoneController.clear();
       _emailController.clear();
-      _enderecoController.clear();
       _nomePetController.clear();
       _racaController.clear();
-      _idadeController.clear();
-      _condicoesController.clear();
+      _microchipController.clear();
+      _dataNascimentoPet = null;
       _petSelecionado = null;
       _especie = 'Cachorro';
       _sexo = 'Macho';
-      _encaminhamento = 'Triagem';
+      _possuiMicrochip = false;
+      _encaminhamento = widget.dataInicial != null
+          ? 'Agendar consulta'
+          : 'Triagem';
       _dataConsulta = DateUtils.dateOnly(
-        DateTime.now().add(const Duration(days: 1)),
+        widget.dataInicial ?? DateTime.now().add(const Duration(days: 1)),
       );
       _horarioConsulta = const TimeOfDay(hour: 9, minute: 0);
       _profissionalConsulta = 'Dra. Beatriz';
       _consultaCriada = null;
-      _castrado = false;
-      _possuiMicrochip = false;
-      _fotoSelecionada = false;
       _responsavelExistente = false;
       _nomeResponsavel = '';
     });
@@ -291,7 +514,8 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
             children: [
               _cabecalhoEtapa(),
               const SizedBox(height: EspacamentosApp.md),
-              _conteudoEtapa(),
+              if (_salvando) const LinearProgressIndicator(),
+              AbsorbPointer(absorbing: _salvando, child: _conteudoEtapa()),
             ],
           ),
         ),
@@ -302,7 +526,8 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
 
   Widget _cabecalhoEtapa() {
     final titulo = switch (_etapa) {
-      _EtapaCadastro.inicio => 'Cadastrar paciente',
+      _EtapaCadastro.inicio =>
+        widget.dataInicial != null ? 'Novo agendamento' : 'Cadastrar paciente',
       _EtapaCadastro.cpf => 'Localizar responsável',
       _EtapaCadastro.pets => 'Escolher paciente',
       _EtapaCadastro.responsavel => 'Dados do responsável',
@@ -314,7 +539,11 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
     return CabecalhoEtapaCadastro(
       titulo: titulo,
       mostrarVoltar:
-          _etapa != _EtapaCadastro.inicio && _etapa != _EtapaCadastro.sucesso,
+          _etapa != _EtapaCadastro.inicio &&
+          _etapa != _EtapaCadastro.sucesso &&
+          !((widget.somenteCadastro &&
+                  _etapa == _EtapaCadastro.responsavel) ||
+              (widget.somentePet && _etapa == _EtapaCadastro.cpf)),
       mostrarAjuda: _etapa == _EtapaCadastro.inicio,
       onVoltar: _voltar,
       onAjuda: () => _mensagem(
@@ -357,13 +586,19 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
 
   Widget _telaPets() => PetsResponsavelCadastro(
     nomeResponsavel: _nomeResponsavel,
+    pets: _pets,
     cpfMascarado: _mascaraCpf(_cpfController.text),
     petSelecionado: _petSelecionado,
-    onPetSelecionado: (pet) => setState(() => _petSelecionado = pet),
+    onPetSelecionado: (pet) => setState(() {
+      _petSelecionado = pet;
+      _prontuarioSelecionado = null;
+    }),
     onContinuar: _abrirPetExistente,
     onCadastrarPet: () {
       setState(() {
         _nomePetController.clear();
+        _petSelecionado = null;
+        _prontuarioSelecionado = null;
         _etapa = _EtapaCadastro.pet;
       });
     },
@@ -376,7 +611,6 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
     cpfController: _cpfController,
     telefoneController: _telefoneController,
     emailController: _emailController,
-    enderecoController: _enderecoController,
     validarNome: _obrigatorio('Informe o nome completo'),
     validarTelefone: _obrigatorio('Informe o celular'),
     onContinuar: _continuarResponsavel,
@@ -392,30 +626,35 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
         : _cpfController.text,
     telefoneResponsavel: _telefoneController.text,
     emailResponsavel: _emailController.text,
-    enderecoResponsavel: _enderecoController.text,
     nomePetController: _nomePetController,
     racaController: _racaController,
-    idadeController: _idadeController,
-    condicoesController: _condicoesController,
+    microchipController: _microchipController,
+    possuiMicrochip: _possuiMicrochip,
+    dataNascimento: _dataNascimentoPet,
     especie: _especie,
     sexo: _sexo,
-    castrado: _castrado,
-    possuiMicrochip: _possuiMicrochip,
-    fotoSelecionada: _fotoSelecionada,
     validarNomePet: _obrigatorio('Informe o nome do pet'),
     onEditarResponsavel: _voltar,
     onEspecieChanged: (valor) => setState(() => _especie = valor),
     onSexoChanged: (valor) => setState(() => _sexo = valor),
-    onCastradoChanged: (valor) => setState(() => _castrado = valor),
-    onMicrochipChanged: (valor) => setState(() => _possuiMicrochip = valor),
-    onFotoTocada: () => setState(() => _fotoSelecionada = !_fotoSelecionada),
-    onFotoSelecionada: () => setState(() => _fotoSelecionada = true),
+    onPossuiMicrochipChanged: (valor) => setState(() {
+      _possuiMicrochip = valor;
+      if (!valor) _microchipController.clear();
+    }),
+    onDataNascimentoChanged: (data) =>
+        setState(() => _dataNascimentoPet = data),
     onContinuar: _continuarPet,
+    rotuloContinuar: widget.somenteCadastro || widget.somentePet
+        ? widget.somentePet
+            ? 'Cadastrar pet para este tutor'
+            : 'Cadastrar tutor e pet'
+        : 'Continuar',
   );
 
   // Etapa: triagem imediata ou agendamento de consulta
 
   Widget _telaEncaminhamento() => EncaminhamentoCadastro(
+    campoIndicacao: _seletorIndicacao(),
     nomePet: _nomePetController.text,
     nomeResponsavel: _nomeResponsavel,
     encaminhamento: _encaminhamento,
@@ -433,14 +672,93 @@ class _CadastroRecepcaoState extends State<CadastroRecepcao> {
 
   // Etapa: Sucesso
 
-  Widget _telaSucesso() => SucessoCadastroRecepcao(
-    consulta: _consultaCriada,
-    nomePet: _nomePetController.text,
-    dataFormatada: _consultaCriada == null
-        ? ''
-        : _formatarData(_consultaCriada!.data),
-    onNovoCadastro: _reiniciar,
-  );
+  Widget _telaSucesso() => widget.somenteCadastro || widget.somentePet
+      ? CartaoClinica(
+          child: Column(
+            children: [
+              const Icon(Icons.check_circle_outline, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                widget.somentePet
+                    ? 'Pet cadastrado'
+                    : 'Tutor e pet cadastrados',
+                style: TipografiaApp.heading2,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$_nomeResponsavel · ${_nomePetController.text}\nCadastro salvo.'
+                '${widget.somentePet ? '' : '\n${_cadastroSalvo?['contaCriada'] == true ? 'Para criar a senha, o tutor deve usar “Esqueci a senha” com o e-mail cadastrado.' : 'O tutor pode usar sua senha ou selecionar “Esqueci a senha” com o e-mail cadastrado.'}'}',
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              BotaoClinica(
+                label: 'Concluir',
+                expanded: true,
+                onPressed: () => Navigator.pop(context),
+              ),
+            ],
+          ),
+        )
+      : SucessoCadastroRecepcao(
+          consulta: _consultaCriada,
+          nomePet: _nomePetController.text,
+          dataFormatada: _consultaCriada == null
+              ? ''
+              : _formatarData(_consultaCriada!.data),
+          onNovoCadastro: _reiniciar,
+        );
+
+  Widget _seletorIndicacao() {
+    final indicacoes = _indicacoes;
+    final origem = AgendaClinica.instancia.prontuarios[_prontuarioSelecionado];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        if (indicacoes.isEmpty)
+          const Text(
+            'Este pet não tem indicação de internação disponível. A indicação deve ser registrada pelo veterinário no prontuário.',
+          )
+        else
+          DropdownButtonFormField<String>(
+            key: ValueKey(
+              'indicacao-${_nomePetController.text}-$_prontuarioSelecionado',
+            ),
+            initialValue: indicacoes.any((c) => c.id == _prontuarioSelecionado)
+                ? _prontuarioSelecionado
+                : null,
+            isExpanded: true,
+            decoration: const InputDecoration(
+              labelText: 'Prontuário com indicação',
+              border: OutlineInputBorder(),
+            ),
+            items: indicacoes
+                .map(
+                  (c) => DropdownMenuItem(
+                    value: c.id,
+                    child: Text(
+                      '${_formatarData(c.data)} · ${AgendaClinica.instancia.prontuarios[c.id]!.procedimentoIndicado}',
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                )
+                .toList(),
+            onChanged: (id) => setState(() => _prontuarioSelecionado = id),
+          ),
+        if (origem?.dataPrevistaInternacao != null) ...[
+          const SizedBox(height: 12),
+          Text(
+            'Data prevista: ${_formatarData(origem!.dataPrevistaInternacao!)}',
+            style: TipografiaApp.bodyMedium,
+          ),
+          const Text(
+            'A previsão é uma referência. Você pode escolher outra data para o agendamento.',
+          ),
+        ],
+        const SizedBox(height: 16),
+      ],
+    );
+  }
 
   String? Function(String?) _obrigatorio(String mensagem) {
     return (value) => (value?.trim().isEmpty ?? true) ? mensagem : null;

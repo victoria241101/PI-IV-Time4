@@ -4,6 +4,7 @@
  */
 import 'package:flutter/material.dart';
 
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
@@ -119,7 +120,9 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
     });
 
     try {
-      final service = VeterinariosService();
+      final service = VeterinariosService(
+        baseUrl: ApiConfig.baseUrl,
+      );
 
       final veterinarios = await service.listarVeterinarios();
 
@@ -149,14 +152,8 @@ class _ConsultasTutorState extends State<ConsultasTutor> {
   }
 
   bool _temDisponibilidade(DateTime data) {
-    if (_ehDataPassada(data) || data.weekday == DateTime.sunday) {
-      return false;
+  return !_ehDataPassada(data);
     }
-
-    // Disponibilidade simulada até a integração com o backend.
-    // O calendário mantém o comportamento visual original.
-    return data.day % 3 != 0;
-  }
 
   void _mudarMes(int quantidade) {
     setState(() {
@@ -1040,7 +1037,7 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
     if (token == null || token.isEmpty) {
       throw StateError('Faça login novamente.');
     }
-    return AgendamentosService(token: token);
+    return AgendamentosService(baseUrl: ApiConfig.baseUrl, token: token);
   }
 
   void _mensagem(String texto) {
@@ -1168,10 +1165,13 @@ class _MinhasConsultasTutorState extends State<_MinhasConsultasTutor>
       }
 
       final agendamentosService = AgendamentosService(
+        baseUrl: ApiConfig.baseUrl,
         token: token,
       );
-      final petsService = PetsService();
-      final veterinariosService = VeterinariosService();
+      final petsService = PetsService(baseUrl: ApiConfig.baseUrl);
+      final veterinariosService = VeterinariosService(
+        baseUrl: ApiConfig.baseUrl,
+      );
 
       final resultados = await Future.wait<dynamic>([
         agendamentosService.listarAgendamentos(),

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Integra lista e abertura de conversas ao fluxo da recepção reutilizando o chat existente.
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/espacamentos_app.dart';
@@ -18,6 +20,7 @@ class ChatRecepcao extends StatelessWidget {
       ),
       child: ListaConversas(
         titulo: 'Chat da equipe',
+        compactarCabecalho: true,
         onAbrirConversa: (conversa) async {
           await Navigator.of(context).push(
             MaterialPageRoute(

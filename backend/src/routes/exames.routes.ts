@@ -103,7 +103,7 @@ router.post(
             }>("atendimentos").findOne({
                 _id: { $in: idsAtendimento },
                 petId: { $in: idsPet },
-                veterinarioId: veterinario._id
+                veterinarioId: String(veterinario._id)
             });
 
             // interrompe se não encontrou o atendimento para vincular ao registro
@@ -120,7 +120,7 @@ router.post(
                 .insertOne({
                     petId: pet._id,
                     atendimentoId: atendimento._id,
-                    veterinarioId: veterinario._id,
+                    veterinarioId: String(veterinario._id),
                     tipo: tipo.trim(),
                     nome: nome.trim(),
                     justificativa: justificativa?.trim() ?? "",
@@ -199,7 +199,7 @@ router.patch(
             const atualizacao = await exames.updateOne(
                 {
                     _id: new ObjectId(id),
-                    veterinarioId: veterinario._id,
+                    veterinarioId: String(veterinario._id),
                     status: "solicitado"
                 },
                 {

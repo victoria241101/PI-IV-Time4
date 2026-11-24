@@ -444,7 +444,9 @@ router.get("/:id/historico-clinico", autenticar, async (req, res) => {
                 id: pet._id,
                 nome: pet.nome,
                 especie: pet.especie,
-                raca: pet.raca
+                raca: pet.raca,
+                microchip: pet.microchip ?? "",
+                possuiMicrochip: pet.possuiMicrochip ?? Boolean(pet.microchip)
             },
             historico,
             procedimentos,

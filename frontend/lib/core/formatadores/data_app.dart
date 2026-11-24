@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Formatação de datas por extenso.
 // Formata a data por extenso nos painéis dos três fluxos da clínica.
 String formatarDataExtensa(DateTime data) {
   const meses = [

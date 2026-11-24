@@ -1,17 +1,25 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Modelo dos dados clínicos compartilhados.
 // dados clinicos compartilhados entre veterinario e enfermagem
 
 class ProntuarioCompartilhado {
   ProntuarioCompartilhado({
+    this.atendimentoId,
+    this.internacaoId,
+    this.versaoInternacao = 0,
+    this.leito = '',
     this.observacoesTriagem = '',
     this.descricaoConsulta = '',
     this.retornoRecomendado = '',
     this.internacao = '',
+    this.procedimentoIndicado = '',
+    this.dataPrevistaInternacao,
     this.internacaoAtiva = false,
     this.internacaoIniciadaEm,
     this.internacaoFinalizadaEm,
     this.observacoes = '',
     List<MedicamentoPrescrito>? medicamentos,
-    List<String>? exames,
+    List<ExameVeterinario>? exames,
     List<ProcedimentoInternacao>? procedimentosInternacao,
     List<MedicacaoInternacao>? medicacoesInternacao,
     List<NotaInternacao>? notasInternacao,
@@ -21,39 +29,87 @@ class ProntuarioCompartilhado {
        medicacoesInternacao = medicacoesInternacao ?? [],
        notasInternacao = notasInternacao ?? [];
 
+  String? atendimentoId;
+  String? internacaoId;
+  int versaoInternacao;
+  String leito;
   String observacoesTriagem;
   String descricaoConsulta;
   String retornoRecomendado;
   String internacao;
+  String procedimentoIndicado;
+  DateTime? dataPrevistaInternacao;
   bool internacaoAtiva;
   DateTime? internacaoIniciadaEm;
   DateTime? internacaoFinalizadaEm;
   String observacoes;
   final List<MedicamentoPrescrito> medicamentos;
-  final List<String> exames;
+  final List<ExameVeterinario> exames;
   final List<ProcedimentoInternacao> procedimentosInternacao;
   final List<MedicacaoInternacao> medicacoesInternacao;
   final List<NotaInternacao> notasInternacao;
 
+  void lerInternacao(Map<String, dynamic> registro) {
+    internacaoId = registro['_id'] as String;
+    versaoInternacao = registro['versao'] as int? ?? 0;
+    leito = registro['leito'] as String? ?? '';
+    internacao = registro['motivo'] as String? ?? '';
+    internacaoAtiva = registro['status'] == 'ativa';
+    internacaoIniciadaEm = DateTime.tryParse('${registro['dataEntrada']}')?.toLocal();
+    internacaoFinalizadaEm = DateTime.tryParse('${registro['dataAlta']}')?.toLocal();
+    observacoes = registro['observacoes'] as String? ?? '';
+    final p = registro['prontuario'] as Map? ?? {};
+    observacoesTriagem = p['observacoesTriagem'] as String? ?? '';
+    descricaoConsulta = p['descricaoConsulta'] as String? ?? '';
+    procedimentosInternacao
+      ..clear()
+      ..addAll((p['procedimentosInternacao'] as List? ?? []).map((e) => ProcedimentoInternacao(
+        nome: e['nome'], detalhes: e['detalhes'], agendadoPara: DateTime.parse(e['agendadoPara']),
+        concluidoEm: e['concluidoEm'] == null ? null : DateTime.parse(e['concluidoEm']), detalhesConclusao: e['detalhesConclusao'])));
+    medicacoesInternacao
+      ..clear()
+      ..addAll((p['medicacoesInternacao'] as List? ?? []).map((e) => MedicacaoInternacao(
+        nome: e['nome'], dosagem: e['dosagem'], frequencia: e['frequencia'], detalhes: e['detalhes'],
+        administracoes: (e['administracoes'] as List).map((a) => AdministracaoMedicacao(
+          realizadaEm: DateTime.parse(a['realizadaEm']), responsavel: a['responsavel'], observacao: a['observacao'])).toList())));
+    notasInternacao
+      ..clear()
+      ..addAll((p['notasInternacao'] as List? ?? []).map((e) => NotaInternacao(texto: e['texto'], autor: e['autor'])));
+  }
+
+  Map<String, dynamic> dadosInternacao() => {
+    'observacoesTriagem': observacoesTriagem,
+    'descricaoConsulta': descricaoConsulta,
+    'procedimentosInternacao': procedimentosInternacao.map((p) => {
+      'nome': p.nome, 'detalhes': p.detalhes, 'agendadoPara': p.agendadoPara.toIso8601String(),
+      'concluidoEm': p.concluidoEm?.toIso8601String(), 'detalhesConclusao': p.detalhesConclusao,
+    }).toList(),
+    'medicacoesInternacao': medicacoesInternacao.map((m) => {
+      'nome': m.nome, 'dosagem': m.dosagem, 'frequencia': m.frequencia, 'detalhes': m.detalhes,
+      'administracoes': m.administracoes.map((a) => {
+        'realizadaEm': a.realizadaEm.toIso8601String(), 'responsavel': a.responsavel, 'observacao': a.observacao,
+      }).toList(),
+    }).toList(),
+    'notasInternacao': notasInternacao.map((n) => {'texto': n.texto, 'autor': n.autor}).toList(),
+  };
+
   ProntuarioCompartilhado copiar() => ProntuarioCompartilhado(
+    atendimentoId: atendimentoId,
+    internacaoId: internacaoId,
+    versaoInternacao: versaoInternacao,
+    leito: leito,
     observacoesTriagem: observacoesTriagem,
     descricaoConsulta: descricaoConsulta,
     retornoRecomendado: retornoRecomendado,
     internacao: internacao,
+    procedimentoIndicado: procedimentoIndicado,
+    dataPrevistaInternacao: dataPrevistaInternacao,
     internacaoAtiva: internacaoAtiva,
     internacaoIniciadaEm: internacaoIniciadaEm,
     internacaoFinalizadaEm: internacaoFinalizadaEm,
     observacoes: observacoes,
-    medicamentos: medicamentos
-        .map(
-          (item) => MedicamentoPrescrito(
-            nome: item.nome,
-            dosagem: item.dosagem,
-            orientacao: item.orientacao,
-          ),
-        )
-        .toList(),
-    exames: List<String>.of(exames),
+    medicamentos: medicamentos.map((item) => item.copiar()).toList(),
+    exames: List<ExameVeterinario>.of(exames),
     procedimentosInternacao: procedimentosInternacao
         .map((item) => item.copiar())
         .toList(),
@@ -69,11 +125,50 @@ class MedicamentoPrescrito {
     required this.nome,
     required this.dosagem,
     required this.orientacao,
+    this.id,
+    this.petId,
+    this.atendimentoId,
+    this.frequencia = '',
+    this.duracao = '',
+    this.status = 'ativa',
   });
 
-  final String nome;
-  final String dosagem;
-  final String orientacao;
+  final String nome, dosagem, orientacao, frequencia, duracao, status;
+  final String? id, petId, atendimentoId;
+
+  factory MedicamentoPrescrito.fromJson(Map<String, dynamic> dados) {
+    String texto(String campo) {
+      final valor = dados[campo];
+      if (valor is! String || valor.trim().isEmpty) {
+        throw FormatException('Prescrição sem $campo válido.');
+      }
+      return valor;
+    }
+
+    return MedicamentoPrescrito(
+      id: texto('_id'),
+      petId: texto('petId'),
+      atendimentoId: texto('atendimentoId'),
+      nome: texto('medicamento'),
+      dosagem: texto('dose'),
+      frequencia: texto('frequencia'),
+      duracao: texto('duracao'),
+      orientacao: dados['orientacoes'] as String? ?? '',
+      status: dados['status'] as String? ?? 'ativa',
+    );
+  }
+
+  MedicamentoPrescrito copiar() => MedicamentoPrescrito(
+    id: id,
+    petId: petId,
+    atendimentoId: atendimentoId,
+    nome: nome,
+    dosagem: dosagem,
+    orientacao: orientacao,
+    frequencia: frequencia,
+    duracao: duracao,
+    status: status,
+  );
 }
 
 class ProcedimentoInternacao {
@@ -149,4 +244,58 @@ class NotaInternacao {
   final String autor;
 
   NotaInternacao copiar() => NotaInternacao(texto: texto, autor: autor);
+}
+
+/// Exame veterinário solicitado via API (/exames).
+class ExameVeterinario {
+  ExameVeterinario({
+    required this.nome,
+    required this.tipo,
+    this.id,
+    this.petId,
+    this.atendimentoId,
+    this.justificativa = '',
+    this.status = 'solicitado',
+    this.resultado,
+  });
+
+  final String? id;
+  final String? petId;
+  final String? atendimentoId;
+  final String nome;
+  final String tipo;
+  final String justificativa;
+  final String status;
+  final String? resultado;
+
+  bool get concluido => status == 'concluido';
+
+  factory ExameVeterinario.fromJson(Map<String, dynamic> dados) {
+    String? texto(String campo) {
+      final valor = dados[campo];
+      return valor is String && valor.trim().isNotEmpty ? valor : null;
+    }
+
+    return ExameVeterinario(
+      id: texto('_id'),
+      petId: texto('petId'),
+      atendimentoId: texto('atendimentoId'),
+      nome: texto('nome') ?? '',
+      tipo: texto('tipo') ?? '',
+      justificativa: texto('justificativa') ?? '',
+      status: texto('status') ?? 'solicitado',
+      resultado: texto('resultado'),
+    );
+  }
+
+  ExameVeterinario copiar() => ExameVeterinario(
+    id: id,
+    petId: petId,
+    atendimentoId: atendimentoId,
+    nome: nome,
+    tipo: tipo,
+    justificativa: justificativa,
+    status: status,
+    resultado: resultado,
+  );
 }

@@ -1,93 +1,68 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Estado compartilhado de consultas/prontuários, carga da agenda, notificações e limpeza por sessão.
+import 'package:pet_care/services/clinica/consultas_clinica_service.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 // agenda e prontuarios compartilhados pelas equipes da clinica
 import 'package:flutter/material.dart';
-
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
 
 class AgendaClinica extends ChangeNotifier {
   AgendaClinica._() {
-    final hoje = DateUtils.dateOnly(DateTime.now());
-    consultas.addAll(_criarConsultasExemplo(hoje));
-    consultas.add(
-      ConsultaRecepcao(
-        id: 'pipoca-internada',
-        data: hoje.subtract(const Duration(days: 1)),
-        horario: '18:30',
-        duracaoMinutos: 45,
-        pet: 'Pipoca',
-        especie: 'SRD',
-        tutor: 'Mariana Alves',
-        profissional: 'Dra. Camila',
-        motivo: 'Atendimento de emergência · exemplo',
-        sala: 'Internação',
-        status: StatusConsultaRecepcao.finalizado,
-        emergencia: true,
-      ),
-    );
-    prontuarios['max-1000'] = ProntuarioCompartilhado(
-      observacoesTriagem: 'Paciente alerta, com sensibilidade ao apoiar a pata traseira direita',
-    );
-    prontuarios['nina-1130'] = ProntuarioCompartilhado(
-      observacoesTriagem: 'Aguardando conclusão da triagem de sinais vitais',
-    );
-    prontuarios['thor-1300'] = ProntuarioCompartilhado(
-      observacoesTriagem:
-          'Temperatura 39,4 °C · mucosas pálidas · dor abdominal à palpação',
-      internacao: 'Imediata (emergência)',
-    );
-    prontuarios['pipoca-internada'] = ProntuarioCompartilhado(
-      observacoesTriagem: 'Exemplo de triagem para visualização do prontuário',
-      descricaoConsulta: 'Exemplo de avaliação clínica e estabilização inicial',
-      medicamentos: [
-        MedicamentoPrescrito(
-          nome: 'Medicação de demonstração',
-          dosagem: 'Conforme prescrição',
-          orientacao: 'Registro de exemplo para a equipe',
-        ),
-      ],
-      exames: ['Hemograma · exemplo'],
-      internacao: 'Imediata (emergência)',
-      internacaoAtiva: true,
-      internacaoIniciadaEm: DateTime(
-        hoje.year,
-        hoje.month,
-        hoje.day - 1,
-        18,
-        30,
-      ),
-      observacoes: 'Acompanhamento compartilhado com a equipe de enfermagem',
-      procedimentosInternacao: [
-        ProcedimentoInternacao(
-          nome: 'Reavaliação clínica',
-          agendadoPara: DateTime.now().add(const Duration(hours: 2)),
-          detalhes: 'Procedimento de demonstração',
-        ),
-      ],
-      medicacoesInternacao: [
-        MedicacaoInternacao(
-          nome: 'Medicação de demonstração',
-          dosagem: 'Conforme prescrição',
-          frequencia: 'Conforme plano veterinário',
-          detalhes: 'Exemplo para testar os registros de administração',
-          administracoes: [
-            AdministracaoMedicacao(
-              realizadaEm: DateTime.now().subtract(const Duration(hours: 1)),
-              responsavel: 'Equipe de enfermagem',
-              observacao: 'Registro de demonstração',
-            ),
-          ],
-        ),
-      ],
-      notasInternacao: [
-        NotaInternacao(
-          texto: 'Exemplo de atualização compartilhada da equipe',
-          autor: 'Dra. Camila',
-        ),
-      ],
-    );
+    SessaoUsuario.instancia.addListener(() {
+      if (_sessaoCarregada != SessaoUsuario.instancia.token) {
+        ++_requisicao;
+        consultas.clear();
+        prontuarios.clear();
+        _sessaoCarregada = SessaoUsuario.instancia.token;
+        notifyListeners();
+      }
+    });
   }
 
   static final AgendaClinica instancia = AgendaClinica._();
+
+  ConsultasClinicaService servico = ConsultasClinicaService();
+  String? _sessaoCarregada;
+  int _requisicao = 0;
+
+  /// A API decide quais consultas o usuário autenticado pode consultar.
+  Future<void> carregarDia(DateTime dia) async {
+    final token = SessaoUsuario.instancia.token;
+    final requisicao = ++_requisicao;
+    if (_sessaoCarregada != token) {
+      consultas.clear();
+      prontuarios.clear();
+      _sessaoCarregada = token;
+      notifyListeners();
+    }
+    final recebidas = await servico.listarDia(dia);
+    if (requisicao != _requisicao || SessaoUsuario.instancia.token != token) {
+      return;
+    }
+    final novas = recebidas.where((c) => c.statusTela != null).map((c) {
+      final data = DateTime.parse(c.dataHora);
+      return ConsultaRecepcao(
+        id: c.id,
+        petId: c.petId,
+        tutorId: c.tutorId,
+        veterinarioId: c.veterinarioId,
+        data: DateUtils.dateOnly(data),
+        horario: c.dataHora.substring(11, 16),
+        duracaoMinutos: c.duracaoMinutos,
+        pet: c.petNome ?? 'Pet sem nome',
+        especie: c.especie ?? '',
+        tutor: c.tutorNome ?? 'Tutor sem nome',
+        profissional: c.veterinarioNome ?? 'Veterinário sem nome',
+        motivo: c.tipo,
+        sala: '',
+        status: c.statusTela!,
+      );
+    }).toList();
+    consultas.removeWhere((c) => DateUtils.isSameDay(c.data, dia));
+    consultas.addAll(novas);
+    notifyListeners();
+  }
 
   final List<ConsultaRecepcao> consultas = [];
   final Map<String, ProntuarioCompartilhado> prontuarios = {};
@@ -95,126 +70,6 @@ class AgendaClinica extends ChangeNotifier {
   List<ConsultaRecepcao> get internacoesAtivas => consultas
       .where((consulta) => prontuarios[consulta.id]?.internacaoAtiva ?? false)
       .toList();
-
-  List<ConsultaRecepcao> _criarConsultasExemplo(DateTime hoje) => [
-    ConsultaRecepcao(
-      id: 'bella-0900',
-      data: hoje,
-      horario: '09:00',
-      duracaoMinutos: 45,
-      pet: 'Bella',
-      especie: 'Gata siamesa',
-      tutor: 'Ana Souza',
-      profissional: 'Dra. Beatriz',
-      motivo: 'Reforço anual',
-      sala: 'Sala 01',
-      status: StatusConsultaRecepcao.finalizado,
-    ),
-    ConsultaRecepcao(
-      id: 'max-1000',
-      data: hoje,
-      horario: '10:00',
-      duracaoMinutos: 45,
-      pet: 'Max',
-      especie: 'Golden Retriever',
-      tutor: 'Carlos Lima',
-      profissional: 'Dra. Camila',
-      motivo: 'Avaliação ortopédica',
-      sala: 'Sala 02',
-      status: StatusConsultaRecepcao.emConsulta,
-    ),
-    ConsultaRecepcao(
-      id: 'lola-1000',
-      data: hoje,
-      horario: '10:00',
-      duracaoMinutos: 30,
-      pet: 'Lola',
-      especie: 'Shih-tzu',
-      tutor: 'Marina Costa',
-      profissional: 'Dr. Silva',
-      motivo: 'Consulta de rotina',
-      sala: 'Sala 01',
-      status: StatusConsultaRecepcao.agendada,
-    ),
-    ConsultaRecepcao(
-      id: 'oliver-1100',
-      data: hoje,
-      horario: '11:00',
-      duracaoMinutos: 30,
-      pet: 'Oliver',
-      especie: 'Bulldog francês',
-      tutor: 'Fernanda Reis',
-      profissional: 'Dr. Silva',
-      motivo: 'Retorno pós-operatório',
-      sala: 'Sala 01',
-      status: StatusConsultaRecepcao.aguardandoTriagem,
-    ),
-    ConsultaRecepcao(
-      id: 'nina-1130',
-      data: hoje,
-      horario: '11:30',
-      duracaoMinutos: 30,
-      pet: 'Nina',
-      especie: 'SRD',
-      tutor: 'João Mendes',
-      profissional: 'Dra. Beatriz',
-      motivo: 'Avaliação clínica',
-      sala: 'Sala 02',
-      status: StatusConsultaRecepcao.emTriagem,
-    ),
-    ConsultaRecepcao(
-      id: 'thor-1300',
-      data: hoje,
-      horario: '13:00',
-      duracaoMinutos: 45,
-      pet: 'Thor',
-      especie: 'Labrador',
-      tutor: 'Paula Nunes',
-      profissional: 'Dra. Camila',
-      motivo: 'Aguardando avaliação clínica',
-      sala: 'Sala 02',
-      status: StatusConsultaRecepcao.aguardandoVeterinario,
-    ),
-    ConsultaRecepcao(
-      id: 'mel-0900-tomorrow',
-      data: hoje.add(const Duration(days: 1)),
-      horario: '09:00',
-      duracaoMinutos: 30,
-      pet: 'Mel',
-      especie: 'Poodle',
-      tutor: 'Rafael Dias',
-      profissional: 'Dra. Beatriz',
-      motivo: 'Vacinação',
-      sala: 'Sala 01',
-      status: StatusConsultaRecepcao.agendada,
-    ),
-    ConsultaRecepcao(
-      id: 'bento-1030-tomorrow',
-      data: hoje.add(const Duration(days: 1)),
-      horario: '10:30',
-      duracaoMinutos: 45,
-      pet: 'Bento',
-      especie: 'Beagle',
-      tutor: 'Luiza Prado',
-      profissional: 'Dr. Silva',
-      motivo: 'Consulta de rotina',
-      sala: 'Sala 02',
-      status: StatusConsultaRecepcao.agendada,
-    ),
-    ConsultaRecepcao(
-      id: 'amora-1400',
-      data: hoje.add(const Duration(days: 3)),
-      horario: '14:00',
-      duracaoMinutos: 30,
-      pet: 'Amora',
-      especie: 'Gata',
-      tutor: 'Bianca Alves',
-      profissional: 'Dra. Camila',
-      motivo: 'Retorno',
-      sala: 'Sala 01',
-      status: StatusConsultaRecepcao.agendada,
-    ),
-  ];
 
   ProntuarioCompartilhado prontuarioDa(ConsultaRecepcao consulta) =>
       prontuarios.putIfAbsent(consulta.id, ProntuarioCompartilhado.new);
@@ -244,12 +99,6 @@ class AgendaClinica extends ChangeNotifier {
     ConsultaRecepcao consulta,
     ProntuarioCompartilhado prontuario,
   ) {
-    if (prontuario.internacao.isNotEmpty) {
-      prontuario
-        ..internacaoAtiva = true
-        ..internacaoIniciadaEm ??= DateTime.now()
-        ..internacaoFinalizadaEm = null;
-    }
     prontuarios[consulta.id] = prontuario;
     consulta.status = StatusConsultaRecepcao.finalizado;
     notifyListeners();

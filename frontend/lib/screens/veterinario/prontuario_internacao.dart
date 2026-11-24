@@ -1,4 +1,7 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Prontuário de internação, procedimentos, doses, notas e alta, usado também pela enfermagem.
 // Prontuário compartilhado: evolução do pet, cuidados e dados da admissão.
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:pet_care/widgets/clinica/dialogo_campos_clinica.dart';
 
@@ -18,10 +21,12 @@ class ProntuarioInternacao extends StatefulWidget {
     super.key,
     required this.consulta,
     this.responsavel,
+    this.internacaoId,
   });
 
   final ConsultaRecepcao consulta;
   final String? responsavel;
+  final String? internacaoId;
 
   @override
   State<ProntuarioInternacao> createState() => _ProntuarioInternacaoState();
@@ -30,6 +35,60 @@ class ProntuarioInternacao extends StatefulWidget {
 class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   final _agenda = AgendaClinica.instancia;
 
+  ProntuarioCompartilhado? _prontuario;
+  Timer? _timer;
+  int _requisicao = 0;
+  bool _lendo = false, _editando = false, _salvando = false;
+  String? _erro;
+  bool get _vet => SessaoUsuario.instancia.ehVeterinario;
+  bool get _enfermeiro => SessaoUsuario.instancia.ehEnfermeiro;
+
+  @override
+  void initState() {
+    super.initState();
+    _carregar();
+    _timer = Timer.periodic(const Duration(seconds: 10), (_) {
+      if (!_editando && !_salvando) _carregar();
+    });
+  }
+
+  @override
+  void dispose() { _timer?.cancel(); super.dispose(); }
+
+  Future<void> _carregar({bool forcar = false}) async {
+    if (_lendo && !forcar) return;
+    final requisicao = ++_requisicao;
+    _lendo = true;
+    try {
+      if (!_vet && !_enfermeiro) throw StateError('Acesso restrito à equipe clínica.');
+      final petId = widget.consulta.petId;
+      if (petId == null) throw StateError('Pet não identificado.');
+      final registros = await _agenda.servico.listarInternacoes(petId: petId);
+      final id = widget.internacaoId ?? _prontuario?.internacaoId ?? _agenda.prontuarios[widget.consulta.id]?.internacaoId;
+      final registro = registros.where((r) => id != null ? r['_id'] == id : r['status'] == 'ativa').firstOrNull;
+      if (registro == null) throw StateError('Internação não encontrada.');
+      if (requisicao != _requisicao || (_editando && !_salvando)) return;
+      final novo = ProntuarioCompartilhado()..lerInternacao(registro);
+      if (mounted) setState(() { _prontuario = novo; _erro = null; });
+    } catch (e) { if (mounted) setState(() => _erro = '$e'); }
+    finally { if (requisicao == _requisicao) _lendo = false; }
+  }
+
+  Future<void> _salvar(ProntuarioCompartilhado novo) async {
+    if (_salvando) return;
+    setState(() => _salvando = true);
+    try {
+      await _agenda.servico.salvarProntuarioInternacao(novo);
+      await _carregar(forcar: true);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+      await _carregar(forcar: true);
+    } finally {
+      _editando = false;
+      if (mounted) setState(() => _salvando = false);
+    }
+  }
+
   String get _responsavel =>
       SessaoUsuario.instancia.nomeUsuario ??
       widget.responsavel ??
@@ -37,17 +96,25 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
 
   @override
   Widget build(BuildContext context) {
+    if (!_vet && !_enfermeiro) {
+      return Scaffold(appBar: cabecalhoClinica('Prontuário da internação'), body: const Center(child: Text('Acesso restrito à equipe clínica.')));
+    }
+    if (_prontuario == null) {
+      return Scaffold(appBar: cabecalhoClinica('Prontuário da internação'),
+        body: Center(child: _erro == null ? const CircularProgressIndicator() : TextButton(onPressed: _carregar, child: Text('$_erro · Tentar novamente'))));
+    }
     return DefaultTabController(
       length: 3,
       child: AnimatedBuilder(
         animation: _agenda,
         builder: (context, _) {
-          final prontuario = _agenda.prontuarioDa(widget.consulta);
+          final prontuario = _prontuario!;
           return Scaffold(
             backgroundColor: CoresApp.background,
             appBar: cabecalhoClinica('Prontuário da internação'),
             body: Column(
               children: [
+                if (_erro != null) TextButton(onPressed: _carregar, child: Text('$_erro · Atualizar')),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(
                     EspacamentosApp.pagePadding,
@@ -137,15 +204,10 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
               ),
             ],
           ),
-          SizedBox(height: EspacamentosApp.sm),
-          IndicadorStatus(
-            label: prontuario.internacaoAtiva
-                ? 'Internação ativa'
-                : 'Internação finalizada',
-            color: prontuario.internacaoAtiva
-                ? CoresApp.primary
-                : CoresApp.textSecondary,
-          ),
+          if (!prontuario.internacaoAtiva) ...[
+            const SizedBox(height: EspacamentosApp.sm),
+            const IndicadorStatus(label: 'Internação finalizada', color: CoresApp.textSecondary),
+          ],
         ],
       ),
     );
@@ -159,6 +221,8 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           _linhaInfo('Tipo', prontuario.internacao),
+          _linhaInfo('Leito', prontuario.leito),
+          if (prontuario.observacoes.isNotEmpty) _linhaInfo('Observações', prontuario.observacoes),
           if (prontuario.internacaoIniciadaEm != null)
             _linhaInfo(
               'Admitido em',
@@ -182,7 +246,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     return _secao(
       titulo: 'Procedimentos',
       icone: Icons.medical_services_outlined,
-      acao: prontuario.internacaoAtiva
+      acao: prontuario.internacaoAtiva && _vet && !_salvando && _erro == null
           ? _botaoAdicionar(_adicionarProcedimento)
           : null,
       child: prontuario.procedimentosInternacao.isEmpty
@@ -211,7 +275,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
         if (procedimento.detalhesConclusao.isNotEmpty)
           'Detalhes da conclusão: ${procedimento.detalhesConclusao}',
       ],
-      acao: internacaoAtiva && concluidoEm == null
+      acao: internacaoAtiva && !_salvando && _erro == null && concluidoEm == null
           ? OutlinedButton.icon(
               onPressed: () => _concluirProcedimento(procedimento),
               icon: const Icon(Icons.check_circle_outline_rounded),
@@ -225,7 +289,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     return _secao(
       titulo: 'Medicações',
       icone: Icons.medication_outlined,
-      acao: prontuario.internacaoAtiva
+      acao: prontuario.internacaoAtiva && _vet && !_salvando && _erro == null
           ? _botaoAdicionar(_adicionarMedicacao)
           : null,
       child: prontuario.medicacoesInternacao.isEmpty
@@ -264,7 +328,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
                 ].join(' · '),
               ),
           ],
-          if (internacaoAtiva) ...[
+          if (internacaoAtiva && (_enfermeiro || _vet) && !_salvando && _erro == null) ...[
             const SizedBox(height: EspacamentosApp.sm),
             OutlinedButton.icon(
               onPressed: () => _registrarAdministracao(medicacao),
@@ -280,7 +344,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
   Widget _secaoNotas(ProntuarioCompartilhado prontuario) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (prontuario.internacaoAtiva) ...[
+      if (prontuario.internacaoAtiva && !_salvando && _erro == null) ...[
         BotaoClinica(
           label: 'Adicionar nota',
           icon: Icons.edit_note_rounded,
@@ -396,7 +460,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
 
   Widget _barraAcao(ProntuarioCompartilhado prontuario) {
     return RodapeClinica(
-      child: prontuario.internacaoAtiva
+      child: prontuario.internacaoAtiva && _vet && !_salvando && _erro == null
           ? BotaoClinica(
               label: 'Finalizar internação',
               icon: Icons.check_circle_outline_rounded,
@@ -405,7 +469,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
               onPressed: _finalizarInternacao,
             )
           : Text(
-              'Internação finalizada · prontuário compartilhado',
+              prontuario.internacaoAtiva ? 'Prontuário compartilhado' : 'Internação finalizada · prontuário compartilhado',
               textAlign: TextAlign.center,
               style: TipografiaApp.bodySmall,
             ),
@@ -417,17 +481,18 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
       titulo: 'Adicionar procedimento',
       rotulos: const ['Procedimento', 'Detalhes (opcional)'],
     );
-    if (campos == null || campos[0].isEmpty || !mounted) return;
+    if (campos == null || campos[0].isEmpty || !mounted) { _editando = false; return; }
     final agendadoPara = await _selecionarDataHora();
     if (agendadoPara == null || !mounted) return;
-    _agenda.adicionarProcedimentoInternacao(
-      widget.consulta,
+    final novo = _prontuario!.copiar();
+    novo.procedimentosInternacao.add(
       ProcedimentoInternacao(
         nome: campos[0],
         detalhes: campos[1],
         agendadoPara: agendadoPara,
       ),
     );
+    await _salvar(novo);
   }
 
   Future<void> _concluirProcedimento(
@@ -440,12 +505,11 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     if (campos == null || !mounted) return;
     final concluidoEm = await _selecionarDataHora();
     if (concluidoEm == null || !mounted) return;
-    _agenda.concluirProcedimentoInternacao(
-      widget.consulta,
-      procedimento,
-      concluidoEm: concluidoEm,
-      detalhes: campos[0],
-    );
+    final novo = _prontuario!.copiar();
+    final item = novo.procedimentosInternacao[_prontuario!.procedimentosInternacao.indexOf(procedimento)];
+    item.concluidoEm = concluidoEm;
+    item.detalhesConclusao = campos[0];
+    await _salvar(novo);
   }
 
   Future<void> _adicionarMedicacao() async {
@@ -458,9 +522,9 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
         'Detalhes (opcional)',
       ],
     );
-    if (campos == null || campos[0].isEmpty) return;
-    _agenda.adicionarMedicacaoInternacao(
-      widget.consulta,
+    if (campos == null || campos[0].isEmpty) { _editando = false; return; }
+    final novo = _prontuario!.copiar();
+    novo.medicacoesInternacao.add(
       MedicacaoInternacao(
         nome: campos[0],
         dosagem: campos[1],
@@ -468,6 +532,7 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
         detalhes: campos[3],
       ),
     );
+    await _salvar(novo);
   }
 
   Future<void> _registrarAdministracao(MedicacaoInternacao medicacao) async {
@@ -476,18 +541,18 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
       rotulos: const ['Quem administrou', 'Observação (opcional)'],
       valoresIniciais: [_responsavel, ''],
     );
-    if (campos == null || campos[0].isEmpty || !mounted) return;
+    if (campos == null || campos[0].isEmpty || !mounted) { _editando = false; return; }
     final realizadaEm = await _selecionarDataHora();
     if (realizadaEm == null || !mounted) return;
-    _agenda.registrarAdministracaoMedicacao(
-      widget.consulta,
-      medicacao,
+    final novo = _prontuario!.copiar();
+    novo.medicacoesInternacao[_prontuario!.medicacoesInternacao.indexOf(medicacao)].administracoes.add(
       AdministracaoMedicacao(
         realizadaEm: realizadaEm,
         responsavel: campos[0],
         observacao: campos[1],
       ),
     );
+    await _salvar(novo);
   }
 
   Future<void> _adicionarNota() async {
@@ -496,11 +561,12 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
       rotulos: const ['Nota (data e horário opcionais)'],
       maxLines: 4,
     );
-    if (campos == null || campos[0].isEmpty || !mounted) return;
-    _agenda.adicionarNotaInternacao(
-      widget.consulta,
+    if (campos == null || campos[0].isEmpty || !mounted) { _editando = false; return; }
+    final novo = _prontuario!.copiar();
+    novo.notasInternacao.add(
       NotaInternacao(texto: campos[0], autor: _responsavel),
     );
+    await _salvar(novo);
   }
 
   Future<void> _finalizarInternacao() async {
@@ -523,7 +589,15 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
         ],
       ),
     );
-    if (confirmar == true) _agenda.finalizarInternacao(widget.consulta);
+    if (confirmar != true || !_vet || _salvando) return;
+    setState(() => _salvando = true);
+    try {
+      await _agenda.servico.darAltaInternacao(_prontuario!.internacaoId!);
+      await _carregar(forcar: true);
+    } catch (e) {
+      if (mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text('$e')));
+    } finally { if (mounted) setState(() => _salvando = false); }
+
   }
 
   Future<List<String>?> _dialogoCampos({
@@ -531,7 +605,9 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
     required List<String> rotulos,
     List<String> valoresIniciais = const [],
     int maxLines = 1,
-  }) => showDialog<List<String>>(
+  }) async {
+    _editando = true;
+    final campos = await showDialog<List<String>>(
     context: context,
     builder: (_) => DialogoCamposClinica(
       titulo: titulo,
@@ -540,6 +616,9 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
       maxLines: maxLines,
     ),
   );
+    if (campos == null) _editando = false;
+    return campos;
+  }
 
   Future<DateTime?> _selecionarDataHora() async {
     final inicial = DateTime.now();
@@ -549,12 +628,12 @@ class _ProntuarioInternacaoState extends State<ProntuarioInternacao> {
       firstDate: DateTime(2020),
       lastDate: DateTime(2100),
     );
-    if (data == null || !mounted) return null;
+    if (data == null || !mounted) { _editando = false; return null; }
     final hora = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.fromDateTime(inicial),
     );
-    if (hora == null) return null;
+    if (hora == null) { _editando = false; return null; }
     return DateTime(data.year, data.month, data.day, hora.hour, hora.minute);
   }
 }

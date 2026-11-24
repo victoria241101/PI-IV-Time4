@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Botão principal reutilizável.
 // Botão principal reutilizável, com texto adaptável à largura disponível.
 import 'package:flutter/material.dart';
 

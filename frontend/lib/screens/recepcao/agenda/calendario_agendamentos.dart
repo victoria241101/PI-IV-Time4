@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Calendário, consultas da data e recursos de agendamento.
 // calendário para consultar, cancelar e reagendar consultas
 import 'package:flutter/material.dart';
 
@@ -19,8 +21,12 @@ class CalendarioAgendamentos extends StatefulWidget {
     this.onConsultaTap,
     this.mostrarFotoPet = false,
     this.mostrarMotivo = true,
+    this.mostrarCabecalho = true,
+    this.onNovoAgendamento,
+    this.onSelecionarDia,
   });
 
+  final ValueChanged<DateTime>? onSelecionarDia;
   final List<ConsultaRecepcao> consultas;
   final DateTime dataInicial;
   final ValueChanged<ConsultaRecepcao>? onCancelar;
@@ -33,6 +39,8 @@ class CalendarioAgendamentos extends StatefulWidget {
   final ValueChanged<ConsultaRecepcao>? onConsultaTap;
   final bool mostrarFotoPet;
   final bool mostrarMotivo;
+  final bool mostrarCabecalho;
+  final ValueChanged<DateTime>? onNovoAgendamento;
 
   @override
   State<CalendarioAgendamentos> createState() => _CalendarioAgendamentosState();
@@ -92,15 +100,36 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('Agendamentos', style: TipografiaApp.heading2),
-          const SizedBox(height: EspacamentosApp.xs),
-          Text(
-            'Escolha um dia para ver os horários e atendimentos',
-            style: TipografiaApp.bodySmall,
-          ),
-          const SizedBox(height: EspacamentosApp.md),
+          if (widget.mostrarCabecalho) ...[
+            Text('Agendamentos', style: TipografiaApp.heading2),
+            const SizedBox(height: EspacamentosApp.xs),
+            Text(
+              'Escolha um dia para ver os horários e atendimentos',
+              style: TipografiaApp.bodySmall,
+            ),
+            const SizedBox(height: EspacamentosApp.md),
+          ],
           _calendario(),
-          const SizedBox(height: EspacamentosApp.lg),
+          const SizedBox(height: EspacamentosApp.md),
+          if (widget.onNovoAgendamento != null) ...[
+            BotaoClinica(
+              label: 'Novo agendamento',
+              icon: Icons.add_rounded,
+              expanded: true,
+              onPressed:
+                  _diaSelecionado.isBefore(DateUtils.dateOnly(DateTime.now()))
+                  ? null
+                  : () => widget.onNovoAgendamento!(_diaSelecionado),
+            ),
+            const SizedBox(height: EspacamentosApp.sm),
+            Text(
+              _diaSelecionado.isBefore(DateUtils.dateOnly(DateTime.now()))
+                  ? 'Histórico do dia · selecione hoje ou uma data futura para agendar.'
+                  : 'Agende uma consulta ou uma internação para o dia selecionado.',
+              style: TipografiaApp.caption,
+            ),
+            const SizedBox(height: EspacamentosApp.lg),
+          ],
           Row(
             children: [
               Expanded(
@@ -214,6 +243,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                 onTap: () {
                   setState(() {
                     _diaSelecionado = dia;
+                    widget.onSelecionarDia?.call(dia);
                     if (!pertenceAoMes) {
                       _mesVisivel = DateTime(dia.year, dia.month);
                     }
@@ -280,6 +310,7 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
     setState(() {
       _mesVisivel = DateTime(_mesVisivel.year, _mesVisivel.month + delta);
       _diaSelecionado = DateTime(_mesVisivel.year, _mesVisivel.month, 1);
+      widget.onSelecionarDia?.call(_diaSelecionado);
     });
   }
 
@@ -506,14 +537,34 @@ class _CalendarioAgendamentosState extends State<CalendarioAgendamentos> {
                       _detalhe(
                         'Sala',
                         text: consulta.sala,
-                        last: !widget.mostrarMotivo,
+                        last:
+                            !widget.mostrarMotivo &&
+                            !consulta.internacaoAgendada,
                       ),
                       if (widget.mostrarMotivo)
                         _detalhe(
                           'Atendimento',
                           text: consulta.motivo,
+                          last: !consulta.internacaoAgendada,
+                        ),
+                      if (consulta.internacaoAgendada) ...[
+                        _detalhe(
+                          'Data prevista',
+                          text: consulta.dataPrevistaInternacao == null
+                              ? 'Não informada'
+                              : _formatarData(consulta.dataPrevistaInternacao!),
+                        ),
+                        _detalhe(
+                          'Data agendada',
+                          text:
+                              '${_formatarData(consulta.data)} · ${consulta.horario}',
+                        ),
+                        _detalhe(
+                          'Indicação',
+                          text: 'Vinculada ao prontuário de origem',
                           last: true,
                         ),
+                      ],
                     ],
                   ),
                 ),

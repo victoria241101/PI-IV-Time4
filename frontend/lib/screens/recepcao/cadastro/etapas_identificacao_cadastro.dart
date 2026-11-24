@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Etapas visuais de identificação, CPF, seleção de pet e sucesso.
 // etapas de identificação do tutor e escolha do pet
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -170,6 +172,10 @@ class PetsResponsavelCadastro extends StatelessWidget {
     required this.onPetSelecionado,
     required this.onContinuar,
     required this.onCadastrarPet,
+    this.pets = const {
+      'Mel': 'Cachorra · Golden Retriever · 3 anos',
+      'Luna': 'Gata · Siamês · 2 anos',
+    },
   });
 
   final String nomeResponsavel;
@@ -178,6 +184,7 @@ class PetsResponsavelCadastro extends StatelessWidget {
   final ValueChanged<String> onPetSelecionado;
   final VoidCallback onContinuar;
   final VoidCallback onCadastrarPet;
+  final Map<String, String> pets;
 
   @override
   Widget build(BuildContext context) {
@@ -215,23 +222,17 @@ class PetsResponsavelCadastro extends StatelessWidget {
         const SizedBox(height: EspacamentosApp.lg),
         Text('Escolha um pet', style: TipografiaApp.heading3),
         const SizedBox(height: EspacamentosApp.sm),
-        CartaoOpcaoApp(
-          icon: Icons.pets_rounded,
-          titulo: 'Mel',
-          descricao: 'Cachorra · Golden Retriever · 3 anos',
-          selecionado: petSelecionado == 'Mel',
-          onTap: () => onPetSelecionado('Mel'),
-          compacto: true,
-        ),
-        const SizedBox(height: EspacamentosApp.sm),
-        CartaoOpcaoApp(
-          icon: Icons.pets_rounded,
-          titulo: 'Luna',
-          descricao: 'Gata · Siamês · 2 anos',
-          selecionado: petSelecionado == 'Luna',
-          onTap: () => onPetSelecionado('Luna'),
-          compacto: true,
-        ),
+        for (final pet in pets.entries) ...[
+          CartaoOpcaoApp(
+            icon: Icons.pets_rounded,
+            titulo: pet.key,
+            descricao: pet.value,
+            selecionado: petSelecionado == pet.key,
+            onTap: () => onPetSelecionado(pet.key),
+            compacto: true,
+          ),
+          const SizedBox(height: EspacamentosApp.sm),
+        ],
         const SizedBox(height: EspacamentosApp.md),
         BotaoClinica(
           label: 'Continuar com pet selecionado',
@@ -293,7 +294,11 @@ class SucessoCadastroRecepcao extends StatelessWidget {
           ),
           const SizedBox(height: EspacamentosApp.md),
           Text(
-            agendada ? 'Consulta agendada' : 'Paciente aguardando triagem',
+            agendada
+                ? (consulta!.internacaoAgendada
+                      ? 'Internação agendada'
+                      : 'Consulta agendada')
+                : 'Paciente aguardando triagem',
             style: TipografiaApp.heading2,
             textAlign: TextAlign.center,
           ),

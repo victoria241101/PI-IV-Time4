@@ -1,11 +1,16 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Tela principal da recepção, abas, agenda atualizada e ações como confirmar chegada.
+import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
+import 'package:pet_care/screens/recepcao/agenda/novo_agendamento_api.dart';
+import 'package:pet_care/controle/sessao_usuario.dart';
 // tela principal da recepção com agenda, cadastro, calendário e chat
 import 'package:flutter/material.dart';
+import 'package:pet_care/screens/recepcao/cadastro/central_cadastros_recepcao.dart';
 import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';
 import 'package:pet_care/modelos/consulta_recepcao.dart';
-import 'package:pet_care/screens/recepcao/cadastro/cadastro_recepcao.dart';
 import 'package:pet_care/screens/recepcao/agenda/agenda_recepcao.dart';
 import 'package:pet_care/screens/recepcao/agenda/calendario_agendamentos.dart';
 import 'package:pet_care/screens/recepcao/chat_recepcao.dart';
@@ -21,10 +26,11 @@ class InicioRecepcao extends StatefulWidget {
 
 class _InicioRecepcaoState extends State<InicioRecepcao> {
   int _abaAtual = 0;
+  final Set<String> _salvando = {};
   late final DateTime _hoje;
   late final List<ConsultaRecepcao> _consultas;
   late DateTime _dataInicialAgenda;
-  int _versaoCalendario = 0;
+  final int _versaoCalendario = 0;
 
   @override
   void initState() {
@@ -33,6 +39,17 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
     _dataInicialAgenda = _hoje;
     _consultas = AgendaClinica.instancia.consultas;
     AgendaClinica.instancia.addListener(_atualizarAgendaCompartilhada);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted && AcessoClinico.permitido('SECRETARIA')) _carregarAgenda();
+    });
+  }
+
+  Future<void> _carregarAgenda([DateTime? dia]) async {
+    try {
+      await AgendaClinica.instancia.carregarDia(dia ?? _hoje);
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    }
   }
 
   @override
@@ -57,73 +74,87 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
       );
   }
 
-  void _confirmarChegada(ConsultaRecepcao consulta) {
-    setState(
-      () => AgendaClinica.instancia.atualizarStatus(
+  Future<void> _confirmarChegada(ConsultaRecepcao consulta) async {
+    if (!_salvando.add(consulta.id)) return;
+    try {
+      {
+        await AgendaClinica.instancia.servico.confirmarChegada(consulta.id);
+      }
+      if (!mounted) return;
+      AgendaClinica.instancia.atualizarStatus(
         consulta,
         StatusConsultaRecepcao.aguardandoTriagem,
-      ),
-    );
-    _mensagem('Chegada confirmada · ${consulta.pet} está aguardando triagem');
+      );
+      _mensagem('Chegada confirmada · ${consulta.pet} está aguardando triagem');
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      _salvando.remove(consulta.id);
+    }
   }
 
-  void _cancelarConsulta(ConsultaRecepcao consulta) {
-    setState(() => AgendaClinica.instancia.removerConsulta(consulta));
-    _mensagem('Consulta de ${consulta.pet} cancelada');
+  Future<void> _cancelarConsulta(ConsultaRecepcao consulta) async {
+    if (!_salvando.add(consulta.id)) return;
+    try {
+      {
+        await AgendaClinica.instancia.servico.agendamentos.cancelarAgendamento(
+          consultaId: consulta.id,
+        );
+      }
+      if (!mounted) return;
+      AgendaClinica.instancia.removerConsulta(consulta);
+      _mensagem('Consulta de ${consulta.pet} cancelada');
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      _salvando.remove(consulta.id);
+    }
   }
 
-  void _reagendarConsulta(
+  Future<void> _reagendarConsulta(
     ConsultaRecepcao consulta,
     String horario,
     String profissional,
-  ) {
-    setState(() {
+  ) async {
+    if (!_salvando.add(consulta.id)) return;
+    try {
+      if (profissional != consulta.profissional) {
+        throw StateError(
+          'A remarcação permite alterar o horário, mantendo o veterinário.',
+        );
+      }
+      final dia =
+          '${consulta.data.year.toString().padLeft(4, '0')}-${consulta.data.month.toString().padLeft(2, '0')}-${consulta.data.day.toString().padLeft(2, '0')}';
+      await AgendaClinica.instancia.servico.agendamentos.remarcarAgendamento(
+        consultaId: consulta.id,
+        dataHora: '${dia}T$horario:00',
+        duracaoMinutos: consulta.duracaoMinutos,
+      );
+      if (!mounted) return;
       consulta.horario = horario;
-      consulta.profissional = profissional;
-      consulta.sala = profissional == 'Dr. Silva' ? 'Sala 01' : 'Sala 02';
       AgendaClinica.instancia.notificarAlteracao();
-    });
-    _mensagem('Consulta de ${consulta.pet} atualizada');
-  }
-
-  bool _registrarConsulta(ConsultaRecepcao consulta) {
-    if (consulta.status == StatusConsultaRecepcao.agendada) {
-      final novoInicio = _minutosDoDia(consulta.horario);
-      final novoFim = novoInicio + consulta.duracaoMinutos;
-      final conflito = _consultas.any((existente) {
-        if (!DateUtils.isSameDay(existente.data, consulta.data) ||
-            existente.profissional != consulta.profissional ||
-            existente.status == StatusConsultaRecepcao.finalizado) {
-          return false;
-        }
-        final inicioExistente = _minutosDoDia(existente.horario);
-        final fimExistente = inicioExistente + existente.duracaoMinutos;
-        return novoInicio < fimExistente && inicioExistente < novoFim;
-      });
-      if (conflito) return false;
+      _mensagem('Consulta de ${consulta.pet} atualizada');
+    } catch (erro) {
+      if (mounted) _mensagem(erro.toString().replaceFirst('Exception: ', ''));
+    } finally {
+      _salvando.remove(consulta.id);
     }
-
-    setState(() {
-      AgendaClinica.instancia.adicionarConsulta(consulta);
-      _dataInicialAgenda = DateUtils.dateOnly(consulta.data);
-      _versaoCalendario++;
-      _abaAtual = consulta.status == StatusConsultaRecepcao.agendada ? 1 : 0;
-    });
-    _mensagem(
-      consulta.status == StatusConsultaRecepcao.agendada
-          ? 'Consulta de ${consulta.pet} adicionada à agenda'
-          : '${consulta.pet} está aguardando triagem',
-    );
-    return true;
   }
 
-  int _minutosDoDia(String horario) {
-    final partes = horario.split(':');
-    return int.parse(partes[0]) * 60 + int.parse(partes[1]);
+  Future<void> _novoAgendamento(DateTime dia) async {
+    final salvo = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(builder: (_) => NovoAgendamentoApi(dia: dia)),
+    );
+    if (!mounted || salvo != true) return;
+    _mensagem('Agendamento confirmado pela API');
+    await _carregarAgenda(dia);
   }
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context) =>
+      AcessoClinico(perfil: 'SECRETARIA', builder: _construirTela);
+
+  Widget _construirTela(BuildContext context) {
     final consultasDeHoje = _consultas
         .where((consulta) => DateUtils.isSameDay(consulta.data, _hoje))
         .toList();
@@ -131,7 +162,10 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
     return LayoutClinica(
       nomePadrao: 'Recepção',
       abaAtual: _abaAtual,
-      onSelecionarAba: (index) => setState(() => _abaAtual = index),
+      onSelecionarAba: (index) {
+        setState(() => _abaAtual = index);
+        if (index == 0 && SessaoUsuario.instancia.estaLogado) _carregarAgenda();
+      },
       onNotificacao: () => ModalNotificacoesTutor.show(context),
       terceiraAba: const BottomNavigationBarItem(
         icon: Icon(Icons.person_add_alt_1_outlined),
@@ -143,13 +177,16 @@ class _InicioRecepcaoState extends State<InicioRecepcao> {
           onConfirmarChegada: _confirmarChegada,
         ),
         CalendarioAgendamentos(
+          onSelecionarDia: _carregarAgenda,
           key: ValueKey(_versaoCalendario),
           consultas: _consultas,
           dataInicial: _dataInicialAgenda,
+          mostrarCabecalho: false,
+          onNovoAgendamento: _novoAgendamento,
           onCancelar: _cancelarConsulta,
           onReagendar: _reagendarConsulta,
         ),
-        CadastroRecepcao(onRegistrarConsulta: _registrarConsulta),
+        const CentralCadastrosRecepcao(),
         const ChatRecepcao(),
       ],
     );

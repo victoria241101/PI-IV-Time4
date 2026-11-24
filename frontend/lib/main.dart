@@ -9,6 +9,7 @@ import 'package:app_links/app_links.dart';
 import 'package:flutter/foundation.dart';
 import 'package:pet_care/screens/autenticacao/nova_senha.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
+import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/core/tema/comportamento_rolagem.dart';
 import 'package:pet_care/core/tema/tema_app.dart';
 import 'package:pet_care/modelos/resumo_consulta.dart';
@@ -199,6 +200,7 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
       final sessao = SessaoUsuario.instancia;
 
       final servico = PerfilService(
+        baseUrl: ApiConfig.baseUrl,
         token: sessao.token ?? '',
       );
 
@@ -300,9 +302,7 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
 
       final Widget destino = !sessao.estaLogado
           ? const InicioPublico()
-          : sessao.ehTutor
-          ? const _InicioTutorComDadosReais()
-          : const InicioGeral();
+          : _construirDestinoAutenticado(context);
 
       Navigator.of(context).pushReplacement(
         MaterialPageRoute<void>(
@@ -329,6 +329,12 @@ class _AplicativoVeterinariaState extends State<AplicativoVeterinaria> {
   }
 
   Widget _construirDestinoAutenticado(BuildContext context) {
+    final sessao = SessaoUsuario.instancia;
+    if (sessao.estaLogado) {
+      if (sessao.ehSecretaria) return const InicioRecepcao();
+      if (sessao.ehEnfermeiro) return const InicioEnfermeiro();
+      if (sessao.ehVeterinario) return const InicioVeterinario();
+    }
     return SessaoUsuario.instancia.ehTutor
         ? const _InicioTutorComDadosReais()
         : const InicioGeral();
@@ -457,11 +463,14 @@ class _InicioTutorComDadosReaisState
       }
 
       final resultados = await Future.wait<dynamic>([
-        PetsService().listarPets(),
+        PetsService(baseUrl: ApiConfig.baseUrl).listarPets(),
         AgendamentosService(
+          baseUrl: ApiConfig.baseUrl,
           token: token,
         ).listarAgendamentos(),
-        VeterinariosService().listarVeterinarios(),
+        VeterinariosService(
+          baseUrl: ApiConfig.baseUrl,
+        ).listarVeterinarios(),
       ]);
 
       final petsApi = resultados[0] as List;
@@ -624,21 +633,8 @@ class _InicioTutorComDadosReaisState
       banners: const [],
       onAgendamentoConfirmado: (_) => _atualizar(),
       onReagendamentoConfirmado: (_, __) => _atualizar(),
-      onConfirmarConsulta: (consultaId) async {
-        // Não confirmar artificialmente: recarrega o registro real.
-        await _atualizar();
-
-        for (final consulta
-        in _dados?.consultas ?? <ResumoConsulta>[]) {
-          if (consulta.id == consultaId) return consulta;
-        }
-
-        throw StateError('Consulta não encontrada no servidor.');
-      },
       carregarDetalhesPet: (petId) async {
-        throw UnimplementedError(
-          'Detalhes do pet ainda não estão conectados ao backend.',
-        );
+        return PetsService(baseUrl: ApiConfig.baseUrl).carregarDetalhesPet(petId);
       },
     );
   }
