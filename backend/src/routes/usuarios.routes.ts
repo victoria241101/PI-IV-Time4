@@ -1,3 +1,7 @@
+/*
+ * Aluna: Victoria Beatriz Nobre Andrade
+ * RA: 2516398
+ */
 import { Router } from "express";
 import { randomBytes, createHash } from "node:crypto";
 import nodemailer from "nodemailer";
