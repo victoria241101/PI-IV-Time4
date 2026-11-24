@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Conversão de respostas de consultas, IDs e estados.
 import 'package:pet_care/modelos/consulta_recepcao.dart';
 
 /// Contrato de GET /consultas. IDs são opacos: não converter para números

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Atendimento, avaliação, salvamento, prescrições, exames, internação e finalização.
 
  // prontuario e atendimento veterinario da consulta
 import 'package:flutter/material.dart';

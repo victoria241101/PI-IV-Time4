@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Estado compartilhado de consultas/prontuários, carga da agenda, notificações e limpeza por sessão.
 import 'package:pet_care/services/clinica/consultas_clinica_service.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 // agenda e prontuarios compartilhados pelas equipes da clinica

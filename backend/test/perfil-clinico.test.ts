@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: telefone/CPF do profissional correto e resposta de perfil do tutor.
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import type { Request, Response, NextFunction } from 'express';

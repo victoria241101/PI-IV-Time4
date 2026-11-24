@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Fluxo de agendamento, busca/cadastro de tutor e pet, veterinário, horários e API.
 
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/constantes/api_config.dart';

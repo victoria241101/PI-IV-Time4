@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: dados telefone/CPF, diálogos, retorno, retry e cartão sem confirmação; não afirma testar salvamento do perfil.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

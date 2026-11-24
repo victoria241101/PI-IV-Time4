@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Chamadas de agenda, chegada, triagem, atendimento, prescrições, exames e internações.
 
 import 'package:pet_care/core/constantes/api_config.dart';
 import 'dart:convert';

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: vínculos de pet/atendimento/veterinário, permissões e reenvios.
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import type { Server } from 'node:http';

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Início, agenda, pacientes e navegação compartilhada com enfermagem.
 import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 // consultas, agenda, clientes e chat do veterinario
 import 'package:flutter/material.dart';

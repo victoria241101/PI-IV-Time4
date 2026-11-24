@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: cadastros, busca CPF, campanha e nomes/IDs da agenda.
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';

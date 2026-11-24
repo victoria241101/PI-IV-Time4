@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: acesso autorizado aos dados e ID do atendimento.
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import express from 'express';

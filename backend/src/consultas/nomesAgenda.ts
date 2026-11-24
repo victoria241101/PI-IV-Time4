@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: resolve nomes de pet, tutor e veterinário sem alterar seus IDs.
 import { ObjectId, type Db, type Document, type Filter } from 'mongodb';
 
 // Busca apenas os vínculos das consultas que o perfil já pode visualizar.

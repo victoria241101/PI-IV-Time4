@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: agendamento com tutor/pet existentes ou novos e data selecionada.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

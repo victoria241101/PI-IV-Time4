@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: envio/leitura, recusas, troca de sessão e acesso de enfermagem somente leitura.
 import 'dart:convert';
 
 import 'package:flutter/material.dart';

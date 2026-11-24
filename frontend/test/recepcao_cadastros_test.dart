@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: campos, validações, CPF, função, microchip, agenda e erros.
 import 'dart:async';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';

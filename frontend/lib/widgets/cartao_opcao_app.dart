@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Opção clicável com ícone, título e descrição.
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/core/tema/cores_app.dart';

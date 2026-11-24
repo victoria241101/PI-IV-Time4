@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: resolução dos nomes relacionados, formatos de IDs e vínculos ausentes.
 import test, { type TestContext } from 'node:test';
 import assert from 'node:assert/strict';
 import { ObjectId, type Db, type Document } from 'mongodb';

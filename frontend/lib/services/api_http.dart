@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Chamadas HTTP comuns, cabeçalhos, JSON e tratamento de erros.
 import 'dart:convert';
 
 import 'package:http/http.dart' as http;

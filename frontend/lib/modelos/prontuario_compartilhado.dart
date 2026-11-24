@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Modelo dos dados clínicos compartilhados.
 // dados clinicos compartilhados entre veterinario e enfermagem
 
 class ProntuarioCompartilhado {

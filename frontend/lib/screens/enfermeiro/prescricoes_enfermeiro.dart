@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Consulta somente leitura de prescrições do pet.
 import 'package:flutter/material.dart';
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/core/tema/cores_app.dart';

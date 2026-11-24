@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Etapas visuais de identificação, CPF, seleção de pet e sucesso.
 // etapas de identificação do tutor e escolha do pet
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';

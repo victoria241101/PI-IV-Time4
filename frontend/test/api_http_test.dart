@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: headers, token, base URL, JSON/UTF-8 e erros HTTP.
 import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';

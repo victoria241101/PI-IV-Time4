@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Início de triagem, sinais/sintomas/observações e encaminhamento ao veterinário.
 // registro das observacoes e mudanca de etapa da triagem
 import 'package:flutter/material.dart';
 

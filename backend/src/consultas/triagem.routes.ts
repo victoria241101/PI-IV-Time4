@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: controla início, registro e conclusão da triagem por responsável.
 import { Router, type RequestHandler } from "express";
 import { ObjectId, MongoServerError, type Db, type Document } from "mongodb";
 import { permitirFuncoes } from "../middlewares/permissoes.middleware.js";

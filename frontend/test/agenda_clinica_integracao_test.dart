@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: nomes/IDs da agenda, não duplicação ao recarregar e preservação ante erros.
 import 'package:flutter_test/flutter_test.dart';
 import 'package:pet_care/controle/agenda_clinica.dart';
 import 'package:pet_care/services/clinica/consultas_clinica_service.dart';

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Pesquisa de pets/tutores, internações ativas e acesso ao prontuário.
 // busca de clientes e historico clinico compartilhado pela equipe
 import 'dart:async';
 import 'package:flutter/material.dart';

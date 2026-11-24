@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Modelo de consulta da recepção.
 // modelo de consulta da recepção e seus status de atendimento
 import 'package:flutter/material.dart';
 

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: disputa para assumir triagem, responsabilidade exclusiva e validação.
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import test, { type TestContext } from 'node:test';

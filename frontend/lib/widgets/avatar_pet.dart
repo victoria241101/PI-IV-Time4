@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Foto ou representação padrão do pet.
 // foto reutilizavel dos pets
 import 'package:flutter/material.dart';
 

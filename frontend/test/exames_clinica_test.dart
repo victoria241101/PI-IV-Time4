@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: solicitação/leitura de exames e falhas.
 // Testes de tela para o fluxo de exames veterinários.
 // Cobre: preencher atendimento → solicitar exame → vínculo → reabrir e recuperar.
 import 'package:flutter/material.dart';

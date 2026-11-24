@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Resumo de atendimento e ação disponível.
 // Card de atendimento compartilhado; cada fluxo fornece a sua própria ação.
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';

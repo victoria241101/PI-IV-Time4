@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Atendimentos de hoje agrupados por horário, contadores e confirmação de chegada.
 // painel resumido dos agendamentos do dia
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/formatadores/data_app.dart';

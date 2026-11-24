@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Tela principal da recepção, abas, agenda atualizada e ações como confirmar chegada.
 import 'package:pet_care/widgets/clinica/acesso_clinico.dart';
 import 'package:pet_care/screens/recepcao/agenda/novo_agendamento_api.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';

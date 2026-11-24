@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: criação/vínculos de usuário, tutor, pet e funcionário, permissões, validações e duplicação.
 import type { Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import test, { type TestContext } from 'node:test';

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: navegação dos três perfis, telas estreitas e ações clínicas.
 import 'package:http/http.dart' as http;
 import 'package:http/testing.dart';
 

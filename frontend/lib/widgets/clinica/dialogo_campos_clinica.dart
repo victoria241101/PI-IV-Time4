@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Diálogos clínicos com validação, salvamento e erros.
 // Formulário de diálogo compartilhado por consultas e registros de internação.
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/espacamentos_app.dart';

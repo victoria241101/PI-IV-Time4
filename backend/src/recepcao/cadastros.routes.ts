@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: implementa cadastros administrativos, busca CPF e previne reenvios duplicados.
 
 import { Router, type RequestHandler } from 'express';
 import { ObjectId, MongoServerError, type Db, type MongoClient, type Document } from 'mongodb';

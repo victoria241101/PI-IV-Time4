@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Componentes padronizados da clínica.
 // Cards, botões, títulos e resumos usados nos três fluxos da clínica.
 import 'package:flutter/material.dart';
 import 'package:pet_care/core/tema/cores_app.dart';

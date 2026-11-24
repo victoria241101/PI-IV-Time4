@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: lista consultas por data com paginação e visibilidade por perfil.
 import { criarLeituraProntuario } from './prontuarioClinico.js';
 import { completarNomesAgenda } from './nomesAgenda.js';
 import { Router, type RequestHandler } from "express";

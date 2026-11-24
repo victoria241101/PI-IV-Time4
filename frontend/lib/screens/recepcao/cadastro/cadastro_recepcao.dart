@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Etapas de cadastro de tutor/pet, CPF, escolha do animal, API e resultado.
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 // fluxo de cadastro de tutor e pet pela recepção
 import 'package:flutter/material.dart';

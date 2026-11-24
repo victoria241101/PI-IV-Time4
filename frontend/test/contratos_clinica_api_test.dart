@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: contratos de serviços com API: URLs, métodos, payloads, estados, paginação e respostas inválidas.
 import 'package:flutter/foundation.dart';
 import 'package:pet_care/core/constantes/api_config.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Validação de sessão e perfil autorizado.
 import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';
 

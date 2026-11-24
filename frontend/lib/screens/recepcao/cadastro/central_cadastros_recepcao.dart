@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Menu de cadastros de tutor/pet, funcionário e campanha.
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:flutter/material.dart';
 import 'package:pet_care/controle/cadastros_recepcao_local.dart';

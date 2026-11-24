@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Etapa visual de encaminhamento para triagem ou agendamento.
 // etapa final do cadastro para encaminhamento ou agendamento de consulta
 import 'package:flutter/material.dart';
 

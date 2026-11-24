@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: retorno/reutilização de ID do atendimento, inclusive reabertura sem duplicar gravação.
 import 'package:pet_care/modelos/prontuario_compartilhado.dart';
 
 import 'dart:convert';

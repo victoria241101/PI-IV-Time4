@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Apresentação visual do estado de registros.
 // Etiqueta global de status; preserva as cores, os textos e o tamanho compacto.
 import 'package:flutter/material.dart';
 

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Início da enfermagem, fila de triagens, indicadores e ações permitidas, reaproveitando a estrutura do veterinário.
 // inicio do enfermeiro com agenda e triagem dos atendimentos
 import 'package:flutter/material.dart';
 

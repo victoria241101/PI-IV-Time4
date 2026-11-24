@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Prontuário de internação, procedimentos, doses, notas e alta, usado também pela enfermagem.
 // Prontuário compartilhado: evolução do pet, cuidados e dados da admissão.
 import 'dart:async';
 import 'package:flutter/material.dart';

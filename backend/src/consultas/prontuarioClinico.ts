@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: protege a leitura clínica e retorna o ID do atendimento.
 import { Router, type RequestHandler } from 'express';
 import { ObjectId, type Db } from 'mongodb';
 import { permitirFuncoes } from '../middlewares/permissoes.middleware.js';

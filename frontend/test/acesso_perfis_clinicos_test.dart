@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: autenticação, restauração de sessão, direcionamento por perfil, bloqueio de acesso e logout.
 import 'package:pet_care/widgets/clinica/layout_clinica.dart';
 import 'package:pet_care/screens/gerais/perfil_geral.dart';
 import 'package:pet_care/widgets/cabecalho_petcare.dart';

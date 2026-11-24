@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Formulários de funcionário/campanha, envio à API e banner indisponível.
 import 'package:pet_care/controle/sessao_usuario.dart';
 import 'package:pet_care/services/clinica/cadastros_recepcao_service.dart';
 import 'package:pet_care/core/constantes/api_config.dart';

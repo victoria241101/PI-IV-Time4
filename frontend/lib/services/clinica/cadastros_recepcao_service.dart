@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Cadastros de tutor/pet/funcionário e busca por CPF.
 import 'package:pet_care/core/constantes/api_config.dart';
 
 import 'dart:convert';

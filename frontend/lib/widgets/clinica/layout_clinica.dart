@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Layout comum dos fluxos clínicos.
 // Estrutura comum das abas, do cabeçalho e da navegação dos três fluxos.
 import 'package:flutter/material.dart';
 import 'package:pet_care/controle/sessao_usuario.dart';

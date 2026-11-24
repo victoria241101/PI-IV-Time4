@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Tipos, resultados e estruturas locais de cadastro, sem persistência de banco/API.
 // Armazenamento em memória para revisão do front. Não cria contas nem publica dados.
 enum TipoCadastroRecepcao { funcionario, tutorPet, campanha, banner }
 

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Calendário, consultas da data e recursos de agendamento.
 // calendário para consultar, cancelar e reagendar consultas
 import 'package:flutter/material.dart';
 

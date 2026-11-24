@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: internações, prontuário compartilhado, autoria de notas/doses, versão, permissões e alta.
 import assert from 'node:assert/strict';
 import test, { type TestContext } from 'node:test';
 import express from 'express';

@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: sessão expirada no cadastro de funcionário e retorno ao login.
 import 'dart:async';
 
 import 'package:flutter/material.dart';

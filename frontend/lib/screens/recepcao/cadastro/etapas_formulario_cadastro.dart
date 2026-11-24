@@ -1,3 +1,5 @@
+// Autoria: Alycia Santos Bond — RA: 25016465
+// Responsabilidade: Campos de tutor e pet, dados, espécie, nascimento e microchip.
 // formulários de dados do responsável e perfil do pet
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
