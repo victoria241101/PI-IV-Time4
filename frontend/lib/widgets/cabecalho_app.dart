@@ -1,4 +1,7 @@
-
+/*
+ * Aluna: Victoria Beatriz Nobre Andrade
+ * RA: 2516398
+ */
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/widgets/cabecalho_petcare.dart';
