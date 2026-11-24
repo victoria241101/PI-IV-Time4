@@ -1,4 +1,7 @@
-
+/*
+ * Aluna: Victoria Beatriz Nobre Vendrade
+ * RA: 25163/08
+ */
 import 'package:flutter/material.dart';
 
 import 'package:pet_care/controle/sessao_usuario.dart';

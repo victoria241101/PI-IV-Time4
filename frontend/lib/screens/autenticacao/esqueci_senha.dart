@@ -1,4 +1,7 @@
-
+/*
+ * Aluna: Victoria Beatriz Nobre Andrade
+ * RA: 2516398
+ */
 import 'package:flutter/material.dart';
 import 'package:pet_care/screens/autenticacao/service/auth_service.dart';
 import 'package:pet_care/core/tema/cores_app.dart';
