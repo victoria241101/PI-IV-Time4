@@ -9,6 +9,7 @@ import petcare.servidor.servicos.HashSenhaService;
 import petcare.servidor.servicos.VacinaService;
 
 import com.google.gson.Gson;
+import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
@@ -22,6 +23,8 @@ import java.io.PrintWriter;
 import java.net.Socket;
 import java.net.SocketTimeoutException;
 import java.nio.charset.StandardCharsets;
+import java.util.Locale;
+import java.util.Map;
 
 /**
  * Manipulador de conexão de cliente individual (executado em uma thread do ExecutorService).
@@ -74,6 +77,9 @@ public class ClienteHandler implements Runnable {
                 ? socket.getRemoteSocketAddress().toString()
                 : "desconhecido";
 
+        System.out.println("[ClienteHandler] Atendimento iniciado para " + enderecoCliente
+                + ". Aguardando requisição (timeout: " + SO_TIMEOUT_MS + " ms)...");
+
         try (Socket s = this.socket) {
             // Configura timeout de leitura do socket (5 segundos)
             s.setSoTimeout(SO_TIMEOUT_MS);
@@ -110,6 +116,7 @@ public class ClienteHandler implements Runnable {
 
                 System.out.println(
                     "[ClienteHandler] Requisição recebida de " + enderecoCliente
+                            + " (" + linhaRecebida.length() + " caracteres)."
                 );
 
                 JsonObject respostaJson;
@@ -119,6 +126,8 @@ public class ClienteHandler implements Runnable {
                     JsonElement elemento = JsonParser.parseString(linhaRecebida);
 
                     if (!elemento.isJsonObject()) {
+                        System.err.println("[ClienteHandler] Erro de entrada de " + enderecoCliente
+                                + ": raiz do JSON não é um objeto.");
                         respostaJson = respostaErro(CodigoErro.JSON_INVALIDO,
                                 "Requisição inválida: esperava-se um objeto JSON na raiz.");
                     } else {
@@ -126,29 +135,45 @@ public class ClienteHandler implements Runnable {
 
                         // 1. Validação do campo 'comando'
                         if (!requisicao.has("comando") || requisicao.get("comando").isJsonNull()) {
+                            System.err.println("[ClienteHandler] Erro de entrada de " + enderecoCliente
+                                    + ": campo 'comando' ausente ou nulo.");
                             respostaJson = respostaErro(CodigoErro.COMANDO_AUSENTE,
                                     "Campo 'comando' é obrigatório.");
                         } else if (!requisicao.get("comando").isJsonPrimitive()
                                 || !requisicao.get("comando").getAsJsonPrimitive().isString()) {
+                            System.err.println("[ClienteHandler] Erro de entrada de " + enderecoCliente
+                                    + ": campo 'comando' não é uma string.");
                             respostaJson = respostaErro(CodigoErro.COMANDO_AUSENTE,
                                     "Campo 'comando' deve ser uma string.");
                         } else {
                             String comandoBruto = requisicao.get("comando").getAsString();
-                            String comando = comandoBruto.trim().toUpperCase();
+                            String comando = comandoBruto.trim().toUpperCase(Locale.ROOT);
 
                             if (comando.isEmpty()) {
+                                System.err.println("[ClienteHandler] Erro de entrada de " + enderecoCliente
+                                        + ": campo 'comando' vazio.");
                                 respostaJson = respostaErro(CodigoErro.COMANDO_AUSENTE,
                                         "Campo 'comando' não pode ser vazio.");
                             } else {
+                                System.out.println("[ClienteHandler] Comando identificado de " + enderecoCliente + ": " + comando);
+
                                 // 2. Validação do campo 'dados'
                                 // No protocolo PetCare, todos os comandos exigem o objeto 'dados'
                                 if (!requisicao.has("dados")
                                         || requisicao.get("dados").isJsonNull()
                                         || !requisicao.get("dados").isJsonObject()) {
+                                    System.err.println("[ClienteHandler] Erro de entrada de " + enderecoCliente
+                                            + " (" + comando + "): campo 'dados' ausente ou inválido.");
                                     respostaJson = respostaErro(CodigoErro.DADOS_INVALIDOS,
                                             "Campo 'dados' ausente ou inválido: deve ser um objeto JSON.");
                                 } else {
                                     JsonObject dados = requisicao.getAsJsonObject("dados");
+                                    System.out.println("[ClienteHandler] Dados de entrada de " + enderecoCliente
+                                            + " (" + comando + "): " + sanitizarDadosParaLog(dados));
+                                    System.out.println("[ClienteHandler] Processando comando '" + comando
+                                            + "' para " + enderecoCliente + "...");
+
+                                    long inicioProcessamentoNs = System.nanoTime();
 
                                     // 3. Roteamento do comando normalizado via switch
                                     switch (comando) {
@@ -180,10 +205,16 @@ public class ClienteHandler implements Runnable {
                                             break;
 
                                         default:
+                                            System.err.println("[ClienteHandler] Comando desconhecido recebido de "
+                                                    + enderecoCliente + ": " + comandoBruto);
                                             respostaJson = respostaErro(CodigoErro.COMANDO_DESCONHECIDO,
                                                     "Comando desconhecido: " + comandoBruto);
                                             break;
                                     }
+
+                                    long duracaoMs = (System.nanoTime() - inicioProcessamentoNs) / 1_000_000L;
+                                    System.out.println("[ClienteHandler] Processamento de '" + comando
+                                            + "' para " + enderecoCliente + " finalizado em " + duracaoMs + " ms.");
                                 }
                             }
                         }
@@ -249,6 +280,46 @@ public class ClienteHandler implements Runnable {
             return null;
         }
         return sb.toString();
+    }
+
+    /**
+     * Serializa o objeto JsonObject de entrada mascarando campos sensíveis (como 'senha')
+     * antes de exibi-lo nos logs do servidor.
+     *
+     * @param dados Objeto JSON de dados recebido na requisição
+     * @return Representação JSON segura para log
+     */
+    private static String sanitizarDadosParaLog(JsonObject dados) {
+        if (dados == null) {
+            return "null";
+        }
+        return gson.toJson(sanitizarElemento(dados));
+    }
+
+    private static JsonElement sanitizarElemento(JsonElement elemento) {
+        if (elemento == null || elemento.isJsonNull()) {
+            return elemento;
+        }
+        if (elemento.isJsonObject()) {
+            JsonObject copia = new JsonObject();
+            for (Map.Entry<String, JsonElement> entry : elemento.getAsJsonObject().entrySet()) {
+                String chave = entry.getKey();
+                if (chave != null && chave.toLowerCase(Locale.ROOT).contains("senha")) {
+                    copia.addProperty(chave, "***");
+                } else {
+                    copia.add(chave, sanitizarElemento(entry.getValue()));
+                }
+            }
+            return copia;
+        }
+        if (elemento.isJsonArray()) {
+            JsonArray copia = new JsonArray();
+            for (JsonElement item : elemento.getAsJsonArray()) {
+                copia.add(sanitizarElemento(item));
+            }
+            return copia;
+        }
+        return elemento;
     }
 
     /**

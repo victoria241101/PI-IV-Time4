@@ -15,9 +15,15 @@ O servidor Java é um serviço isolado de cálculo sem estado (*stateless*). Ele
 - **Ciclo de vida da conexão:** Uma requisição por conexão (estilo *request-response*). O cliente conecta, envia uma linha contendo a requisição JSON terminada em `\n`, o servidor processa, envia uma linha com a resposta JSON terminada em `\n` e encerra a conexão de socket imediatamente no bloco `finally`.
 - **Timeout de leitura (`SO_TIMEOUT`):** `5000 ms` (5 segundos). Se o cliente conectar e não concluir o envio da linha dentro desse período, a conexão é encerrada com erro `JSON_INVALIDO`.
 - **Tamanho máximo de requisição:** `64 KB` (65.536 caracteres / bytes). Linhas que excederem esse limite disparam `LinhaMuitoGrandeException`, sendo rejeitadas com erro `JSON_INVALIDO` e a conexão é encerrada.
-- **Segurança e Logs:** Por trafegar senhas em texto puro no JSON pelo socket local da máquina nas operações de cálculo e verificação de hash, o log do `ClienteHandler` propositalmente não imprime a linha recebida (`linhaRecebida`). O log registra apenas o endereço do cliente e a resposta enviada:
+- **Segurança e Logs:** Por trafegar senhas em texto puro no JSON pelo socket local da máquina nas operações de cálculo e verificação de hash, o log do `ClienteHandler` propositalmente não imprime a linha bruta recebida (`linhaRecebida`) e mascara qualquer campo relacionado a senha (`"***"`) antes de exibir os dados de entrada. O console registra entrada, processamento e saída no formato:
   ```
-  [ClienteHandler] Requisição recebida de <enderecoCliente>
+  [ClienteHandler] Atendimento iniciado para <enderecoCliente>. Aguardando requisição (timeout: 5000 ms)...
+  [ClienteHandler] Requisição recebida de <enderecoCliente> (<N> caracteres).
+  [ClienteHandler] Comando identificado de <enderecoCliente>: <COMANDO>
+  [ClienteHandler] Dados de entrada de <enderecoCliente> (<COMANDO>): <dadosSanitizados>
+  [ClienteHandler] Processando comando '<COMANDO>' para <enderecoCliente>...
+  [<NomeService>] ... (etapas e resultado do processamento)
+  [ClienteHandler] Processamento de '<COMANDO>' para <enderecoCliente> finalizado em <X> ms.
   [ClienteHandler] Resposta enviada para <enderecoCliente>: <linhaResposta>
   [ClienteHandler] Conexão com <enderecoCliente> encerrada.
   ```

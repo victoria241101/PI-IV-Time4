@@ -36,10 +36,13 @@ public class HashSenhaService {
     /** ponto de entrada chamado pelo clientehandler. nunca loga a senha */
     // recebe a senha pelo json e devolve apenas o hash no campo dados
     public static JsonObject gerar(JsonObject dados) {
+        System.out.println("[HashSenhaService] Iniciando geração de hash de senha...");
+
         // confere se existe uma senha em formato de texto antes de ler o valor
         if (dados == null || !dados.has("senha") || dados.get("senha").isJsonNull()
                 || !dados.get("senha").isJsonPrimitive()
                 || !dados.get("senha").getAsJsonPrimitive().isString()) {
+            System.err.println("[HashSenhaService] Erro de validação: campo 'senha' ausente ou inválido.");
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS,
                     "Campo 'senha' é obrigatório e deve ser uma string.");
         }
@@ -47,10 +50,13 @@ public class HashSenhaService {
         String senha = dados.get("senha").getAsString();
         // rejeita texto vazio mesmo quando o campo é uma string válida
         if (senha.isEmpty()) {
+            System.err.println("[HashSenhaService] Erro de validação: campo 'senha' vazio.");
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS, "Senha vazia.");
         }
 
+        System.out.println("[HashSenhaService] Derivando hash seguro via " + ALGORITMO + " (" + ITERACOES + " iterações)...");
         String hash = gerarHash(senha);
+        System.out.println("[HashSenhaService] Hash gerado com sucesso.");
 
         // monta o json de sucesso com o hash que será guardado pelo sistema
         JsonObject resposta = ClienteHandler.respostaOk("Hash gerado com sucesso.");
@@ -98,6 +104,7 @@ public class HashSenhaService {
 
     // recebe senha e hash pelo json e devolve o resultado da conferência
     public static JsonObject verificar(JsonObject dados) {
+    System.out.println("[HashSenhaService] Iniciando verificação de senha...");
     JsonObject resposta = new JsonObject();
 
     // valida se os dois campos existem e são textos
@@ -110,6 +117,7 @@ public class HashSenhaService {
         !dados.get("hash").isJsonPrimitive() ||
         !dados.get("hash").getAsJsonPrimitive().isString()
     ) {
+        System.err.println("[HashSenhaService] Erro de validação: campos 'senha' ou 'hash' ausentes/inválidos.");
         resposta.addProperty("status", "ERRO");
         resposta.addProperty("codigo", "DADOS_INVALIDOS");
         resposta.addProperty("mensagem", "Senha ou hash inválido.");
@@ -124,14 +132,18 @@ public class HashSenhaService {
 
     // chama a versão que compara a senha com o hash salvo
     try {
+        System.out.println("[HashSenhaService] Validando senha contra hash salvo em tempo constante...");
         senhaCorreta = verificar(senha, hash);
     // trata formatos que falham na leitura das iterações ou na conversão dos dados
     } catch (RuntimeException e) {
+        System.err.println("[HashSenhaService] Erro ao interpretar formato do hash salvo: " + e.getMessage());
         resposta.addProperty("status", "ERRO");
         resposta.addProperty("codigo", "DADOS_INVALIDOS");
         resposta.addProperty("mensagem", "Não foi possível verificar a senha.");
         return resposta;
     }
+
+    System.out.println("[HashSenhaService] Verificação concluída -> senha válida: " + senhaCorreta);
 
     // a verificação pode terminar com sucesso mesmo quando a senha está incorreta
     resposta.addProperty("status", "OK");

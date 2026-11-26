@@ -53,8 +53,11 @@ public class VacinaService {
 
     // ponto de entrada chamado pelo clientehandler 
     public static JsonObject calcularStatus(JsonObject dados) {
+        System.out.println("[VacinaService] Iniciando cálculo de status de vacina...");
+
         // sem o objeto de dados, não tem como processar a requisição
         if (dados == null) {
+            System.err.println("[VacinaService] Erro de validação: campo 'dados' ausente.");
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS, "Campo 'dados' ausente.");
         }
 
@@ -71,12 +74,18 @@ public class VacinaService {
 
             // sem aplicação registrada, a vacina fica pendente e não tem próxima dose calculada
             LocalDate ultimaAplicacao = lerData(dados, "dataUltimaAplicacao");
+            System.out.println("[VacinaService] Parâmetros validados: dataReferencia=" + referencia
+                    + ", diasAlerta=" + diasAlerta
+                    + ", dataUltimaAplicacao=" + (ultimaAplicacao != null ? ultimaAplicacao : "não informada"));
+
             if (ultimaAplicacao == null) {
+                System.out.println("[VacinaService] Nenhuma aplicação anterior registrada. Status definido como: " + PENDENTE);
                 return montarResposta(PENDENTE, null, null);
             }
 
             // só exige o intervalo quando existe uma aplicação anterior
             int intervaloDias = lerInteiro(dados, "intervaloDias", null, 1, LIMITE_DIAS);
+            System.out.println("[VacinaService] Calculando próxima dose com intervaloDias=" + intervaloDias + "...");
 
             // impede que uma aplicação futura seja tratada como uma dose já tomada
             if (ultimaAplicacao.isAfter(referencia)) {
@@ -100,10 +109,14 @@ public class VacinaService {
                 status = EM_DIA;
             }
 
+            System.out.println("[VacinaService] Cálculo concluído -> statusVacina=" + status
+                    + ", dataProximaDose=" + proximaDose + ", diasRestantes=" + diasRestantes);
+
             return montarResposta(status, proximaDose, diasRestantes);
 
         } catch (IllegalArgumentException e) {
             // devolve a mensagem da validação como erro de dados inválidos
+            System.err.println("[VacinaService] Falha na validação dos dados: " + e.getMessage());
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS, e.getMessage());
         }
     }

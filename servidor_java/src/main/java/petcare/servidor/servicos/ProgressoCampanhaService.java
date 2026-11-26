@@ -72,21 +72,33 @@ public class ProgressoCampanhaService {
      * @return JsonObject com a resposta formatada no protocolo PetCare
      */
     public static JsonObject calcularProgresso(JsonObject dados) {
+        System.out.println("[ProgressoCampanhaService] Iniciando cálculo de progresso da campanha...");
+
         if (dados == null) {
+            System.err.println("[ProgressoCampanhaService] Erro de validação: campo 'dados' ausente.");
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS, "Campo 'dados' ausente.");
         }
 
         try {
             BigDecimal valorArrecadado = lerValorArrecadado(dados);
             BigDecimal metaValor = lerMetaValor(dados);
+            System.out.println("[ProgressoCampanhaService] Parâmetros validados: valorArrecadado="
+                    + valorArrecadado.toPlainString() + ", metaValor=" + metaValor.toPlainString());
 
             ResultadoProgresso resultado = calcular(valorArrecadado, metaValor);
+            System.out.println("[ProgressoCampanhaService] Cálculo concluído -> porcentagem="
+                    + resultado.getPorcentagem().toPlainString()
+                    + "%, porcentagemExibicao=" + resultado.getPorcentagemExibicao().toPlainString()
+                    + "%, valorRestante=" + resultado.getValorRestante().toPlainString()
+                    + ", statusProgresso=" + resultado.getStatusProgresso());
 
             return montarResposta(resultado);
 
         } catch (IllegalArgumentException e) {
+            System.err.println("[ProgressoCampanhaService] Falha na validação dos dados: " + e.getMessage());
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS, e.getMessage());
         } catch (Exception e) {
+            System.err.println("[ProgressoCampanhaService] Erro ao processar dados: " + e.getMessage());
             return ClienteHandler.respostaErro(CodigoErro.DADOS_INVALIDOS, "Dados inválidos: " + e.getMessage());
         }
     }
